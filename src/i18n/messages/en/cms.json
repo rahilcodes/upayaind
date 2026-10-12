@@ -1,1 +1,166 @@
-{}
+{
+  "cms": {
+    "title": "Content",
+    "description": "Pages, legal, blog, success stories, FAQ, team and landing pages for the public website.",
+    "kinds": {
+      "PAGE": "Pages",
+      "LEGAL": "Legal",
+      "BLOG": "Blog",
+      "STORY": "Success stories",
+      "FAQ": "FAQ",
+      "TEAM": "Team",
+      "LANDING": "Landing pages"
+    },
+    "kindOne": {
+      "PAGE": "page",
+      "LEGAL": "legal page",
+      "BLOG": "blog post",
+      "STORY": "success story",
+      "FAQ": "FAQ",
+      "TEAM": "team member",
+      "LANDING": "landing page"
+    },
+    "kindHelp": {
+      "PAGE": "Use the slug “about” for the founder note on the About page.",
+      "LEGAL": "Privacy, Terms, Refund, Guarantee and Cookies. They must be published with client-approved text before launch.",
+      "BLOG": "Articles at /blog/<slug>.",
+      "STORY": "Real students only, shared with their consent. Shown on the homepage and /success-stories.",
+      "FAQ": "The title is the question and the body is the answer. Order with “Sort order”.",
+      "TEAM": "Team grid on the About page.",
+      "LANDING": "Audience pages at /for/<slug>, linked from “Who it’s for”."
+    },
+    "kindsNav": "Content types",
+    "new": "New {kind}",
+    "empty": "Nothing here yet.",
+    "colTitle": "Title",
+    "colSlug": "Slug",
+    "colStatus": "Status",
+    "colUpdated": "Updated",
+    "colOrder": "Order",
+    "published": "Published",
+    "draft": "Draft",
+    "noindex": "noindex",
+    "edit": "Edit",
+    "view": "View live",
+    "back": "All {kind}",
+    "editTitle": "Edit {kind}",
+    "newTitle": "New {kind}",
+    "fields": {
+      "title": "Title",
+      "titleFaq": "Question",
+      "titleStory": "Headline",
+      "slug": "Slug",
+      "slugHint": "Lowercase letters, numbers and hyphens. URL: {path}",
+      "slugGenerate": "Generate from title",
+      "excerpt": "Summary",
+      "excerptHint": "Shown on cards and used as the meta description if none is set.",
+      "body": "Content",
+      "bodyFaq": "Answer",
+      "sortOrder": "Sort order",
+      "sortOrderHint": "Lower numbers appear first."
+    },
+    "seo": {
+      "title": "SEO",
+      "seoTitle": "SEO title",
+      "seoTitleHint": "{count}/60 characters. Defaults to the title.",
+      "seoDescription": "Meta description",
+      "seoDescriptionHint": "{count}/155 characters.",
+      "canonical": "Canonical URL",
+      "canonicalHint": "Leave empty unless this content also lives elsewhere.",
+      "ogImage": "Social image (1200×630)",
+      "ogImageHint": "Optional. A branded image is generated automatically if empty.",
+      "noindex": "Hide from search engines (noindex)",
+      "googlePreview": "Search preview"
+    },
+    "story": {
+      "title": "Story details",
+      "studentName": "Student name",
+      "role": "Role",
+      "company": "Company",
+      "companyDomain": "Company website",
+      "companyDomainHint": "e.g. example.com (optional)",
+      "weeksToOffer": "Weeks to offer",
+      "applicationsSent": "Applications sent",
+      "quote": "Quote",
+      "photo": "Photo",
+      "videoUrl": "Video (YouTube or Vimeo link)",
+      "consent": "The student agreed in writing to share this story, name and photo."
+    },
+    "team": {
+      "title": "Team member",
+      "name": "Name",
+      "role": "Role",
+      "photo": "Photo",
+      "linkedin": "LinkedIn URL"
+    },
+    "image": {
+      "upload": "Upload image",
+      "replace": "Replace",
+      "remove": "Remove",
+      "dialogTitle": "Add an image",
+      "file": "Image (PNG or JPG, up to 5 MB)",
+      "alt": "Alt text",
+      "altHint": "Describe what the image shows for people using screen readers. Required.",
+      "altRequired": "Alt text is required.",
+      "insert": "Upload and insert",
+      "uploading": "Uploading…",
+      "editAlt": "Edit alt text"
+    },
+    "toolbar": {
+      "label": "Formatting",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strike": "Strikethrough",
+      "h2": "Heading",
+      "h3": "Subheading",
+      "h4": "Small heading",
+      "paragraph": "Paragraph",
+      "bulletList": "Bulleted list",
+      "orderedList": "Numbered list",
+      "blockquote": "Quote",
+      "code": "Code",
+      "hr": "Divider",
+      "link": "Link",
+      "unlink": "Remove link",
+      "image": "Image",
+      "undo": "Undo",
+      "redo": "Redo",
+      "linkPrompt": "Link URL (https://… or /path)",
+      "linkInvalid": "Use an https:// link, a mailto: address or a path starting with /."
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving…",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "delete": "Delete",
+      "deleteConfirm": "Delete “{title}”? It will be removed from the website.",
+      "preview": "Preview",
+      "edit": "Edit",
+      "unsaved": "Unsaved changes",
+      "saveFirst": "Save before publishing.",
+      "savedAt": "Saved"
+    },
+    "preview": {
+      "title": "Preview",
+      "note": "Rendered with the same sanitiser as the live site.",
+      "missingAlt": "Some images have no alt text. Add it before saving."
+    },
+    "revisions": {
+      "title": "Version history",
+      "sub": "The last {max} saved versions.",
+      "empty": "Earlier versions appear here after you save changes.",
+      "by": "by {name}",
+      "restore": "Restore",
+      "restoreConfirm": "Restore this version? The current version is kept in history."
+    },
+    "status": {
+      "title": "Status",
+      "live": "Live on the website",
+      "draft": "Not published",
+      "publishedOn": "First published {date}",
+      "noPage": "This content appears inside other pages."
+    }
+  }
+}

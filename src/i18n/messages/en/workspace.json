@@ -1,1 +1,280 @@
-{}
+{
+  "workspace": {
+    "metaTitle": "Application workspace",
+    "noAccessTitle": "This student isn't assigned to you",
+    "noAccessBody": "You can only work on students who are actively assigned to you. Ask your manager if you think this is a mistake.",
+    "backToStudents": "Back to my students",
+    "backToStudent": "{name}",
+    "title": "New application for {name}",
+    "header": {
+      "target": "Target {n}/day",
+      "letter": "Letter",
+      "inactive": "Subscription inactive",
+      "aiOff": "AI not configured",
+      "todayLabel": "Today:",
+      "forName": "for {name}",
+      "progressLabel": "Today's target: {pct}% done"
+    },
+    "quickLog": "Quick log",
+    "bulkImport": "Bulk import CSV",
+    "inactive": {
+      "short": "The subscription isn't active, so applications can't be logged.",
+      "title": "Applications are paused for this student",
+      "body": "{name}'s subscription is {status}. You can look around, but generating resumes and logging applications are disabled until it's active again.",
+      "none": "not set up"
+    },
+    "noMaster": {
+      "title": "No master profile yet",
+      "body": "{name} hasn't finished the resume step of onboarding, so there's nothing to tailor from. You can still use Quick log once a base resume exists."
+    },
+    "job": {
+      "heading": "Job details",
+      "collapse": "Hide",
+      "expand": "Edit job",
+      "legend": "Job details",
+      "url": "Job URL",
+      "urlInvalid": "That doesn't look like a valid URL.",
+      "urlHint": "Tracking parameters are removed automatically.",
+      "openJob": "Open",
+      "company": "Company",
+      "title": "Job title",
+      "location": "Location",
+      "locationPlaceholder": "e.g. Austin, TX or Remote",
+      "source": "Source",
+      "workMode": "Work mode",
+      "employmentType": "Employment type",
+      "notSpecified": "Not specified",
+      "jd": "Job description",
+      "jdTooLong": "Too long — the limit is {max} characters.",
+      "jdTooShort": "Paste the full description (at least {min} characters).",
+      "jdHint": "Paste the full description, including requirements.",
+      "jdCount": "{n} / {max}",
+      "jdPlaceholder": "Paste the job description here…"
+    },
+    "duplicates": {
+      "checking": "Checking for duplicates…",
+      "blockedUrl": "Already applied",
+      "blockedAvoid": "Company on the avoid list",
+      "similarTitle": "Possible duplicate",
+      "match": "{pct}% match",
+      "confirmSimilar": "It's a different job — log it anyway"
+    },
+    "generate": "Generate tailored resume",
+    "regenerate": "Regenerate",
+    "aiOffHint": "AI isn't configured on this server: you'll get the base resume with keyword analysis, which you can edit before applying.",
+    "logged": {
+      "title": "Application logged",
+      "body": "{name} can now see it on their dashboard with this exact resume. The resume is locked."
+    },
+    "newApplication": "New application",
+    "markApplied": "Mark as applied",
+    "toolbar": {
+      "before": "Paste a job description and generate to see the score.",
+      "pagesOver": "{pages} pages (max {max})",
+      "pdf": "PDF",
+      "docx": "DOCX",
+      "locked": "Locked"
+    },
+    "tabs": {
+      "preview": "Preview",
+      "edit": "Edit",
+      "keywords": "Keywords",
+      "keywordsShort": "Keywords",
+      "cover": "Cover letter",
+      "coverShort": "Letter"
+    },
+    "editor": {
+      "emptyTitle": "Nothing to edit yet",
+      "emptyBody": "Generate a tailored resume first. You can then reorder, rephrase and trim everything here.",
+      "bullets": "Bullet points",
+      "moveUp": "Move item {n} up",
+      "moveDown": "Move item {n} down",
+      "deleteBullet": "Delete bullet {n}",
+      "sectionUp": "Move {section} up",
+      "sectionDown": "Move {section} down",
+      "showSection": "Show {section}",
+      "hideSection": "Hide {section}",
+      "skillGroupName": "Skill group name",
+      "removeSkill": "Remove {skill}",
+      "addSkill": "Add a skill from the profile",
+      "addSkillFromProfile": "+ Add from profile",
+      "skillsHint": "Only skills from the student's profile can be added.",
+      "factsLocked": "Company, title and dates come from the master profile and can't be changed",
+      "removeRole": "Remove {role}",
+      "bulletLabel": "Bullet {n} for {role}",
+      "addBullet": "Add bullet",
+      "restoreBullets": "Restore {n, plural, one {# bullet} other {# bullets}}",
+      "removedRoles": "Removed roles (add back if the gap matters)",
+      "removeItem": "Remove {item}",
+      "projectDescription": "Description of {item}",
+      "removedItems": "Removed items"
+    },
+    "keywords": {
+      "emptyTitle": "No keywords yet",
+      "emptyBody": "Keyword coverage appears after you generate a tailored resume.",
+      "title": "JD keywords",
+      "summary": "{covered} of {total} covered",
+      "covered": "Covered",
+      "missing": "Missing — suggestions only",
+      "required": "required",
+      "nice": "nice to have",
+      "none": "None yet.",
+      "inProfile": "This is in the student's profile — consider surfacing it.",
+      "notInProfile": "Not in the student's profile. Don't add it.",
+      "inProfileShort": "in profile",
+      "missingHint": "Never add skills the student doesn't have. If a missing keyword is genuinely in their experience, rephrase a bullet to mention it."
+    },
+    "cover": {
+      "emptyTitle": "No cover letter yet",
+      "emptyBody": "Generate a tailored resume first.",
+      "title": "Cover letter",
+      "aiOff": "AI isn't configured — write the letter manually.",
+      "generate": "Generate",
+      "regenerate": "Regenerate",
+      "copy": "Copy",
+      "copied": "Cover letter copied",
+      "copyFailed": "Couldn't copy — select the text and copy it manually.",
+      "placeholder": "Generate a cover letter or write one here (optional).",
+      "placeholderManual": "Write a short cover letter here (optional).",
+      "saving": "Saving…",
+      "rules": "Max 250 words. Same truthfulness rules as the resume.",
+      "words": "{n} / 250 words"
+    },
+    "errors": {
+      "formIncomplete": "Fill in the job URL, company, title and a job description of at least {min} characters.",
+      "generic": "Generation failed. Please try again.",
+      "noResume": "Generate a tailored resume first.",
+      "validationBlocks": "Fix the truthfulness problems in the editor before marking as applied."
+    },
+    "aiOffToast": "AI isn't configured, so the base resume was loaded for editing.",
+    "validationFailedToast": "The resume failed the truthfulness check — fix the highlighted items.",
+    "generatedToast": "Tailored resume ready · ATS {score}",
+    "loggedToast": "Logged {company} · today {applied}/{target}",
+    "confirmDiscard": "Discard this tailored resume and start a new application?",
+    "alreadyLogged": "Already logged. Press N for a new application.",
+    "save": {
+      "dirty": "Unsaved changes",
+      "saving": "Saving…",
+      "saved": "All changes saved",
+      "error": "Couldn't save"
+    },
+    "preview": {
+      "tailored": "Tailored resume",
+      "base": "Base resume",
+      "emptyTitle": "No resume to preview",
+      "emptyBody": "The student's master profile is missing.",
+      "pages": "{n, plural, one {# page} other {# pages}} · max {max}",
+      "pageAlt": "Resume preview, page {n}",
+      "loading": "Rendering preview…"
+    },
+    "recent": {
+      "title": "Recent applications",
+      "download": "Download the resume used for {company}"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "generate": "Generate tailored resume",
+      "mark": "Mark as applied",
+      "new": "New application",
+      "move": "Move the focused bullet"
+    },
+    "score": {
+      "breakdown": "ATS match breakdown",
+      "keywords": "Keyword coverage",
+      "title": "Title match",
+      "skills": "Skills overlap",
+      "format": "Format checks",
+      "check": {
+        "headings": "Standard sections present",
+        "noTablesOrImages": "No tables or images in the body",
+        "length": "Within the page limit",
+        "contact": "Contact details present"
+      },
+      "disclaimer": "A guide for you, not a promise to the student.",
+      "aria": "ATS score: base {base}, tailored {tailored}. Show breakdown",
+      "base": "Base",
+      "tailored": "Tailored"
+    },
+    "validation": {
+      "passed": "Truthfulness check passed",
+      "passedBody": "Every company, title, date and skill matches the master profile.",
+      "passedRetry": "Passed after an automatic retry. Every fact matches the master profile.",
+      "passedBase": "This is the base resume — tailor it by reordering and rephrasing.",
+      "failed": "{n, plural, one {# truthfulness problem} other {# truthfulness problems}}",
+      "failedBody": "\"Mark as applied\" is blocked until these are fixed in the editor.",
+      "profile": "profile",
+      "resume": "resume"
+    },
+    "steps": {
+      "analysing": "Analysing JD",
+      "tailoring": "Tailoring",
+      "validating": "Checking truthfulness",
+      "scoring": "Scoring",
+      "rendering": "Rendering",
+      "state": {
+        "done": "done",
+        "active": "in progress",
+        "error": "failed",
+        "todo": "pending"
+      }
+    },
+    "proof": {
+      "label": "Proof of application",
+      "optional": "optional",
+      "screenshot": "Screenshot",
+      "pasteText": "Paste email text",
+      "dropHint": "Drop, paste or choose a PNG/JPG (max 3 MB)",
+      "removeFile": "Remove screenshot",
+      "badType": "Only PNG or JPG screenshots are accepted.",
+      "tooBig": "The screenshot is larger than 3 MB.",
+      "textPlaceholder": "Paste the confirmation email text…"
+    },
+    "mark": {
+      "title": "Mark as applied",
+      "description": "{title} at {company} for {name}",
+      "lockNote": "The resume and cover letter are locked as sent.",
+      "studentSees": "{name} sees it on their dashboard right away.",
+      "cancel": "Cancel",
+      "confirm": "Log application"
+    },
+    "quick": {
+      "title": "Quick log",
+      "description": "Log an application without AI, using the base resume or a resume you've already made.",
+      "resume": "Resume used",
+      "resumeHint": "Same duplicate rules apply.",
+      "baseResume": "Base resume (from master profile)",
+      "previousVersions": "Tailored versions",
+      "used": "used",
+      "cancel": "Cancel",
+      "submit": "Log application",
+      "logged": "Logged {company}"
+    },
+    "import": {
+      "metaTitle": "Import applications",
+      "back": "Back to workspace",
+      "title": "Import applications for {name}",
+      "description": "Upload a CSV of applications you made outside the workspace. We check each row with the same duplicate rules before importing.",
+      "stepUpload": "1. Upload CSV",
+      "columns": "Required columns: job_url, company, title. Optional: location, source, applied_at (YYYY-MM-DD), resume_version_id. Rows without a resume use the base resume.",
+      "template": "Download template",
+      "drop": "Drop a CSV here or choose a file",
+      "tooBig": "The CSV is too large (max 2 MB).",
+      "inactive": "The subscription isn't active, so applications can't be imported.",
+      "checking": "Checking rows…",
+      "missingColumns": "Missing column(s): {cols}",
+      "stepReview": "2. Review",
+      "validCount": "{n} ready",
+      "warnCount": "{n} need confirmation",
+      "errorCount": "{n, plural, one {# error} other {# errors}}",
+      "colJob": "Job",
+      "colSource": "Source",
+      "colApplied": "Applied",
+      "colResult": "Check",
+      "ready": "Ready",
+      "confirmWarnings": "Also import the {n} possible duplicates",
+      "errorsSkipped": "Rows with errors are skipped.",
+      "importN": "Import {n, plural, one {# application} other {# applications}}",
+      "done": "Imported {imported} · skipped {skipped}"
+    }
+  }
+}

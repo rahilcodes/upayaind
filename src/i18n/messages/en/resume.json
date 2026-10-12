@@ -1,1 +1,29 @@
-{}
+{
+  "resume": {
+    "kind": {
+      "MASTER_UPLOAD": "Uploaded resume",
+      "BASE": "Base resume",
+      "TAILORED": "Tailored resume"
+    },
+    "download": {
+      "pdf": "Download PDF",
+      "docx": "Download DOCX",
+      "preview": "Preview"
+    },
+    "parse": {
+      "ai": "Read with AI",
+      "heuristic": "Read automatically (no AI) — please review every section",
+      "processing": "Reading your resume…",
+      "failed": "We couldn't read this file. Upload a text-based PDF or DOCX."
+    },
+    "ats": {
+      "label": "ATS match",
+      "baseToTailored": "Base {base} → Tailored {tailored}"
+    },
+    "locked": "Used in an application — can't be changed",
+    "validation": {
+      "ok": "Matches the master profile",
+      "failed": "Doesn't match the master profile"
+    }
+  }
+}

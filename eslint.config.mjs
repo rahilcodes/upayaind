@@ -20,7 +20,7 @@ const eslintConfig = [
     },
   },
   {
-    files: ["src/server/db.ts", "prisma/**", "src/server/**"],
+    files: ["src/server/db.ts", "prisma/**", "src/server/**", "tests/**"],
     rules: { "no-restricted-imports": "off" },
   },
   {

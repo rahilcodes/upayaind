@@ -1,0 +1,111 @@
+/* Marketing-only styles: CMS rich text. Tokens come from globals.css. */
+
+.cms-prose {
+  color: #2b3659;
+  font-size: 17px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.cms-prose > * + * {
+  margin-top: 1.1em;
+}
+.cms-prose h2,
+.cms-prose h3,
+.cms-prose h4 {
+  color: #0b1846;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin-top: 1.8em;
+}
+.cms-prose h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px;
+}
+.cms-prose h3 {
+  font-size: 21px;
+}
+.cms-prose h4 {
+  font-size: 18px;
+}
+.cms-prose a {
+  color: #0a35d6;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cms-prose a:hover {
+  color: #0b1846;
+}
+.cms-prose ul,
+.cms-prose ol {
+  padding-left: 1.4em;
+}
+.cms-prose ul {
+  list-style: disc;
+}
+.cms-prose ol {
+  list-style: decimal;
+}
+.cms-prose li + li {
+  margin-top: 0.4em;
+}
+.cms-prose li > p {
+  margin: 0;
+}
+.cms-prose blockquote {
+  border-left: 3px solid #18b8f2;
+  padding: 0.2em 0 0.2em 1.1em;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.45;
+  color: #0b1846;
+}
+.cms-prose code {
+  font-size: 0.9em;
+  background: #eef0f5;
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+.cms-prose pre {
+  background: #0b1846;
+  color: #e8ecf8;
+  border-radius: 14px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 14px;
+}
+.cms-prose pre code {
+  background: none;
+  padding: 0;
+}
+.cms-prose hr {
+  border: 0;
+  border-top: 1px solid #e6e3d9;
+  margin: 2em 0;
+}
+.cms-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid #e6e3d9;
+}
+.cms-prose strong {
+  color: #0b1846;
+}
+
+/* Tiptap editing surface (admin) uses the same typography as the live site. */
+.cms-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #8a93ad;
+  pointer-events: none;
+  height: 0;
+}
+.cms-editor img.ProseMirror-selectednode {
+  outline: 3px solid #0a35d6;
+}
+.cms-editor .ProseMirror-gapcursor:after {
+  border-top-color: #0b1846;
+}

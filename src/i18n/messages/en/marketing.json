@@ -1,1 +1,670 @@
-{}
+{
+  "marketing": {
+    "meta": {
+      "siteName": "UpayaInd",
+      "homeTitle": "UpayaInd — You’ll never apply to a job again",
+      "homeDescription": "Our specialists apply to 25–50 jobs for you every weekday, each with a resume tailored to the job. Track every application live.",
+      "howTitle": "How UpayaInd works — done-for-you applications",
+      "howDescription": "From sign-up to interviews in four steps: onboarding, your master resume, tailored applications every weekday, and interview prep while we keep going.",
+      "pricingTitle": "Pricing — UpayaInd plans for {country}",
+      "pricingDescription": "Compare UpayaInd plans: tailored job applications every weekday, a live tracking dashboard, a dedicated specialist and interview prep. Prices in {currency}.",
+      "storiesTitle": "Success stories — UpayaInd",
+      "storiesDescription": "Real students who handed their job search to UpayaInd: how long it took, how many applications we sent, and where they were hired.",
+      "storyTitle": "{name}: {role} at {company}",
+      "storyDescription": "{name} was hired as {role} at {company} with UpayaInd. Read the story.",
+      "aboutTitle": "About UpayaInd — our mission and team",
+      "aboutDescription": "UpayaInd takes the busywork out of job hunting: our specialists apply for you with a resume tailored to every job, so you can focus on interviews.",
+      "blogTitle": "Blog — job search advice from UpayaInd",
+      "blogDescription": "Practical advice on resumes, applications and interviews from the UpayaInd team.",
+      "faqTitle": "FAQ — UpayaInd questions, answered",
+      "faqDescription": "How UpayaInd applies for you, how resumes are tailored, what you see on your dashboard, billing, privacy and more.",
+      "contactTitle": "Contact UpayaInd — book a free call",
+      "contactDescription": "Questions about UpayaInd? Send us a message, book a free call or chat with us on WhatsApp. We usually reply within one working day.",
+      "landingDescription": "{title}: UpayaInd applies to jobs for you every weekday with a resume tailored to each role.",
+      "legalDescription": "{title} for UpayaInd, the done-for-you job application service.",
+      "pricingTitleAll": "Pricing — UpayaInd plans",
+      "pricingDescriptionAll": "Compare UpayaInd plans: tailored job applications every weekday, a live tracking dashboard, a dedicated specialist and interview prep.",
+      "landingTitle": "UpayaInd for {title}"
+    },
+    "nav": {
+      "home": "UpayaInd home",
+      "mainNav": "Main",
+      "howItWorks": "How it works",
+      "pricing": "Pricing",
+      "stories": "Success stories",
+      "about": "About",
+      "blog": "Blog",
+      "faq": "FAQ",
+      "contact": "Contact",
+      "login": "Log in",
+      "getStarted": "Get started",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "skip": "Skip to content",
+      "breadcrumb": "Breadcrumb"
+    },
+    "market": {
+      "button": "Market: {country}",
+      "short": "{code} · {currency}",
+      "title": "Choose your country",
+      "current": "Current"
+    },
+    "footer": {
+      "about": "Done-for-you job applications, with a resume tailored to every role.",
+      "product": "Product",
+      "company": "Company",
+      "legal": "Legal",
+      "market": "Market: {country}",
+      "call": "Call {phone}",
+      "whatsapp": "WhatsApp",
+      "cookieSettings": "Cookie settings",
+      "copyright": "© UpayaInd",
+      "footerNav": "Footer",
+      "legalLinks": {
+        "privacy": "Privacy",
+        "terms": "Terms",
+        "refund": "Refund",
+        "guarantee": "Guarantee",
+        "cookies": "Cookies"
+      }
+    },
+    "hero": {
+      "eyebrow": "Done-for-you job applications",
+      "eyebrowMarket": "Done-for-you job applications in {country}",
+      "titleLead": "You’ll never apply to a job",
+      "titleAccent": "again.",
+      "sub": "Our specialists apply to {min}–{max} jobs for you every weekday, each with a resume tailored to the job. Track every application live.",
+      "ctaPrimary": "Get started",
+      "ctaSecondary": "See how it works",
+      "point1": "Resume tailored to every job",
+      "point2": "Live tracking dashboard",
+      "point3": "Interview prep included"
+    },
+    "mock": {
+      "label": "Demo of the student dashboard with sample data",
+      "badge": "Demo",
+      "greeting": "Good evening, Priya",
+      "heading": "Your applications today",
+      "appliedToday": "Applied today",
+      "thisWeek": "This week",
+      "interviews": "Interviews",
+      "target": "18 of 25 applications today",
+      "resume": "Resume",
+      "atsLabel": "ATS match",
+      "atsValue": "Base 54 → Tailored 86",
+      "apps": [
+        {
+          "title": "Data Analyst",
+          "company": "Northwind Analytics",
+          "time": "4:12 PM",
+          "status": "APPLIED"
+        },
+        {
+          "title": "Business Intelligence Analyst",
+          "company": "Copperleaf Bank",
+          "time": "3:48 PM",
+          "status": "VIEWED"
+        },
+        {
+          "title": "Product Analyst",
+          "company": "Halcyon Health",
+          "time": "Yesterday",
+          "status": "RECRUITER_REPLIED"
+        },
+        {
+          "title": "Analytics Engineer",
+          "company": "Brightline Logistics",
+          "time": "Mon",
+          "status": "INTERVIEW_SCHEDULED"
+        }
+      ]
+    },
+    "demo": {
+      "eyebrow": "Your dashboard",
+      "title": "See every application the moment it’s sent",
+      "sub": "This is a working replica of the student dashboard with sample data. Filter it, open a row — it behaves like the real thing.",
+      "badge": "Demo",
+      "regionLabel": "Interactive dashboard demo with sample data",
+      "student": "Priya S. · Data Analyst roles",
+      "planLine": "Standard plan · 35 a weekday",
+      "tabsLabel": "Filter applications",
+      "tabAll": "All",
+      "tabActive": "In progress",
+      "tabInterviews": "Interviews",
+      "tabClosed": "Closed",
+      "search": "Search company or role",
+      "searchLabel": "Search the sample applications",
+      "colCompany": "Company",
+      "colRole": "Role",
+      "colApplied": "Applied",
+      "colStatus": "Status",
+      "colResume": "Resume used",
+      "viewResume": "View resume for {company}",
+      "resumeShort": "PDF",
+      "empty": "No sample applications match.",
+      "count": "Showing {count} sample applications",
+      "statToday": "Today",
+      "statWeek": "This week",
+      "statResponse": "Response rate",
+      "statInterviews": "Interviews",
+      "detailTitle": "Tailored for this job",
+      "detailKeywords": "Matched keywords",
+      "detailAts": "ATS score",
+      "detailClose": "Close details",
+      "detailLink": "Job link",
+      "sample": "Sample data — not a real student.",
+      "apps": [
+        {
+          "company": "Northwind Analytics",
+          "role": "Data Analyst",
+          "applied": "Today, 4:12 PM",
+          "status": "APPLIED",
+          "ats": 88,
+          "keywords": [
+            "SQL",
+            "Python",
+            "Risk dashboards"
+          ]
+        },
+        {
+          "company": "Copperleaf Bank",
+          "role": "BI Analyst",
+          "applied": "Today, 3:48 PM",
+          "status": "VIEWED",
+          "ats": 85,
+          "keywords": [
+            "Power BI",
+            "SQL",
+            "Stakeholder reporting"
+          ]
+        },
+        {
+          "company": "Halcyon Health",
+          "role": "Product Analyst",
+          "applied": "Yesterday, 2:05 PM",
+          "status": "RECRUITER_REPLIED",
+          "ats": 84,
+          "keywords": [
+            "A/B tests",
+            "Funnel analysis",
+            "Amplitude"
+          ]
+        },
+        {
+          "company": "Brightline Logistics",
+          "role": "Analytics Engineer",
+          "applied": "Mon, 11:30 AM",
+          "status": "INTERVIEW_SCHEDULED",
+          "ats": 82,
+          "keywords": [
+            "dbt",
+            "SQL",
+            "Data modelling"
+          ]
+        },
+        {
+          "company": "Juniper Retail",
+          "role": "Marketing Analyst",
+          "applied": "Mon, 10:02 AM",
+          "status": "ASSESSMENT",
+          "ats": 81,
+          "keywords": [
+            "Attribution",
+            "Excel",
+            "Tableau"
+          ]
+        },
+        {
+          "company": "Alder & Finch",
+          "role": "Data Analyst II",
+          "applied": "Fri, 5:40 PM",
+          "status": "APPLIED",
+          "ats": 86,
+          "keywords": [
+            "Python",
+            "Forecasting",
+            "SQL"
+          ]
+        },
+        {
+          "company": "Quillstone Insurance",
+          "role": "Risk Analyst",
+          "applied": "Fri, 1:15 PM",
+          "status": "REJECTED",
+          "ats": 79,
+          "keywords": [
+            "Fraud analytics",
+            "SQL",
+            "Python"
+          ]
+        },
+        {
+          "company": "Lumen Mobility",
+          "role": "Operations Analyst",
+          "applied": "Thu, 9:20 AM",
+          "status": "INTERVIEWING",
+          "ats": 83,
+          "keywords": [
+            "Operations metrics",
+            "Looker",
+            "SQL"
+          ]
+        }
+      ]
+    },
+    "proof": {
+      "label": "Results",
+      "students": "Students served",
+      "applications": "Applications sent for students",
+      "interviews": "Interviews landed",
+      "note": "Live counts from our platform, updated daily.",
+      "hiredAt": "Students have been hired at {companies}"
+    },
+    "compare": {
+      "eyebrow": "Why UpayaInd",
+      "title": "Job hunting is a second full-time job. Hand it to us.",
+      "diy": "Doing it yourself",
+      "us": "With UpayaInd",
+      "rowTime": "Time spent each week",
+      "rowApps": "Applications a month",
+      "rowResume": "Resume",
+      "diyTime": "Evenings and weekends",
+      "diyApps": "As many as you can fit in",
+      "diyResume": "One generic version",
+      "usTime": "Interviews and upskilling only",
+      "usApps": "{min}–{max}+",
+      "usResume": "Tailored to every job"
+    },
+    "steps": {
+      "eyebrow": "How it works",
+      "title": "From sign-up to interviews in four steps",
+      "items": [
+        {
+          "when": "Day 1",
+          "title": "Sign up and onboard",
+          "body": "Pick a plan, share your resume and job preferences, and meet your specialist."
+        },
+        {
+          "when": "Day 2",
+          "title": "Master resume ready",
+          "body": "We build a structured profile and base resume you review and approve."
+        },
+        {
+          "when": "Every weekday",
+          "title": "Tailored applications",
+          "body": "Your specialist applies to {min}–{max} jobs a day, each with its own tailored resume."
+        },
+        {
+          "when": "Ongoing",
+          "title": "You interview, we keep going",
+          "body": "Track everything live, prep with us, and keep the pipeline full until you’re hired."
+        }
+      ]
+    },
+    "showcase": {
+      "eyebrow": "Tailored resumes",
+      "title": "One profile. A different resume for every job.",
+      "sub": "We rewrite your resume around each job description, using only your real experience. Never invented skills.",
+      "for": "For: {job}",
+      "summary": "Summary",
+      "skills": "Top skills",
+      "ats": "ATS {score}",
+      "note": "Example profile. Highlighted words match each job description.",
+      "a": {
+        "job": "Data Analyst, fintech",
+        "score": "88",
+        "summary": "Analyst with 3 years turning <k>SQL</k> and <k>Python</k> data into <k>risk dashboards</k> for payments teams.",
+        "skills": [
+          "SQL",
+          "Python",
+          "Tableau",
+          "Fraud analytics"
+        ]
+      },
+      "b": {
+        "job": "Product Analyst, healthcare",
+        "score": "84",
+        "summary": "Analyst with 3 years running <k>A/B tests</k> and <k>funnel analysis</k> to improve <k>patient engagement</k>.",
+        "skills": [
+          "Experimentation",
+          "SQL",
+          "Amplitude",
+          "Stakeholder reporting"
+        ]
+      }
+    },
+    "stories": {
+      "title": "Students who got hired",
+      "all": "All success stories",
+      "toOffer": "to offer",
+      "weeks": "{n} wks",
+      "applications": "applications",
+      "roleAt": "{role} at {company}",
+      "photoAlt": "Photo of {name}",
+      "pageTitle": "Success stories",
+      "pageSub": "Real students, shared with their permission. How long it took, how many applications we sent, and where they landed.",
+      "empty": "Our first success stories are being written up with students’ permission. Check back soon.",
+      "read": "Read {name}’s story",
+      "back": "All success stories",
+      "statWeeks": "Weeks to offer",
+      "statApps": "Applications sent",
+      "statCompany": "Hired at",
+      "statRole": "Role",
+      "video": "Video: {name}’s story"
+    },
+    "audiences": {
+      "title": "Who it’s for",
+      "learnMore": "Learn more",
+      "learnMoreAbout": "Learn more about UpayaInd for {title}"
+    },
+    "pricing": {
+      "eyebrow": "Pricing",
+      "previewTitle": "Simple monthly plans",
+      "previewSub": "Prices in {currency} for {country}.",
+      "pageTitle": "Plans and pricing",
+      "pageSub": "Every plan includes a dedicated specialist, a resume tailored to every job and a live dashboard. Prices in {currency} for {country}.",
+      "compareLink": "Compare all plans and see our guarantee",
+      "compareLinkNoGuarantee": "Compare all plans",
+      "mostPopular": "Most popular",
+      "intervalLabel": "Billing period",
+      "interval": {
+        "MONTHLY": "Monthly",
+        "QUARTERLY": "Quarterly",
+        "HALF_YEARLY": "6 months",
+        "YEARLY": "Yearly",
+        "ONE_TIME": "One-time"
+      },
+      "per": {
+        "MONTHLY": "/ month",
+        "QUARTERLY": "/ 3 months",
+        "HALF_YEARLY": "/ 6 months",
+        "YEARLY": "/ year",
+        "ONE_TIME": "one-time"
+      },
+      "save": "Save {pct}%",
+      "perMonth": "{amount} a month",
+      "target": "{n} applications every weekday",
+      "choose": "Choose {plan}",
+      "chooseAria": "Choose the {plan} plan, {interval}",
+      "placeholder": "[Price to be set]",
+      "unavailable": "Not available yet",
+      "noPlans": "Plans for {country} are being finalised. Get in touch and we’ll tell you as soon as they’re live.",
+      "contactUs": "Contact us",
+      "compareTitle": "Compare plans",
+      "compareCaption": "Plan comparison for {country}",
+      "feature": "Feature",
+      "rowTarget": "Applications every weekday",
+      "rowPrice": "Price",
+      "rowInterviews": "Interview promise",
+      "included": "Included",
+      "notIncluded": "Not included",
+      "guaranteeTitle": "Our guarantee",
+      "guaranteeLink": "Read the full guarantee",
+      "faqTitle": "Pricing questions",
+      "noLoginWall": "No account needed to choose a plan — you’ll create one at checkout.",
+      "faq": [
+        {
+          "q": "What does “applications every weekday” mean?",
+          "a": "It’s your plan’s daily target. On each working day in your market (Monday to Friday by default), your specialist applies to that many jobs for you, each with a resume tailored to the job description."
+        },
+        {
+          "q": "When do applications start?",
+          "a": "As soon as your onboarding is complete. Your specialist is assigned automatically after payment, and your master resume is usually ready the next day."
+        },
+        {
+          "q": "Can I change or cancel my plan?",
+          "a": "Yes. You can upgrade, downgrade or cancel from Billing in your dashboard. If you cancel, your plan keeps running until the end of the period you’ve paid for."
+        },
+        {
+          "q": "How do I pay?",
+          "a": "By card through Stripe’s secure checkout. We never see or store your card details, and you get an invoice for every payment."
+        },
+        {
+          "q": "What happens to my data if I leave?",
+          "a": "Your applications and resumes stay visible to you. You can export your data or ask us to delete your account from Settings."
+        }
+      ]
+    },
+    "prep": {
+      "eyebrow": "Beyond applications",
+      "title": "We get you ready for the interview too",
+      "sub": "While we apply, you prepare. Every plan includes training built around the roles you’re targeting.",
+      "items": [
+        {
+          "title": "Mock interviews",
+          "body": "Practice rounds with a scored feedback card."
+        },
+        {
+          "title": "Question banks",
+          "body": "Filtered to your target roles and level."
+        },
+        {
+          "title": "Prep for each interview",
+          "body": "Material matched to the job you’re interviewing for."
+        },
+        {
+          "title": "Direct line to your specialist",
+          "body": "Message them any time from your dashboard."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Questions, answered",
+      "seeAll": "See all questions",
+      "pageTitle": "Frequently asked questions",
+      "pageSub": "Everything about how UpayaInd works. Can’t find your answer?",
+      "askUs": "Ask us directly",
+      "eyebrow": "FAQ"
+    },
+    "cta": {
+      "title": "Spend your time on interviews, not applications.",
+      "sub": "Your specialist can start applying within a day of sign-up.",
+      "getStarted": "Get started",
+      "bookCall": "Book a free call"
+    },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "We apply. You interview.",
+      "sub": "A dedicated specialist runs your job search every weekday, with a resume tailored to each job. Here’s exactly what happens, and what you’ll see.",
+      "timelineTitle": "Your first week, and every week after",
+      "timeline": [
+        {
+          "when": "Day 1",
+          "title": "Sign up and onboard",
+          "body": "Choose a plan and pay securely. A specialist is assigned to you automatically, usually within minutes. A short onboarding asks for your resume, the roles you want and where you want to work.",
+          "points": [
+            "Pick a plan — no call required",
+            "Upload your current resume",
+            "Tell us your target roles, locations and salary"
+          ]
+        },
+        {
+          "when": "Day 2",
+          "title": "Your master resume is ready",
+          "body": "We turn your experience into a structured master profile and a clean base resume. You review it and tell us what to fix. It becomes the single source of truth for every tailored version.",
+          "points": [
+            "Structured profile of your real experience",
+            "Base resume in your market’s style",
+            "You approve it before we apply"
+          ]
+        },
+        {
+          "when": "Every weekday",
+          "title": "Tailored applications",
+          "body": "Your specialist finds relevant openings, tailors your resume to each job description and applies. Every application appears on your dashboard with the exact resume that was sent.",
+          "points": [
+            "{min}–{max} applications a weekday, depending on your plan",
+            "A tailored resume for each job",
+            "Logged live with the job link"
+          ]
+        },
+        {
+          "when": "Ongoing",
+          "title": "You interview, we keep going",
+          "body": "When a recruiter replies or an interview lands, it shows on your dashboard. You prepare with mock interviews and targeted material while we keep the pipeline full.",
+          "points": [
+            "Interview prep and mock interviews",
+            "Status updates on every application",
+            "We keep applying until you accept an offer"
+          ]
+        }
+      ],
+      "needTitle": "What we need from you",
+      "needSub": "About 20 minutes during onboarding. After that, your time goes into interviews.",
+      "needs": [
+        {
+          "title": "Your resume",
+          "body": "Your current resume (PDF or Word). We use only what’s true in it and anything you add to your profile."
+        },
+        {
+          "title": "Your preferences",
+          "body": "Target job titles, seniority, locations, remote or on-site, salary expectations, work authorisation and companies to avoid."
+        },
+        {
+          "title": "Portal access",
+          "body": "The email and job-portal logins we’ll apply with, stored in an encrypted vault, plus your written authorisation to apply on your behalf."
+        }
+      ],
+      "dailyTitle": "What you’ll see every day",
+      "dailySub": "Every application, with the company, role, date and time in your time zone, job link, status and the exact resume used.",
+      "tailorTitle": "How your resume is tailored",
+      "tailorSub": "Tailoring means emphasising what you’ve really done that matters for this job. It never means inventing.",
+      "tailorSteps": [
+        {
+          "title": "Read the job description",
+          "body": "We pull out the skills, tools and responsibilities the employer is asking for."
+        },
+        {
+          "title": "Match your real experience",
+          "body": "We find the parts of your master profile that prove you can do the job."
+        },
+        {
+          "title": "Rewrite and reorder",
+          "body": "Your summary, skills and bullet points are rewritten around the job’s language, in your market’s resume style."
+        },
+        {
+          "title": "Check before sending",
+          "body": "A validator rejects anything not in your profile, and your specialist reviews the resume before applying."
+        }
+      ],
+      "truth": "We never add a company, job title, date or skill you don’t have.",
+      "ethicsTitle": "Ethics and consent",
+      "ethics": [
+        {
+          "q": "Is it okay for someone else to apply on my behalf?",
+          "a": "Yes, with your permission. You authorise us in writing during onboarding, you choose the roles and companies, and every application is visible to you as soon as it’s sent."
+        },
+        {
+          "q": "Do job portals allow this?",
+          "a": "Some job portals’ terms restrict sharing your account. We show you a plain-language notice about this during onboarding, and you decide whether to go ahead."
+        },
+        {
+          "q": "Will you ever exaggerate my experience?",
+          "a": "No. Tailored resumes only use experience, skills and dates from your master profile. An automatic check blocks anything that isn’t there."
+        },
+        {
+          "q": "Who can see my logins?",
+          "a": "Only your assigned specialist, and only while they’re assigned to you. Every reveal is logged, admins can’t see the values, and you can change or delete them at any time."
+        },
+        {
+          "q": "Can I stop at any time?",
+          "a": "Yes. Cancel from Billing whenever you like. Your plan runs to the end of the period you’ve paid for, and your history stays available to you."
+        }
+      ]
+    },
+    "about": {
+      "eyebrow": "About UpayaInd",
+      "title": "Your time belongs in interviews",
+      "sub": "UpayaInd is a done-for-you job application service. Our specialists apply for you every weekday with a resume tailored to each job, so you can focus on preparing, upskilling and getting hired.",
+      "missionTitle": "Our mission",
+      "mission": "Job hunting shouldn’t mean hundreds of hours of copying the same details into the same forms. We take on the repetitive work — finding roles, tailoring resumes and applying — and make it completely transparent, so you always know what was sent, where and when.",
+      "valuesTitle": "What we stand for",
+      "values": [
+        {
+          "title": "Truthful resumes",
+          "body": "We tailor, we never invent. Every resume uses only your real experience."
+        },
+        {
+          "title": "Full transparency",
+          "body": "Every application is on your dashboard with the job link and the exact resume used."
+        },
+        {
+          "title": "Your data, protected",
+          "body": "Logins are encrypted, files are private and every access by our team is logged."
+        }
+      ],
+      "founderTitle": "A note from our founder",
+      "teamTitle": "The team",
+      "teamSub": "The people behind your applications.",
+      "linkedin": "{name} on LinkedIn"
+    },
+    "blog": {
+      "eyebrow": "Blog",
+      "title": "Job search, done smarter",
+      "sub": "Practical advice on resumes, applications and interviews.",
+      "empty": "Our first articles are on the way.",
+      "read": "Read article",
+      "minutes": "{n} min read",
+      "back": "All articles",
+      "published": "Published {date}",
+      "updated": "Updated {date}"
+    },
+    "landing": {
+      "eyebrow": "UpayaInd for you",
+      "howTitle": "How it works for you",
+      "pricingTitle": "Plans that fit your search",
+      "seePricing": "See pricing",
+      "faqTitle": "Common questions"
+    },
+    "contact": {
+      "eyebrow": "Contact",
+      "title": "Talk to a real person",
+      "sub": "Questions about plans, how we apply or whether UpayaInd is right for you? Send a message, book a free call or message us on WhatsApp.",
+      "formTitle": "Send us a message",
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "phoneHint": "Optional. We’ll only use it to reply to you.",
+      "phoneCountry": "Country code",
+      "market": "Where are you job hunting?",
+      "message": "Message",
+      "messageHint": "At least 10 characters.",
+      "consent": "I agree that UpayaInd may contact me about my enquiry, as described in the <privacy>Privacy Policy</privacy>.",
+      "consentNoLink": "I agree that UpayaInd may contact me about my enquiry.",
+      "send": "Send message",
+      "sending": "Sending…",
+      "sentTitle": "Thanks — your message is on its way.",
+      "sentBody": "We’ve emailed you a confirmation and will reply within one working day.",
+      "sendAnother": "Send another message",
+      "honeypot": "Leave this field empty",
+      "bookTitle": "Book a free call",
+      "bookSub": "Pick a time that suits you for a 20-minute chat with our team.",
+      "bookButton": "Choose a time",
+      "bookFrameTitle": "Book a free call with UpayaInd",
+      "bookUnavailable": "Online booking isn’t available right now. Send us a message and we’ll arrange a call.",
+      "whatsappTitle": "WhatsApp",
+      "whatsappSub": "Prefer chat? Message us on WhatsApp.",
+      "whatsappButton": "Chat on WhatsApp",
+      "whatsappText": "Hi UpayaInd, I’d like to know more about your service.",
+      "callTitle": "Call us",
+      "replyTime": "We usually reply within one working day."
+    },
+    "legal": {
+      "updated": "Last updated {date}",
+      "eyebrow": "Legal"
+    },
+    "consent": {
+      "title": "Cookies on UpayaInd",
+      "body": "We use essential cookies to run the site. With your permission we’d also like to use analytics cookies (Google Analytics and Microsoft Clarity) to understand how the site is used. See our <link>Cookie Policy</link>.",
+      "bodyNoLink": "We use essential cookies to run the site. With your permission we’d also like to use analytics cookies (Google Analytics and Microsoft Clarity) to understand how the site is used.",
+      "accept": "Accept all",
+      "reject": "Reject non-essential",
+      "label": "Cookie consent"
+    },
+    "common": {
+      "demo": "Demo",
+      "readMore": "Read more",
+      "notFound": "Page not found"
+    }
+  }
+}
