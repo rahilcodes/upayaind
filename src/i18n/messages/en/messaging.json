@@ -1,1 +1,88 @@
-{}
+{
+  "messaging": {
+    "list": {
+      "aria": "Conversations",
+      "search": "Search conversations",
+      "empty": "No conversations yet. Threads start automatically when a student is assigned to you.",
+      "emptyStudent": "No conversations yet.",
+      "you": "You",
+      "attachment": "Attachment",
+      "noMessages": "No messages yet",
+      "previous": "Previous",
+      "unread": "unread",
+      "with": "with {name}",
+      "coverFor": "Covering for {name}"
+    },
+    "thread": {
+      "listLabel": "Messages",
+      "pick": "Choose a conversation to read it.",
+      "loading": "Loading conversation…",
+      "back": "Back to conversations",
+      "yourSpecialist": "Your specialist",
+      "previousSpecialist": "Previous specialist · read-only",
+      "student": "Student",
+      "observer": "Read-only view",
+      "viewStudent": "View student",
+      "empty": "No messages yet. Say hello!",
+      "emptyStudent": "No messages yet. Ask {name} anything about your job search.",
+      "readOnlyObserver": "You're viewing this conversation for quality control. Only the student and their specialist can reply.",
+      "readOnlyClosed": "This conversation is closed because you have a new specialist. You can still read it.",
+      "broadcast": "Message to all students",
+      "read": "Read",
+      "sent": "Sent"
+    },
+    "composer": {
+      "label": "Message",
+      "placeholder": "Write a message…",
+      "hint": "**bold**, *italic*, links and line breaks are supported. Ctrl/⌘ + Enter to send. Attach up to 3 files (PDF, DOCX, PNG, JPG, 10 MB each).",
+      "send": "Send",
+      "attach": "Attach a file",
+      "attachHint": "PDF, DOCX, PNG or JPG up to 10 MB",
+      "link": "Link an application",
+      "linkLabel": "Link an application (shown as a card)",
+      "linkPick": "Choose an application…",
+      "linkNone": "No applications yet",
+      "linkLoading": "Loading…",
+      "unlink": "Remove linked application",
+      "removeFile": "Remove {name}",
+      "tooBig": "{name} is larger than 10 MB.",
+      "tooMany": "You can attach up to {max} files.",
+      "empty": "Write a message or attach a file.",
+      "failed": "Couldn't send. Please try again."
+    },
+    "viewer": {
+      "aria": "Conversation between {student} and {employee}",
+      "readOnly": "Read-only: {student} and {employee}. Viewing doesn't mark messages as read.",
+      "closed": "Closed thread",
+      "empty": "No messages in this conversation.",
+      "older": "Showing the latest 100 messages."
+    },
+    "broadcast": {
+      "open": "Message all students",
+      "title": "Message all my students",
+      "description": "Each of your {count, plural, one {# student} other {# students}} gets this as an individual message in their own conversation.",
+      "label": "Message",
+      "hint": "For notices such as holidays or schedule changes. Markdown-lite is supported.",
+      "cancel": "Cancel",
+      "send": "Send to {count, plural, one {# student} other {# students}}",
+      "sent": "Message sent to all your students"
+    },
+    "work": {
+      "metaTitle": "Messages",
+      "title": "Messages",
+      "description": "Conversations with your assigned students. New messages appear automatically.",
+      "descriptionAll": "Every conversation, read-only for quality control. Viewing doesn't mark messages as read.",
+      "viewNav": "Conversation view",
+      "mine": "My threads",
+      "all": "All conversations"
+    },
+    "student": {
+      "metaTitle": "Messages",
+      "title": "Messages",
+      "description": "Talk to your specialist about your job search.",
+      "descriptionWith": "Talk to {name}, your specialist. Replies usually arrive within a working day.",
+      "emptyTitle": "No conversation yet",
+      "emptyBody": "Once your specialist is assigned you can message them here."
+    }
+  }
+}
