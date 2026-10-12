@@ -115,14 +115,14 @@ export function ContactForm({
             <label htmlFor="phoneCountry" className="sr-only">
               {copy.phoneCountry}
             </label>
-            <select id="phoneCountry" name="phoneCountry" key={`pc-${defaultMarket}`} defaultValue={v.phoneCountry || defaultMarket} autoComplete="tel-country-code" className={`${input} h-12 w-[104px] flex-none appearance-none pr-2`}>
+            <select id="phoneCountry" name="phoneCountry" key={`pc-${defaultMarket}`} defaultValue={v.phoneCountry || defaultMarket} autoComplete="tel-country-code" className={`${input} h-12 !w-[112px] flex-none appearance-none pr-2`}>
               {dialCodes.map((d) => (
                 <option key={d.code} value={d.code}>
                   {d.label}
                 </option>
               ))}
             </select>
-            <input {...a11y("phone", true)} type="tel" defaultValue={v.phone} autoComplete="tel-national" inputMode="tel" className={`${input} h-12 min-w-0 flex-1`} />
+            <input {...a11y("phone", true)} aria-label={copy.phone} type="tel" defaultValue={v.phone} autoComplete="tel-national" inputMode="tel" className={`${input} h-12 min-w-0 flex-1`} />
           </div>
           {fe.phone?.length ? (
             <Err id="phone" msg={fe.phone} />

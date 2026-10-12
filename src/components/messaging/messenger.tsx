@@ -373,7 +373,7 @@ function Composer({ threadId, onSent, allowLink }: { threadId: string; onSent: (
         </p>
       ) : null}
       <div className="flex items-end gap-2">
-        <input ref={fileRef} type="file" accept={ACCEPT} multiple className="sr-only" id={`${id}-file`} onChange={(e) => addFiles(e.target.files)} />
+        <input ref={fileRef} type="file" accept={ACCEPT} multiple className="sr-only" tabIndex={-1} aria-label={t("attach")} id={`${id}-file`} onChange={(e) => addFiles(e.target.files)} />
         <Button variant="ghost" size="icon" type="button" onClick={() => fileRef.current?.click()} aria-label={t("attach")} title={t("attachHint")}>
           <Paperclip className="h-5 w-5" aria-hidden="true" />
         </Button>

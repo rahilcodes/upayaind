@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
+import { CORE_NAMESPACES, pickMessages } from "@/i18n/messages";
 import { Toaster } from "sonner";
 import { fraunces, inter } from "@/fonts";
 import { absoluteUrl } from "@/lib/utils";
@@ -23,10 +24,12 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
+  // Ship only shared namespaces here; marketing and portal layouts add their own.
+  const messages = pickMessages(await getMessages(), CORE_NAMESPACES);
   return (
     <html lang={locale} className={`${inter.variable} ${fraunces.variable}`}>
       <body className="min-h-dvh">
-        <NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
           {children}
           <Toaster position="top-center" richColors closeButton toastOptions={{ style: { fontFamily: "var(--font-inter)" } }} />
         </NextIntlClientProvider>

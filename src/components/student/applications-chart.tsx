@@ -20,7 +20,7 @@ export function ApplicationsChart({ data, target }: { data: Point[]; target: num
   const total = data.reduce((n, d) => n + d.applied, 0);
   return (
     <figure className="m-0">
-      <div className="h-[220px] w-full sm:h-[260px]" aria-hidden="true">
+      <div className="h-[220px] w-full sm:h-[260px]" aria-hidden="true" inert>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 12, right: 8, left: -18, bottom: 0 }} barCategoryGap={2}>
             <CartesianGrid vertical={false} stroke="var(--border)" />

@@ -23,7 +23,7 @@ export type StudentCardData = {
 export function StudentCard({ s, messageHref }: { s: StudentCardData; messageHref: string }) {
   const t = useTranslations("work.today.card");
   return (
-    <article className={cn("flex flex-col gap-3.5 rounded-[16px] border border-border bg-surface p-5", !s.active && "opacity-60")} aria-label={s.name}>
+    <article className={cn("flex flex-col gap-3.5 rounded-[16px] border border-border bg-surface p-5", !s.active && "bg-surface-muted grayscale")} aria-label={s.name}>
       <div className="flex items-center gap-3">
         <span aria-hidden="true" className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-accent font-bold text-accent-foreground">
           {initials(s.name)}

@@ -14,7 +14,7 @@ export function AuditDiff({ before, after, className }: { before: unknown; after
   const rows = jsonDiffPure(before ?? {}, after ?? {});
   if (!rows.length) return null;
   return (
-    <div className={cn("mt-2 overflow-x-auto rounded-[10px] border border-border", className)}>
+    <div tabIndex={0} role="region" aria-label="Changes" className={cn("mt-2 overflow-x-auto rounded-[10px] border border-border", className)}>
       <table className="w-full min-w-[420px] text-[12px]">
         <tbody>
           {rows.map((r) => (

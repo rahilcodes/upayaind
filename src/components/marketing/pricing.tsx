@@ -125,7 +125,7 @@ export async function ComparisonTable({ pricing }: { pricing: MarketPricing }) {
   for (const p of plans) for (const f of p.features) if (!features.includes(f) && !restatesTarget(f)) features.push(f);
   const monthly = (p: PricingPlan) => p.prices.find((x) => x.interval === "MONTHLY") ?? p.prices[0];
   return (
-    <div className="relative w-full max-w-full overflow-x-auto rounded-[20px] border border-sand bg-white">
+    <div tabIndex={0} role="region" aria-label="Plan comparison" className="relative w-full max-w-full overflow-x-auto rounded-[20px] border border-sand bg-white">
       <table className="w-full min-w-[640px] border-collapse text-left text-[15px]">
         <caption className="sr-only">{t("compareCaption", { country: pricing.market.name })}</caption>
         <thead>

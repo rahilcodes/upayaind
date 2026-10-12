@@ -75,33 +75,33 @@ export default async function BillingPage() {
                 ) : null}
               </div>
             </div>
-            <dl className="grid grid-cols-1 border-t border-border sm:grid-cols-3">
+            <div className="grid grid-cols-1 border-t border-border sm:grid-cols-3">
               <div className="flex items-center gap-3 border-b border-border px-5 py-4 sm:border-b-0 sm:border-r sm:px-6">
                 <CreditCard className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <div>
-                  <dt className="text-[13px] text-muted-foreground">{t("price")}</dt>
-                  <dd className="tabular font-semibold">
+                  <p className="text-[13px] text-muted-foreground">{t("price")}</p>
+                  <p className="tabular font-semibold">
                     {formatMoney(c.amountMinor, c.currency, b.locale)} <span className="font-normal text-muted-foreground">{tc(`intervalPer.${c.interval}`)}</span>
-                  </dd>
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 border-b border-border px-5 py-4 sm:border-b-0 sm:border-r sm:px-6">
                 <FileText className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <div>
-                  <dt className="text-[13px] text-muted-foreground">{t("interval")}</dt>
-                  <dd className="font-semibold">{tc(`interval.${c.interval}`)}</dd>
+                  <p className="text-[13px] text-muted-foreground">{t("interval")}</p>
+                  <p className="font-semibold">{tc(`interval.${c.interval}`)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
                 <CalendarClock className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <div>
-                  <dt className="text-[13px] text-muted-foreground">
+                  <p className="text-[13px] text-muted-foreground">
                     {!live ? t("endedOn") : c.cancelAtPeriodEnd || c.interval === "ONE_TIME" || !c.canManage ? t("endsOn") : t("renewsOn")}
-                  </dt>
-                  <dd className="tabular font-semibold">{c.currentPeriodEnd ? formatDate(c.currentPeriodEnd, tz) : "—"}</dd>
+                  </p>
+                  <p className="tabular font-semibold">{c.currentPeriodEnd ? formatDate(c.currentPeriodEnd, tz) : "—"}</p>
                 </div>
               </div>
-            </dl>
+            </div>
             {(() => {
               const notices: React.ReactNode[] = [];
               if (c.status === "PAST_DUE") notices.push(<Alert key="pd" tone="danger">{t("pastDueNotice")}</Alert>);

@@ -1,4 +1,6 @@
-import { getTranslations } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { CORE_NAMESPACES, pickMessages } from "@/i18n/messages";
 import Link from "next/link";
 import { env } from "@/env";
 import { Analytics } from "@/components/marketing/analytics";
@@ -17,9 +19,11 @@ export const revalidate = 3600;
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const [t, markets, legal] = await Promise.all([getTranslations("marketing"), getActiveMarkets(), listPublished("LEGAL")]);
+  const messages = pickMessages(await getMessages(), [...CORE_NAMESPACES, "marketing"]);
   const codes = markets.map((m) => m.code);
   const legalSlugs = new Set(legal.map((l) => l.slug));
   return (
+    <NextIntlClientProvider messages={messages}>
     <div id="mk-root" suppressHydrationWarning className="flex min-h-dvh flex-col bg-paper text-[16px] leading-[1.55] text-ink">
       <MarketStyle codes={codes} />
       <MarketScript codes={codes} />
@@ -52,5 +56,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
         }}
       />
     </div>
+    </NextIntlClientProvider>
   );
 }

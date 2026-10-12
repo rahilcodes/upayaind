@@ -84,7 +84,7 @@ export default async function TimesheetPage({ searchParams }: { searchParams: Pr
       </section>
 
       {view === "calendar" ? (
-        <div className="mb-6 overflow-x-auto rounded-[18px] border border-border bg-surface p-3 sm:p-4">
+        <div tabIndex={0} role="region" aria-label="Calendar" className="mb-6 overflow-x-auto rounded-[18px] border border-border bg-surface p-3 sm:p-4">
           <div className="grid min-w-[640px] grid-cols-[repeat(7,minmax(0,1fr))_110px] gap-2">
             {weekdays.map((w) => <div key={w} className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{w}</div>)}
             <div className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("week")}</div>
@@ -95,7 +95,7 @@ export default async function TimesheetPage({ searchParams }: { searchParams: Pr
               data.days.forEach((d, i) => {
                 const wd = weekdayOfKey(d.key);
                 cells.push(
-                  <div key={d.key} className={cn("min-h-[92px] rounded-[12px] border p-2", d.today ? "border-primary" : "border-border", d.future && "opacity-60")}>
+                  <div key={d.key} className={cn("min-h-[92px] rounded-[12px] border p-2", d.today ? "border-primary" : "border-border", d.future && "border-dashed bg-surface-muted/40")}>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-sm font-bold tabular">{Number(d.key.slice(8))}</span>
                       {d.status || d.today ? <AttendancePill status={d.status} /> : null}

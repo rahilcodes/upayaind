@@ -17,3 +17,10 @@ export async function loadMessages(locale: string) {
   }
   return merged;
 }
+
+export const CORE_NAMESPACES = ["common", "status", "subscriptionStatus", "interval", "intervalPer", "workMode", "employmentType", "jobSource", "attendance", "leaveStatus", "role", "rag", "auth", "nav"] as const;
+
+/** Only ship the namespaces a subtree needs to the client (keeps HTML small). */
+export function pickMessages(all: Record<string, unknown>, namespaces: readonly string[]) {
+  return Object.fromEntries(namespaces.filter((n) => n in all).map((n) => [n, all[n]]));
+}

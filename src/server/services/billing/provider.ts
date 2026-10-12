@@ -14,5 +14,7 @@ export function providerFor(code: string | null | undefined): PaymentProvider {
  * the real webhook processing code with a synthetic event.
  */
 export function simulationEnabled() {
-  return process.env.NODE_ENV !== "production" && !stripeProvider.isConfigured();
+  if (stripeProvider.isConfigured()) return false;
+  // CI runs e2e against a production build without Stripe keys; it opts in explicitly.
+  return process.env.NODE_ENV !== "production" || process.env.E2E_ALLOW_PAYMENT_SIMULATION === "1";
 }

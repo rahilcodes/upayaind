@@ -3,7 +3,16 @@ import { cn } from "@/lib/utils";
 
 /** Wide tables scroll inside their own box (no page-level horizontal scroll). */
 export function TableWrap({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("w-full overflow-x-auto rounded-[var(--radius-xl)] border border-border bg-surface", className)} {...props} />;
+  // Focusable so keyboard users can scroll wide tables (WCAG scrollable-region-focusable).
+  return (
+    <div
+      tabIndex={0}
+      role="region"
+      aria-label={props["aria-label"] ?? "Table"}
+      className={cn("w-full overflow-x-auto rounded-[var(--radius-xl)] border border-border bg-surface focus-visible:outline-2", className)}
+      {...props}
+    />
+  );
 }
 
 export function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {

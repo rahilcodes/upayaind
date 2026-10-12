@@ -167,7 +167,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           </Section>
 
           <Section id="calendar" title={t("calendarTitle")} description={t("calendarDescription")}>
-            <div className="overflow-x-auto">
+            <div tabIndex={0} role="region" aria-label="Attendance" className="overflow-x-auto">
               <div className="grid min-w-[420px] grid-cols-7 gap-1.5" role="grid" aria-label={t("calendarTitle")}>
                 {[1, 2, 3, 4, 5, 6, 7].map((d) => (
                   <div key={d} role="columnheader" className="pb-1 text-center text-[12px] font-semibold text-muted-foreground">

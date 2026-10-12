@@ -96,7 +96,7 @@ export function MessageList({ messages, mode, timezone, className }: { messages:
                 <time dateTime={m.createdAt}>{formatInTz(m.createdAt, timezone, "h:mm a")}</time>
                 {m.mine && mode !== "observer" ? (
                   m.readAt ? (
-                    <span className="inline-flex items-center gap-0.5 text-blue">
+                    <span className="inline-flex items-center gap-0.5 text-royal">
                       <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
                       {t("read")}
                     </span>

@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
 import type { Role } from "@/generated/prisma/enums";
 import { Avatar } from "@/components/ui/avatar";
 import { MobileNav, Sidebar, type Badges } from "./sidebar";
@@ -27,6 +28,7 @@ export async function PortalShell({
   topbarExtra?: React.ReactNode;
 }) {
   const t = await getTranslations();
+  const allMessages = await getMessages();
   const items = portal === "app" ? STUDENT_NAV : portal === "work" ? WORK_NAV : adminNavFor(user.role);
   const root = `/${portal}`;
   const roleLabel = subtitle ?? t(`role.${user.role}`);
@@ -48,6 +50,7 @@ export async function PortalShell({
   );
 
   return (
+    <NextIntlClientProvider messages={allMessages}>
     <div className="portal flex min-h-dvh bg-canvas text-foreground">
       <a href="#main" className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         {t("common.skipToContent")}
@@ -65,6 +68,7 @@ export async function PortalShell({
         </main>
       </div>
     </div>
+    </NextIntlClientProvider>
   );
 }
 

@@ -106,7 +106,10 @@ export function Analytics({ gaId, clarityId, copy }: { gaId?: string; clarityId?
     const links = document.querySelectorAll<HTMLAnchorElement>("a[data-plan-id]");
     if (!links.length) return;
     let cancelled = false;
-    fetch("/api/auth/session", { credentials: "same-origin" })
+    // Wait until the browser is idle so this never competes with first paint.
+    const idle = (cb: () => void) =>
+      "requestIdleCallback" in window ? (window as Window & { requestIdleCallback: (f: () => void) => void }).requestIdleCallback(cb) : setTimeout(cb, 1500);
+    idle(() => fetch("/api/auth/session", { credentials: "same-origin" })
       .then((r) => (r.ok ? r.json() : null))
       .then((s: { user?: { role?: string } } | null) => {
         if (cancelled || s?.user?.role !== "STUDENT") return;
@@ -115,7 +118,7 @@ export function Analytics({ gaId, clarityId, copy }: { gaId?: string; clarityId?
           a.setAttribute("data-checkout", "1");
         });
       })
-      .catch(() => {});
+      .catch(() => {}));
     return () => {
       cancelled = true;
     };
