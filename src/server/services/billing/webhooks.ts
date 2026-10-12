@@ -71,7 +71,7 @@ export async function processWebhookEvent(provider: string, event: ProviderEvent
   const claimed = await db.$executeRaw`
     UPDATE "WebhookEvent" SET "error" = ${`${LEASE_PREFIX}${now}`}
     WHERE "id" = ${event.id} AND "processedAt" IS NULL
-      AND ("error" IS NULL OR "error" NOT LIKE ${`${LEASE_PREFIX}%`} OR CAST(SUBSTRING("error" FROM ${LEASE_PREFIX.length + 1}) AS BIGINT) < ${now - LEASE_MS})`;
+      AND ("error" IS NULL OR "error" NOT LIKE ${`${LEASE_PREFIX}%`} OR CAST(SPLIT_PART("error", ':', 2) AS BIGINT) < ${now - LEASE_MS}::bigint)`;
   if (claimed !== 1) {
     const row = await db.webhookEvent.findUnique({ where: { id: event.id }, select: { processedAt: true } });
     const status = row?.processedAt ? ("duplicate" as const) : ("in_progress" as const);

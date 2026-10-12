@@ -21,7 +21,7 @@ async function setup(opts: { verified?: boolean; assigned?: boolean; sub?: "ACTI
   if (opts.empTz) await db.user.update({ where: { id: emp.user.id }, data: { timezone: opts.empTz } });
   const stu = await makeStudent(market.id, "Priya Sharma");
   await db.user.update({ where: { id: stu.user.id }, data: { emailVerified: opts.verified === false ? null : new Date(), timezone: opts.studentTz ?? "America/New_York" } });
-  if (opts.assigned !== false) await db.assignment.create({ data: { studentId: stu.student.id, employeeId: emp.employee.id, source: "AUTO" } });
+  if (opts.assigned !== false) await db.assignment.create({ data: { studentId: stu.student.id, employeeId: emp.employee.id, source: "AUTO", startsAt: new Date("2026-01-01T00:00:00Z") } });
   const plan = await db.plan.create({ data: { code: `p${Date.now()}${Math.random()}`, name: "Standard" } });
   const price = await db.planPrice.create({ data: { planId: plan.id, marketId: market.id, interval: "MONTHLY", amountMinor: 9900, currency: "USD", dailyTarget: 25 } });
   if (opts.sub !== null) {
