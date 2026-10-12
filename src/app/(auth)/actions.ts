@@ -58,8 +58,8 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
     }
     throw e;
   }
-  const session = await auth();
-  const role = session?.user?.role;
+  // The new session cookie is on the response, not this request, so read the role from the DB.
+  const role = (await db.user.findUnique({ where: { email: parsed.data.email }, select: { role: true } }))?.role;
   if (!role) return { errorCode: "generic", values };
   if (isStaff(role)) redirect("/2fa");
   redirect(safeNext(parsed.data.next) ?? portalForRole(role));
