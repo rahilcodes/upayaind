@@ -1,0 +1,900 @@
+// UpayaInd data model. Source of truth: docs/SPEC.md §8.
+// Deviations from the spec (back-relations, auth tokens, a few helper fields)
+// are listed in docs/DECISIONS.md.
+//
+// Conventions
+// - All timestamps are UTC.
+// - Money is integer minor units + ISO 4217 currency code.
+// - Soft delete via `deletedAt` for users, plans and CMS records.
+// - Payments, applications and audit logs are never hard-deleted.
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  moduleFormat           = "esm"
+  importFileExtension    = ""
+  previewFeatures        = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pg_trgm]
+}
+
+enum Role {
+  STUDENT
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum SubscriptionStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELED
+  EXPIRED
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  ONE_TIME
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum AssignmentType {
+  PRIMARY
+  COVER
+}
+
+enum AssignmentSource {
+  AUTO
+  MANUAL
+}
+
+enum AssignmentQueueStatus {
+  AWAITING
+  ASSIGNED
+}
+
+enum ApplicationStatus {
+  DRAFT
+  APPLIED
+  VIEWED
+  RECRUITER_REPLIED
+  ASSESSMENT
+  INTERVIEW_SCHEDULED
+  INTERVIEWING
+  OFFER
+  HIRED
+  REJECTED
+  NO_RESPONSE
+  WITHDRAWN
+  ON_HOLD
+}
+
+enum WorkMode {
+  ONSITE
+  HYBRID
+  REMOTE
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  TEMPORARY
+}
+
+enum JobSource {
+  LINKEDIN
+  INDEED
+  DICE
+  GLASSDOOR
+  ZIPRECRUITER
+  COMPANY_SITE
+  HANDSHAKE
+  REFERRAL
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  HALF_DAY
+  ABSENT
+  ON_LEAVE
+  HOLIDAY
+  WEEKEND
+}
+
+enum ResumeKind {
+  MASTER_UPLOAD
+  BASE
+  TAILORED
+}
+
+enum AuthTokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+  INVITE
+}
+
+// ───────────────────────────── Users & auth ─────────────────────────────
+
+model User {
+  id                String     @id @default(cuid())
+  email             String     @unique
+  emailVerified     DateTime?
+  passwordHash      String?
+  name              String
+  phone             String?
+  avatarKey         String?
+  role              Role       @default(STUDENT)
+  status            UserStatus @default(ACTIVE)
+  timezone          String     @default("America/New_York")
+  locale            String     @default("en")
+  totpSecretEnc     String? // encrypted; required for EMPLOYEE/MANAGER/ADMIN
+  totpEnabled       Boolean    @default(false)
+  lastLoginAt       DateTime?
+  lastActiveAt      DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?
+  deletionRequestedAt DateTime?
+  notificationPrefs Json?
+
+  student       StudentProfile?
+  employee      EmployeeProfile?
+  accounts      Account[]
+  loginEvents   LoginEvent[]
+  notifications Notification[]
+  authTokens    AuthToken[]
+  messages      Message[]
+
+  @@index([role, status])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  type              String
+  access_token      String?
+  refresh_token     String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+/// One-time tokens (email verification, password reset, staff invite). Only the SHA-256 hash is stored.
+model AuthToken {
+  id         String        @id @default(cuid())
+  userId     String
+  type       AuthTokenType
+  tokenHash  String        @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime      @default(now())
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String?
+  at        DateTime @default(now())
+  ip        String?
+  userAgent String?
+  success   Boolean
+  reason    String?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, at])
+  @@index([email, at])
+}
+
+// ───────────────────────────── Markets & plans ─────────────────────────────
+
+model Market {
+  id              String  @id @default(cuid())
+  code            String  @unique // "US", "UK", "IN", "CA", "AU", "DE"
+  name            String
+  currency        String // ISO 4217 "USD"
+  locale          String  @default("en-US")
+  minPriceMinor   Int // price floor guard
+  defaultTimezone String
+  workingDays     Int[]   @default([1, 2, 3, 4, 5]) // ISO weekday
+  paymentProvider String  @default("STRIPE") // STRIPE | RAZORPAY
+  phoneDisplay    String?
+  whatsapp        String?
+  isActive        Boolean @default(true)
+  resumeStyleId   String
+
+  resumeStyle ResumeStyle      @relation(fields: [resumeStyleId], references: [id])
+  plans       PlanPrice[]
+  students    StudentProfile[]
+}
+
+model ResumeStyle {
+  id                 String   @id @default(cuid())
+  code               String   @unique // "US_RESUME", "UK_CV", ...
+  name               String
+  documentTitle      String // "Resume" | "CV" | "Curriculum Vitae"
+  pageSize           String // "LETTER" | "A4"
+  maxPages           Int
+  dateFormat         String // "MMM yyyy" | "MM/yyyy"
+  spelling           String // "en-US" | "en-GB"
+  includePhoto       Boolean
+  includeDob         Boolean
+  includeNationality Boolean
+  includeFullAddress Boolean
+  summaryLabel       String // "Summary" | "Personal Statement" | "Profile"
+  sectionOrder       String[]
+  rulesPrompt        String
+  markets            Market[]
+}
+
+model ResumeTemplate {
+  id       String  @id @default(cuid())
+  code     String  @unique // "classic", "modern", "compact"
+  name     String
+  isActive Boolean @default(true)
+}
+
+model Plan {
+  id          String      @id @default(cuid())
+  code        String      @unique
+  name        String
+  description String?
+  features    String[]
+  isFeatured  Boolean     @default(false)
+  sortOrder   Int         @default(0)
+  isActive    Boolean     @default(true)
+  deletedAt   DateTime?
+  prices      PlanPrice[]
+}
+
+model PlanPrice {
+  id                String          @id @default(cuid())
+  planId            String
+  marketId          String
+  interval          BillingInterval
+  amountMinor       Int
+  currency          String
+  dailyTarget       Int
+  interviewsPromise String?
+  providerPriceId   String?
+  isActive          Boolean         @default(true)
+  plan              Plan            @relation(fields: [planId], references: [id])
+  market            Market          @relation(fields: [marketId], references: [id])
+  subscriptions     Subscription[]
+
+  @@unique([planId, marketId, interval])
+}
+
+model Coupon {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  percentOff       Int?
+  amountOffMinor   Int?
+  currency         String?
+  maxRedemptions   Int?
+  redeemed         Int       @default(0)
+  validFrom        DateTime?
+  validTo          DateTime?
+  planPriceIds     String[]
+  providerCouponId String?
+  isActive         Boolean   @default(true)
+}
+
+// ───────────────────────────── Profiles ─────────────────────────────
+
+model StudentProfile {
+  id                     String           @id @default(cuid())
+  userId                 String           @unique
+  marketId               String
+  onboardingStep         Int              @default(0)
+  onboardingCompletedAt  DateTime?
+  linkedinUrl            String?
+  githubUrl              String?
+  portfolioUrl           String?
+  workAuthorization      String?
+  needsSponsorship       Boolean          @default(false)
+  targetTitles           String[]
+  seniority              String?
+  industries             String[]
+  locations              String[]
+  remoteOk               Boolean          @default(true)
+  workModes              WorkMode[]
+  employmentTypes        EmploymentType[]
+  minSalaryMinor         Int?
+  salaryCurrency         String?
+  willingToRelocate      Boolean          @default(false)
+  noticePeriod           String?
+  avoidCompanies         String[]
+  targetCompanies        String[]
+  masterProfile          Json?
+  templateId             String?
+  consentApplyOnBehalfAt DateTime?
+  consentTermsAt         DateTime?
+  consentVersion         String?
+  assignmentQueue        AssignmentQueueStatus?
+  awaitingSince          DateTime?
+  internalNotes          String?
+  createdAt              DateTime         @default(now())
+
+  user           User             @relation(fields: [userId], references: [id])
+  market         Market           @relation(fields: [marketId], references: [id])
+  subscriptions  Subscription[]
+  assignments    Assignment[]
+  applications   JobApplication[]
+  resumes        ResumeVersion[]
+  credentials    Credential[]
+  threads        MessageThread[]
+  studentDays    StudentDay[]
+  mockInterviews MockInterview[]
+  payments       Payment[]
+}
+
+model EmployeeProfile {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  employeeCode         String    @unique
+  title                String?
+  marketIds            String[]
+  maxStudents          Int       @default(8)
+  acceptingNewStudents Boolean   @default(true)
+  lastAssignedAt       DateTime?
+  joiningDate          DateTime?
+  managerId            String?
+  workSchedule         Json // {days:[1..5], startTime:"09:30", hours:9}
+
+  user         User             @relation(fields: [userId], references: [id])
+  assignments  Assignment[]
+  sessions     WorkSession[]
+  leaves       LeaveRequest[]
+  applications JobApplication[]
+  threads      MessageThread[]
+  days         EmployeeDay[]
+}
+
+// ───────────────────────────── Billing ─────────────────────────────
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  studentId          String
+  planPriceId        String
+  status             SubscriptionStatus
+  provider           String // STRIPE | RAZORPAY | MANUAL
+  providerSubId      String?            @unique
+  providerCustomerId String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  pausedDays         Int                @default(0)
+  remindersSent      String[]           @default([])
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+  planPrice PlanPrice      @relation(fields: [planPriceId], references: [id])
+  payments  Payment[]
+
+  @@index([studentId, status])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  subscriptionId    String?
+  studentId         String
+  amountMinor       Int
+  currency          String
+  status            PaymentStatus
+  provider          String
+  providerPaymentId String?       @unique
+  invoiceNumber     String?       @unique
+  invoiceKey        String?
+  taxMinor          Int           @default(0)
+  refundedMinor     Int           @default(0)
+  failureReason     String?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+
+  subscription Subscription?  @relation(fields: [subscriptionId], references: [id])
+  student      StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@index([studentId, createdAt])
+}
+
+model WebhookEvent {
+  id          String    @id
+  provider    String
+  type        String
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  error       String?
+  payload     Json
+}
+
+/// Monotonic counters (e.g. invoice numbers per year).
+model Counter {
+  key   String @id
+  value Int    @default(0)
+}
+
+// ───────────────────────────── Assignment ─────────────────────────────
+
+model Assignment {
+  id          String           @id @default(cuid())
+  studentId   String
+  employeeId  String
+  type        AssignmentType   @default(PRIMARY)
+  source      AssignmentSource
+  isActive    Boolean          @default(true)
+  startsAt    DateTime         @default(now())
+  endsAt      DateTime?
+  endReason   String?
+  createdById String?
+  createdAt   DateTime         @default(now())
+
+  student  StudentProfile  @relation(fields: [studentId], references: [id])
+  employee EmployeeProfile @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, isActive])
+  @@index([studentId, isActive])
+}
+
+// ───────────────────────────── Vault ─────────────────────────────
+
+model Credential {
+  id          String   @id @default(cuid())
+  studentId   String
+  kind        String
+  label       String
+  loginUrl    String?
+  usernameEnc String
+  passwordEnc String
+  notesEnc    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  student    StudentProfile        @relation(fields: [studentId], references: [id])
+  accessLogs CredentialAccessLog[]
+}
+
+model CredentialAccessLog {
+  id           String     @id @default(cuid())
+  credentialId String
+  userId       String
+  action       String // REVEAL | COPY_USERNAME | COPY_PASSWORD
+  at           DateTime   @default(now())
+  ip           String?
+  digestSentAt DateTime?
+  credential   Credential @relation(fields: [credentialId], references: [id])
+
+  @@index([credentialId, at])
+}
+
+// ───────────────────────────── Resumes & applications ─────────────────────────────
+
+model ResumeVersion {
+  id              String     @id @default(cuid())
+  studentId       String
+  kind            ResumeKind
+  title           String
+  content         Json
+  styleCode       String
+  templateCode    String
+  pdfKey          String?
+  docxKey         String?
+  originalFileKey String?
+  jdAnalysis      Json?
+  jdHash          String?
+  atsScoreBase    Int?
+  atsScore        Int?
+  validation      Json?
+  coverLetter     String?
+  createdById     String
+  lockedAt        DateTime?
+  createdAt       DateTime   @default(now())
+
+  student      StudentProfile   @relation(fields: [studentId], references: [id])
+  applications JobApplication[]
+
+  @@index([studentId, kind, createdAt])
+}
+
+/// Cache of JD analyses keyed by sha256(jd). Valid 30 days.
+model JdAnalysisCache {
+  hash      String   @id
+  analysis  Json
+  createdAt DateTime @default(now())
+}
+
+model JobApplication {
+  id               String            @id @default(cuid())
+  studentId        String
+  employeeId       String
+  companyName      String
+  companyDomain    String?
+  jobTitle         String
+  jobUrl           String
+  jobUrlNormalized String
+  location         String?
+  workMode         WorkMode?
+  employmentType   EmploymentType?
+  source           JobSource
+  jdText           String?
+  salaryText       String?
+  status           ApplicationStatus @default(APPLIED)
+  appliedAt        DateTime?
+  resumeVersionId  String?
+  coverLetter      String?
+  proofKey         String?
+  proofText        String?
+  notes            String?
+  lastStatusAt     DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  student       StudentProfile     @relation(fields: [studentId], references: [id])
+  employee      EmployeeProfile    @relation(fields: [employeeId], references: [id])
+  resumeVersion ResumeVersion?     @relation(fields: [resumeVersionId], references: [id])
+  events        ApplicationEvent[]
+  interviews    Interview[]
+  messages      Message[]
+
+  @@unique([studentId, jobUrlNormalized])
+  @@index([employeeId, appliedAt])
+  @@index([studentId, appliedAt])
+  @@index([status, lastStatusAt])
+}
+
+model ApplicationEvent {
+  id            String             @id @default(cuid())
+  applicationId String
+  fromStatus    ApplicationStatus?
+  toStatus      ApplicationStatus
+  note          String?
+  byUserId      String?
+  at            DateTime           @default(now())
+  application   JobApplication     @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId, at])
+}
+
+model Interview {
+  id            String         @id @default(cuid())
+  applicationId String
+  scheduledAt   DateTime
+  timezone      String
+  round         String
+  mode          String
+  meetingLink   String?
+  interviewers  String?
+  prepNotes     String?
+  outcome       String?
+  createdAt     DateTime       @default(now())
+  application   JobApplication @relation(fields: [applicationId], references: [id])
+
+  @@index([scheduledAt])
+}
+
+model MockInterview {
+  id            String         @id @default(cuid())
+  studentId     String?
+  conductedById String
+  scheduledAt   DateTime
+  durationMin   Int            @default(45)
+  status        String // OPEN | SCHEDULED | DONE | NO_SHOW | CANCELLED
+  focus         String?
+  meetingLink   String?
+  scores        Json?
+  feedback      String?
+  createdAt     DateTime       @default(now())
+  student       StudentProfile? @relation(fields: [studentId], references: [id])
+
+  @@index([scheduledAt])
+}
+
+// ───────────────────────────── Messaging ─────────────────────────────
+
+model MessageThread {
+  id         String          @id @default(cuid())
+  studentId  String
+  employeeId String
+  isActive   Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  student    StudentProfile  @relation(fields: [studentId], references: [id])
+  employee   EmployeeProfile @relation(fields: [employeeId], references: [id])
+  messages   Message[]
+
+  @@unique([studentId, employeeId])
+}
+
+model Message {
+  id             String          @id @default(cuid())
+  threadId       String
+  senderId       String
+  body           String
+  attachmentKeys String[]
+  applicationId  String?
+  isBroadcast    Boolean         @default(false)
+  readAt         DateTime?
+  emailedAt      DateTime?
+  createdAt      DateTime        @default(now())
+  thread         MessageThread   @relation(fields: [threadId], references: [id])
+  sender         User            @relation(fields: [senderId], references: [id])
+  application    JobApplication? @relation(fields: [applicationId], references: [id])
+
+  @@index([threadId, createdAt])
+}
+
+// ───────────────────────────── Attendance ─────────────────────────────
+
+model WorkSession {
+  id             String          @id @default(cuid())
+  employeeId     String
+  startedAt      DateTime
+  endedAt        DateTime?
+  autoClosed     Boolean         @default(false)
+  correctedById  String?
+  correctionNote String?
+  employee       EmployeeProfile @relation(fields: [employeeId], references: [id])
+  breaks         BreakPeriod[]
+
+  @@index([employeeId, startedAt])
+}
+
+model BreakPeriod {
+  id        String      @id @default(cuid())
+  sessionId String
+  startedAt DateTime
+  endedAt   DateTime?
+  session   WorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model ActivityMinute {
+  userId String
+  minute DateTime
+
+  @@id([userId, minute])
+}
+
+model EmployeeDay {
+  id             String           @id @default(cuid())
+  employeeId     String
+  date           DateTime         @db.Date
+  status         AttendanceStatus
+  firstLoginAt   DateTime?
+  clockInAt      DateTime?
+  clockOutAt     DateTime?
+  clockedMinutes Int              @default(0)
+  breakMinutes   Int              @default(0)
+  activeMinutes  Int              @default(0)
+  applications   Int              @default(0)
+  statusUpdates  Int              @default(0)
+  messagesSent   Int              @default(0)
+  employee       EmployeeProfile  @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, date])
+}
+
+model StudentDay {
+  id        String         @id @default(cuid())
+  studentId String
+  date      DateTime       @db.Date
+  target    Int
+  applied   Int            @default(0)
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, date])
+}
+
+// ───────────────────────────── Leave ─────────────────────────────
+
+model LeaveType {
+  id           String         @id @default(cuid())
+  name         String         @unique
+  annualQuota  Float
+  paid         Boolean        @default(true)
+  carryForward Boolean        @default(false)
+  isActive     Boolean        @default(true)
+  requests     LeaveRequest[]
+}
+
+model LeaveRequest {
+  id               String          @id @default(cuid())
+  employeeId       String
+  leaveTypeId      String
+  fromDate         DateTime        @db.Date
+  toDate           DateTime        @db.Date
+  halfDay          String?
+  days             Float
+  reason           String
+  attachmentKey    String?
+  status           LeaveStatus     @default(PENDING)
+  decidedById      String?
+  decidedAt        DateTime?
+  decisionNote     String?
+  coverEmployeeId  String?
+  createdAt        DateTime        @default(now())
+  employee         EmployeeProfile @relation(fields: [employeeId], references: [id])
+  leaveType        LeaveType       @relation(fields: [leaveTypeId], references: [id])
+
+  @@index([employeeId, fromDate])
+  @@index([status])
+}
+
+model Holiday {
+  id     String   @id @default(cuid())
+  date   DateTime @db.Date
+  name   String
+  region String
+
+  @@unique([date, region])
+}
+
+// ───────────────────────────── Misc ─────────────────────────────
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+}
+
+model PrepResource {
+  id          String   @id @default(cuid())
+  title       String
+  type        String
+  tags        String[]
+  marketCodes String[]
+  url         String?
+  fileKey     String?
+  body        Json?
+  bodyHtml    String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Lead {
+  id             String    @id @default(cuid())
+  name           String
+  email          String
+  phone          String?
+  marketCode     String?
+  source         String
+  message        String?
+  status         String    @default("NEW")
+  ownerId        String?
+  nextFollowUpAt DateTime?
+  utm            Json?
+  createdAt      DateTime  @default(now())
+
+  @@index([status, createdAt])
+}
+
+model CmsEntry {
+  id             String    @id @default(cuid())
+  kind           String // PAGE | LEGAL | BLOG | STORY | FAQ | TEAM | LANDING
+  slug           String
+  title          String
+  excerpt        String?
+  body           Json
+  bodyHtml       String
+  seoTitle       String?
+  seoDescription String?
+  ogImageKey     String?
+  canonicalUrl   String?
+  noindex        Boolean   @default(false)
+  sortOrder      Int       @default(0)
+  data           Json?
+  isPublished    Boolean   @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  @@unique([kind, slug])
+  @@index([kind, isPublished])
+}
+
+model FileObject {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  ownerUserId String
+  studentId   String?
+  purpose     String
+  mime        String
+  size        Int
+  filename    String?
+  createdAt   DateTime @default(now())
+}
+
+model AiUsage {
+  id           String   @id @default(cuid())
+  userId       String
+  studentId    String?
+  task         String
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  costMicros   Int
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([studentId, createdAt])
+}
+
+model AuditLog {
+  id       String   @id @default(cuid())
+  actorId  String?
+  action   String
+  entity   String
+  entityId String?
+  before   Json?
+  after    Json?
+  ip       String?
+  at       DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([at])
+}
+
+model Setting {
+  key   String @id
+  value Json
+}
+
+/// Product metrics events (server-side).
+model ProductEvent {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String?
+  props     Json?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+}
