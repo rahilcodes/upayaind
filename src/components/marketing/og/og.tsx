@@ -23,38 +23,30 @@ function loadFonts() {
   return fonts;
 }
 
-function Mark({ size = 64 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 34 34">
-      <defs>
-        <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#0A35D6" />
-          <stop offset="0.5" stopColor="#0A7CF0" />
-          <stop offset="1" stopColor="#18B8F2" />
-        </linearGradient>
-      </defs>
-      <rect width="34" height="34" rx="9" fill="#FFFFFF" />
-      <path d="M8 24 L14 18 L18 21 L26 11" fill="none" stroke="url(#g)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M20 11 H26 V17" fill="none" stroke="#18B8F2" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+let logoData: Promise<string> | null = null;
+function loadLogo() {
+  logoData ??= fs.readFile(path.join(process.cwd(), "public/brand/upayaind-logo.png")).then((b) => `data:image/png;base64,${b.toString("base64")}`);
+  return logoData;
 }
 
 /** Navy card with the rising-arrow motif, an eyebrow, a Fraunces title and a footer line. */
 export async function ogImage({ eyebrow, title, footer = "upayaind.com" }: { eyebrow?: string; title: string; footer?: string }) {
   const t = title.length > 110 ? `${title.slice(0, 107)}…` : title;
   const fontSize = t.length > 70 ? 56 : t.length > 40 ? 66 : 76;
+  const logo = await loadLogo();
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "#0B1846", padding: "64px 72px", position: "relative", fontFamily: "Inter" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "linear-gradient(135deg, #1747B8 0%, #1F5AD1 45%, #2563DE 100%)", padding: "64px 72px", position: "relative", fontFamily: "Inter" }}>
         <svg width="760" height="380" viewBox="0 0 520 260" style={{ position: "absolute", right: -80, bottom: -70, opacity: 0.35 }}>
-          <path d="M10 240 L170 140 L270 190 L500 30" fill="none" stroke="#18B8F2" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M420 30 H500 V110" fill="none" stroke="#18B8F2" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10 240 L170 140 L270 190 L500 30" fill="none" stroke="#38B6FF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M420 30 H500 V110" fill="none" stroke="#38B6FF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 10, background: "linear-gradient(90deg, #0A35D6, #0A7CF0, #18B8F2)" }} />
+        <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 10, background: "linear-gradient(90deg, #1F5AD1, #2F73F2, #38B6FF)" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <Mark size={60} />
-          <span style={{ fontFamily: "Fraunces", fontSize: 40, color: "#FFFFFF", letterSpacing: -0.5 }}>UpayaInd</span>
+          <div style={{ display: "flex", background: "#FFFFFF", borderRadius: 18, padding: "12px 18px" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logo} width={194 * 0.9} height={69 * 0.9} alt="" />
+          </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", maxWidth: 940 }}>
           {eyebrow ? <span style={{ fontSize: 26, fontWeight: 700, color: "#8FD8F7", letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 20 }}>{eyebrow}</span> : null}

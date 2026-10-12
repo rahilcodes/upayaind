@@ -72,14 +72,14 @@ export default async function StoryPage({ params }: Props) {
               </div>
               <dl className="grid grid-cols-2 gap-3">
                 {st.weeksToOffer != null ? (
-                  <div className="flex flex-col-reverse rounded-[16px] bg-ink p-5 text-white">
-                    <dt className="text-sm text-[#B9C3E3]">{t("statWeeks")}</dt>
+                  <div className="flex flex-col-reverse rounded-[16px] brand-deep p-5 text-white">
+                    <dt className="text-sm text-[#E3ECFF]">{t("statWeeks")}</dt>
                     <dd className="font-display text-[36px] font-semibold leading-tight tabular">{st.weeksToOffer}</dd>
                   </div>
                 ) : null}
                 {st.applicationsSent != null ? (
-                  <div className="flex flex-col-reverse rounded-[16px] bg-ink p-5 text-white">
-                    <dt className="text-sm text-[#B9C3E3]">{t("statApps")}</dt>
+                  <div className="flex flex-col-reverse rounded-[16px] brand-deep p-5 text-white">
+                    <dt className="text-sm text-[#E3ECFF]">{t("statApps")}</dt>
                     <dd className="font-display text-[36px] font-semibold leading-tight tabular">{formatCount(st.applicationsSent)}</dd>
                   </div>
                 ) : null}
@@ -98,7 +98,7 @@ export default async function StoryPage({ params }: Props) {
         <div className="bg-white px-4 py-14 sm:px-6 sm:py-20">
           <div className="mx-auto max-w-[720px]">
             {video ? (
-              <div className="mb-10 aspect-video overflow-hidden rounded-[18px] border border-sand bg-ink">
+              <div className="mb-10 aspect-video overflow-hidden rounded-[18px] border border-sand brand-deep">
                 <iframe
                   src={video}
                   title={t("video", { name: st.studentName })}

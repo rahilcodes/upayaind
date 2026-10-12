@@ -16,7 +16,7 @@ export type VaultItem = { id: string; kind: string; label: string; loginUrl: str
 
 const KIND_TONE: Record<string, string> = {
   EMAIL: "bg-[#FCEAE8] text-[#A82A21]",
-  LINKEDIN: "bg-[#E8EFFE] text-[#0A35D6]",
+  LINKEDIN: "bg-[#EAF1FE] text-[#2563DE]",
   INDEED: "bg-[#E1F6FD] text-[#0B6C8F]",
   DICE: "bg-[#FDF3E1] text-[#7A4E0E]",
   GLASSDOOR: "bg-[#E6F4EC] text-[#1E7B4F]",

@@ -1,29 +1,44 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-/** The UpayaInd mark: a rising arrow (SPEC §13 motif). */
-export function LogoMark({ size = 34, inverted = false, className }: { size?: number; inverted?: boolean; className?: string }) {
-  const id = inverted ? "lg-inv" : "lg";
-  return (
-    <svg width={size} height={size} viewBox="0 0 34 34" aria-hidden="true" className={className}>
-      <defs>
-        <linearGradient id={id} x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#0A35D6" />
-          <stop offset="0.5" stopColor="#0A7CF0" />
-          <stop offset="1" stopColor="#18B8F2" />
-        </linearGradient>
-      </defs>
-      <rect width="34" height="34" rx="9" fill={inverted ? "#FFFFFF" : "#0B1846"} />
-      <path d="M8 24 L14 18 L18 21 L26 11" fill="none" stroke={inverted ? "#0A35D6" : `url(#${id})`} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M20 11 H26 V17" fill="none" stroke={inverted ? "#0A7CF0" : "#18B8F2"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+/**
+ * Official UpayaInd logo (client artwork, public/brand/upayaind-logo.png, 194×69).
+ * The artwork is blue on transparent, so on dark or blue backgrounds pass
+ * `onDark` and it is placed on a white pill to stay legible.
+ * Replace the PNG with an SVG/hi-res export when the client supplies one.
+ */
+const RATIO = 194 / 69;
+
+export function Logo({
+  height = 40,
+  onDark = false,
+  className,
+  priority = false,
+}: {
+  height?: number;
+  onDark?: boolean;
+  className?: string;
+  priority?: boolean;
+}) {
+  const img = (
+    <Image
+      src="/brand/upayaind-logo.png"
+      alt="UpayaInd"
+      width={Math.round(height * RATIO)}
+      height={height}
+      priority={priority}
+      unoptimized
+      className="h-auto select-none"
+      style={{ width: Math.round(height * RATIO), height }}
+    />
   );
+  if (!onDark) return <span className={cn("inline-flex items-center", className)}>{img}</span>;
+  return <span className={cn("inline-flex items-center rounded-[12px] bg-white px-2.5 py-1.5 shadow-sm", className)}>{img}</span>;
 }
 
-export function Logo({ inverted = false, className, size = 34 }: { inverted?: boolean; className?: string; size?: number }) {
+/** The logo's figure-and-swoosh mark alone (icons, avatars, compact spaces). */
+export function LogoMark({ size = 34, className }: { size?: number; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <LogoMark size={size} inverted={inverted} />
-      <span className={cn("font-display text-[22px] font-semibold tracking-[-0.01em]", inverted ? "text-white" : "text-ink")}>UpayaInd</span>
-    </span>
+    <Image src="/brand/upayaind-mark.png" alt="" aria-hidden="true" width={size} height={size} unoptimized className={cn("select-none", className)} style={{ width: size, height: size }} />
   );
 }

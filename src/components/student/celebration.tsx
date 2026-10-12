@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { PartyPopper, X } from "lucide-react";
 
-const COLORS = ["#18B8F2", "#0A7CF0", "#FFFFFF", "#F5C451", "#3DDC97"];
+const COLORS = ["#38B6FF", "#2F73F2", "#FFFFFF", "#F5C451", "#3DDC97"];
 
 /**
  * OFFER/HIRED celebration card (F5/F6). Gradient card + a short CSS confetti
@@ -41,7 +41,7 @@ export function Celebration({ applicationId, status, company, title }: { applica
 
   if (hidden) return null;
   return (
-    <section aria-labelledby="celebrate-h" className="relative mb-6 overflow-hidden rounded-[20px] bg-ink p-5 text-white sm:p-6" style={{ backgroundImage: "radial-gradient(120% 140% at 100% 0%, rgba(24,184,242,.45), transparent 55%), linear-gradient(120deg, #0B1846 30%, #0A35D6)" }}>
+    <section aria-labelledby="celebrate-h" className="relative mb-6 overflow-hidden rounded-[20px] bg-ink p-5 text-white sm:p-6" style={{ backgroundImage: "radial-gradient(120% 140% at 100% 0%, rgba(24,184,242,.45), transparent 55%), linear-gradient(120deg, #0B1846 30%, #2563DE)" }}>
       {burst ? (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <style>{`@keyframes upy-fall{0%{transform:translateY(-20px) rotate(0)}100%{transform:translateY(260px) rotate(540deg);opacity:0}}`}</style>

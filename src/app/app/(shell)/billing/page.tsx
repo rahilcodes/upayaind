@@ -20,7 +20,7 @@ function Alert({ tone, children }: { tone: "warning" | "danger" | "info"; childr
   const cls = {
     warning: "border-[#F0D9AE] bg-[#FDF3E1] text-[#5E3C08]",
     danger: "border-[#F3C8C3] bg-[#FCEAE8] text-[#8E231B]",
-    info: "border-[#C9D7FB] bg-[#EEF2FD] text-[#0A2BA8]",
+    info: "border-[#C6D9FC] bg-[#EAF1FE] text-[#1A4FB8]",
   }[tone];
   const Icon = tone === "info" ? Info : AlertTriangle;
   return (

@@ -10,7 +10,7 @@ type Copy = Record<
 >;
 
 const input =
-  "w-full rounded-[10px] border-[1.5px] border-[#D5DAE6] bg-white px-3.5 text-[15px] text-ink placeholder:text-[#5A6585] focus:border-royal focus:outline-none focus:ring-[3px] focus:ring-[rgba(10,53,214,0.35)] aria-[invalid=true]:border-danger";
+  "w-full rounded-[10px] border-[1.5px] border-[#D5DAE6] bg-white px-3.5 text-[15px] text-ink placeholder:text-[#5A6585] focus:border-royal focus:outline-none focus:ring-[3px] focus:ring-[rgba(37, 99, 222,0.35)] aria-[invalid=true]:border-danger";
 
 function Err({ id, msg }: { id: string; msg?: string[] }) {
   return msg?.[0] ? (
@@ -27,7 +27,7 @@ function Submit({ copy }: { copy: Copy }) {
       type="submit"
       disabled={pending}
       aria-busy={pending || undefined}
-      className="inline-flex min-h-[52px] items-center justify-center rounded-[12px] bg-royal px-7 text-base font-semibold text-white hover:brand-gradient disabled:opacity-60"
+      className="inline-flex min-h-[52px] items-center justify-center rounded-[12px] bg-royal px-7 text-base font-semibold text-white hover:bg-royal-600 disabled:opacity-60"
     >
       {pending ? copy.sending : copy.send}
     </button>
@@ -174,7 +174,7 @@ export function ContactForm({
             defaultChecked={v.consent === "on"}
             aria-invalid={fe.consent?.length ? true : undefined}
             aria-describedby={fe.consent?.length ? "consent-error" : undefined}
-            className="mt-0.5 h-[18px] w-[18px] flex-none cursor-pointer accent-[#0A35D6]"
+            className="mt-0.5 h-[18px] w-[18px] flex-none cursor-pointer accent-[#2563DE]"
           />
           <span>{consent}</span>
         </label>

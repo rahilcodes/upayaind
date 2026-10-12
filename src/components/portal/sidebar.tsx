@@ -40,7 +40,7 @@ function NavList({ items, root, badges, onNavigate }: { items: NavItem[]; root: 
         return (
           <React.Fragment key={item.href}>
             {groupHeader ? (
-              <p className="mb-1 mt-4 px-3 text-[11px] font-bold uppercase tracking-[0.1em] text-[#7F8BB5]">{t(`groups.${groupHeader}` as "groups.work")}</p>
+              <p className="mb-1 mt-4 px-3 text-[11px] font-bold uppercase tracking-[0.1em] text-subtle-foreground">{t(`groups.${groupHeader}` as "groups.work")}</p>
             ) : null}
             <Link
               href={item.href}
@@ -48,13 +48,15 @@ function NavList({ items, root, badges, onNavigate }: { items: NavItem[]; root: 
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[15px] font-medium transition-colors",
-                active ? "bg-sidebar-active text-white" : "text-sidebar-foreground hover:bg-white/5 hover:text-white",
+                active
+                  ? "bg-sidebar-active font-semibold text-sidebar-active-foreground shadow-[inset_3px_0_0_var(--color-primary)]"
+                  : "text-sidebar-foreground hover:bg-surface-muted hover:text-foreground",
               )}
             >
               <Icon className="h-[18px] w-[18px] shrink-0 opacity-90" aria-hidden="true" />
               <span className="flex-1 truncate">{t(item.label as "dashboard")}</span>
               {badge ? (
-                <span className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-sky px-1.5 text-xs font-bold text-ink">
+                <span className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-white">
                   {badge > 99 ? "99+" : badge}
                   <span className="sr-only"> new</span>
                 </span>
@@ -81,9 +83,9 @@ export function Sidebar({
   extra?: React.ReactNode;
 }) {
   return (
-    <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col gap-7 overflow-y-auto bg-sidebar px-4 py-6 text-white lg:flex">
+    <aside className="sticky top-0 hidden h-dvh w-[256px] shrink-0 flex-col gap-7 overflow-y-auto border-r border-sidebar-border bg-sidebar px-4 py-6 text-foreground lg:flex">
       <Link href={root} className="px-2" aria-label="UpayaInd home">
-        <Logo inverted size={32} className="[&_span]:text-[20px]" />
+        <Logo height={44} className="sidebar-logo" />
       </Link>
       <NavList items={items} root={root} badges={badges} />
       {extra}
@@ -106,9 +108,9 @@ export function MobileNav({ items, root, badges, footer, extra }: { items: NavIt
       >
         <Menu className="h-5 w-5" aria-hidden="true" />
       </button>
-      <Sheet open={open} onOpenChange={setOpen} title="Menu" className="flex flex-col gap-7 bg-sidebar px-4 py-6 text-white">
+      <Sheet open={open} onOpenChange={setOpen} title="Menu" className="portal flex flex-col gap-7 bg-sidebar px-4 py-6 text-foreground">
         <Link href={root} onClick={() => setOpen(false)} className="px-2">
-          <Logo inverted size={32} />
+          <Logo height={42} className="sidebar-logo" />
         </Link>
         <NavList items={items} root={root} badges={badges} onNavigate={() => setOpen(false)} />
         {extra}

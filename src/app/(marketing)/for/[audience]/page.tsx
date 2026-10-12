@@ -88,7 +88,7 @@ export default async function LandingPage({ params }: Props) {
           {steps.map((s, i) => (
             <li key={s.title}>
               <div className="mb-5 flex items-center gap-3">
-                <span aria-hidden="true" className="flex h-12 w-12 flex-none items-center justify-center rounded-[14px] bg-ink font-display text-xl font-semibold text-white">
+                <span aria-hidden="true" className="flex h-12 w-12 flex-none items-center justify-center rounded-[14px] brand-deep font-display text-xl font-semibold text-white">
                   {i + 1}
                 </span>
                 <span aria-hidden="true" className="h-0.5 flex-1 bg-gradient-to-r from-blue to-[rgba(24,184,242,0)]" />

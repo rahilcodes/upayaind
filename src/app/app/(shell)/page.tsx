@@ -53,7 +53,7 @@ export default async function StudentDashboard({ searchParams }: { searchParams:
       {inactive ? <RenewBanner /> : null}
       {d.celebrate ? <Celebration applicationId={d.celebrate.id} status={d.celebrate.status as "OFFER" | "HIRED"} company={d.celebrate.companyName} title={d.celebrate.jobTitle} /> : null}
       {!d.specialist && !inactive ? (
-        <div role="status" className="mb-6 flex items-start gap-3 rounded-[16px] border border-[#C9D7FB] bg-[#EEF2FD] p-4 text-[#0A2BA8]">
+        <div role="status" className="mb-6 flex items-start gap-3 rounded-[16px] border border-[#C6D9FC] bg-[#EAF1FE] p-4 text-[#1A4FB8]">
           <Sparkles className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div>
             <p className="font-semibold">{t("assigningTitle")}</p>

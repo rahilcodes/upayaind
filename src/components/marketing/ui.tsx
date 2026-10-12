@@ -27,7 +27,7 @@ export function Section({
   label?: string;
   labelledBy?: string;
 }) {
-  const bg = { paper: "bg-paper", white: "bg-white", ink: "bg-ink text-white", tint: "bg-[#F1F4FB]" }[tone];
+  const bg = { paper: "bg-paper", white: "bg-white", ink: "brand-deep text-white", tint: "bg-[#F1F4FB]" }[tone];
   return (
     <section id={id} aria-label={label} aria-labelledby={labelledBy} className={cn(sectionPad, bg, id && "scroll-mt-6", className)}>
       <div className={cn(container, inner)}>{children}</div>
@@ -62,7 +62,7 @@ export function PageHero({
 }) {
   return (
     <section className={cn("relative overflow-hidden px-4 pb-14 pt-14 sm:px-6 sm:pb-16 sm:pt-20", className)}>
-      <RisingArrow className="pointer-events-none absolute -right-24 -top-6 hidden w-[520px] opacity-[0.10] md:block" stroke="#0A35D6" />
+      <RisingArrow className="pointer-events-none absolute -right-24 -top-6 hidden w-[520px] opacity-[0.10] md:block" stroke="#2563DE" />
       <div className={cn(container, "relative")}>
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
         <h1 className={cn(h1Class, "max-w-[860px]")}>{title}</h1>
@@ -74,7 +74,7 @@ export function PageHero({
 }
 
 /** The logo's rising arrow, reused as a motif (SPEC §13). */
-export function RisingArrow({ className, stroke = "#18B8F2", width = 10 }: { className?: string; stroke?: string; width?: number }) {
+export function RisingArrow({ className, stroke = "#38B6FF", width = 10 }: { className?: string; stroke?: string; width?: number }) {
   return (
     <svg viewBox="0 0 520 260" aria-hidden="true" focusable="false" className={className}>
       <path d="M10 240 L170 140 L270 190 L500 30" fill="none" stroke={stroke} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
@@ -104,8 +104,8 @@ const ctaBase =
   "inline-flex min-h-[54px] items-center justify-center gap-2.5 rounded-[12px] px-7 text-[17px] font-semibold no-underline transition-[background,color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export const cta = {
-  primary: cn(ctaBase, "bg-royal text-white hover:brand-gradient hover:text-white"),
-  outline: cn(ctaBase, "border-[1.5px] border-ink px-6 text-ink hover:bg-ink hover:text-white"),
+  primary: cn(ctaBase, "bg-royal text-white shadow-[0_10px_24px_-12px_rgba(42,106,233,0.7)] hover:bg-royal-600 hover:text-white"),
+  outline: cn(ctaBase, "border-[1.5px] border-royal bg-white px-6 text-royal hover:bg-[#EAF1FE] hover:text-royal-600"),
   white: cn(ctaBase, "bg-white font-bold text-ink hover:bg-[#E8EDFB] hover:text-ink"),
   outlineWhite: cn(ctaBase, "border-[1.5px] border-white px-6 text-white hover:bg-white hover:text-ink"),
 };

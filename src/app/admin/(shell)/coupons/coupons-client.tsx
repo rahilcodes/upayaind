@@ -72,7 +72,7 @@ export function CouponDialog({ prices, coupon, trigger }: { prices: PriceOption[
       <DialogContent title={coupon ? t("editCoupon") : t("newCoupon")} wide>
         <form onSubmit={submit} className="grid gap-4" noValidate>
           {locked ? (
-            <p role="status" className="rounded-[10px] border border-[#C9D7FB] bg-[#EEF2FD] px-3.5 py-2.5 text-[13px] text-[#0A2BA8]">
+            <p role="status" className="rounded-[10px] border border-[#C6D9FC] bg-[#EAF1FE] px-3.5 py-2.5 text-[13px] text-[#1A4FB8]">
               {tf("lockedHint")}
             </p>
           ) : null}

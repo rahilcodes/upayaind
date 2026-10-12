@@ -541,7 +541,7 @@ export function EntryEditor({ entry }: { entry: EditorEntry }) {
               {t("preview.missingAlt")}
             </p>
           ) : null}
-          <div className="rounded-[14px] bg-[#FBFAF6] p-6 text-[#0B1846]">
+          <div className="rounded-[14px] bg-[#F7F9FF] p-6 text-[#0B1846]">
             <p className="mb-4 font-display text-[32px] font-semibold leading-tight">{v.title}</p>
             {preview ? <div className="cms-prose" dangerouslySetInnerHTML={{ __html: preview.html }} /> : null}
           </div>

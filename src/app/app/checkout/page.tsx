@@ -19,7 +19,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/" aria-label="UpayaInd home" className="rounded-md">
-            <Logo size={30} />
+            <Logo height={40} priority />
           </Link>
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
             <Lock className="h-4 w-4" aria-hidden="true" />

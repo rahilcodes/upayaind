@@ -16,7 +16,7 @@ Inngest jobs, R2 storage, Anthropic API for resume AI, @react-pdf/renderer + doc
 - Resume AI must obey the truthfulness rules in SPEC §9.4; always run the validator.
 - Every UI string through next-intl. Messages live in src/i18n/messages/en/<area>.json (one namespace set per file).
 - Mobile-first; check 375px for every new screen.
-- Brand tokens: royal #0A35D6, blue #0A7CF0, sky #18B8F2, ink #0B1846 (src/app/globals.css).
+- Brand: official client logo in public/brand (components/ui/logo.tsx). Colours: blue #2F73F2 (client sign-up blue; accents, gradients), royal #2563DE (buttons/links with white or tinted text — AA contrast), deep #1F5AD1, sky #38B6FF, ink #0B1846 for text (src/app/globals.css).
 - Prisma client import: `@/server/db` (server) — enums for client components: `@/generated/prisma/enums`.
 
 ## Commands

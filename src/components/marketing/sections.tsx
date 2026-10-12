@@ -39,7 +39,7 @@ export async function StoryCard({ story, headingLevel = 3 }: { story: Story; hea
   const s = story.story;
   const H = headingLevel === 2 ? "h2" : "h3";
   return (
-    <article className="relative flex flex-col gap-5 rounded-[20px] border border-sand bg-paper p-7 transition-shadow focus-within:shadow-[0_0_0_3px_rgba(10,53,214,0.35)] hover:shadow-[0_20px_40px_-24px_rgba(11,24,70,0.35)]">
+    <article className="relative flex flex-col gap-5 rounded-[20px] border border-sand bg-paper p-7 transition-shadow focus-within:shadow-[0_0_0_3px_rgba(37, 99, 222,0.35)] hover:shadow-[0_20px_40px_-24px_rgba(11,24,70,0.35)]">
       <div className="flex items-center gap-3.5">
         <StoryPhoto story={story} />
         <div className="min-w-0">
@@ -80,7 +80,7 @@ export function FaqList({ items, className }: { items: { q: string; html: string
         <details key={i} className="group border-b border-sand py-[18px]">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-semibold sm:text-lg [&::-webkit-details-marker]:hidden">
             <span>{f.q}</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A35D6" strokeWidth="2.2" aria-hidden="true" className="flex-none transition-transform group-open:rotate-45">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563DE" strokeWidth="2.2" aria-hidden="true" className="flex-none transition-transform group-open:rotate-45">
               <path d="M12 5v14M5 12h14" />
             </svg>
           </summary>
@@ -99,10 +99,10 @@ export async function FinalCta({ calcom }: { calcom: boolean }) {
   const t = await getTranslations("marketing.cta");
   return (
     <section className="bg-paper px-4 py-6 sm:px-6">
-      <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[28px] bg-ink px-6 py-16 text-center text-white sm:px-10 sm:py-[72px]">
+      <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[28px] brand-deep px-6 py-16 text-center text-white sm:px-10 sm:py-[72px]">
         <RisingArrow className="pointer-events-none absolute -bottom-10 -right-16 w-[340px] opacity-35 sm:w-[520px]" />
         <h2 className={cn(h2Class, "relative mx-auto max-w-[820px] lg:text-[52px]")}>{t("title")}</h2>
-        <p className="relative mx-auto mb-8 mt-4 max-w-[560px] text-lg text-[#C9D1EC]">{t("sub")}</p>
+        <p className="relative mx-auto mb-8 mt-4 max-w-[560px] text-lg text-[#EEF4FF]">{t("sub")}</p>
         <div className="relative flex flex-wrap justify-center gap-3">
           <Link href="/pricing" className={cta.white} {...trackAttrs("cta_get_started", { location: "final_cta" })}>
             {t("getStarted")}

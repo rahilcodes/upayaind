@@ -30,7 +30,7 @@ export function ThreadViewer({ thread, timezone, className }: { thread: AnyThrea
   const data = toJson(thread);
   return (
     <section aria-label={t("aria", { student: data.studentName, employee: data.employeeName })} className={className}>
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[12px] border border-[#C9D7FB] bg-[#EEF2FD] px-3.5 py-2.5 text-[13px] text-[#0A2BA8] dark:border-border dark:bg-accent dark:text-accent-foreground">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[12px] border border-[#C6D9FC] bg-[#EAF1FE] px-3.5 py-2.5 text-[13px] text-[#1A4FB8] dark:border-border dark:bg-accent dark:text-accent-foreground">
         <Eye className="h-4 w-4" aria-hidden="true" />
         <span>{t("readOnly", { student: data.studentName, employee: data.employeeName })}</span>
         {!data.isActive ? <span className="font-semibold">· {t("closed")}</span> : null}

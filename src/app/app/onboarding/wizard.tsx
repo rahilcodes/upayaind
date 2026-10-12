@@ -70,20 +70,19 @@ export function OnboardingWizard(p: Props) {
       <a href="#main" className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         {t("skip")}
       </a>
-      <header className="relative overflow-hidden bg-ink text-white">
+      <header className="relative overflow-hidden brand-deep text-white">
         <svg aria-hidden="true" viewBox="0 0 760 220" className="pointer-events-none absolute -right-24 -top-6 hidden w-[620px] opacity-25 md:block">
           <defs>
             <linearGradient id="onbg" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0" stopColor="#0A35D6" />
-              <stop offset="0.5" stopColor="#0A7CF0" />
-              <stop offset="1" stopColor="#18B8F2" />
+              <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.35" />
+              <stop offset="1" stopColor="#FFFFFF" />
             </linearGradient>
           </defs>
           <path d="M20 210 L260 110 L400 160 L720 20" fill="none" stroke="url(#onbg)" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <div className="relative mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-4 pt-5 sm:px-6">
           <Link href="/" aria-label={t("home")} className="rounded-md">
-            <Logo inverted size={30} />
+            <Logo height={40} onDark />
           </Link>
           <Link href="/app/settings" className="rounded-md px-2 py-2 text-sm font-medium text-[#C9D1EC] hover:text-white">
             {t("accountSettings")}
@@ -185,7 +184,7 @@ function Stepper({ step, maxStep, onPick }: { step: number; maxStep: number; onP
 }
 
 function Banner({ tone, icon, children }: { tone: "success" | "info" | "warning"; icon: React.ReactNode; children: React.ReactNode }) {
-  const cls = { success: "border-[#BFE3CF] bg-[#E6F4EC] text-[#155C3A]", info: "border-[#C9D7FB] bg-[#EEF2FD] text-[#0A2BA8]", warning: "border-[#F0D9AE] bg-[#FDF3E1] text-[#5E3C08]" }[tone];
+  const cls = { success: "border-[#BFE3CF] bg-[#E6F4EC] text-[#155C3A]", info: "border-[#C6D9FC] bg-[#EAF1FE] text-[#1A4FB8]", warning: "border-[#F0D9AE] bg-[#FDF3E1] text-[#5E3C08]" }[tone];
   return (
     <div role="status" className={cn("flex items-start gap-3 rounded-[14px] border px-4 py-3 text-sm", cls)}>
       <span className="mt-0.5 shrink-0">{icon}</span>

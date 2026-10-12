@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { LogoMark } from "@/components/ui/logo";
+import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 import type { MarketInfo } from "./data";
 import { PerMarket } from "./market";
@@ -8,13 +8,8 @@ import { MarketMenu, MobileMenu } from "./menus";
 import { trackAttrs } from "./track";
 import { container } from "./ui";
 
-function Brand() {
-  return (
-    <span className="inline-flex items-center gap-2.5">
-      <LogoMark size={34} />
-      <span className="font-display text-[22px] font-semibold tracking-[-0.01em] text-ink">UpayaInd</span>
-    </span>
-  );
+function Brand({ height = 44 }: { height?: number }) {
+  return <Logo height={height} priority />;
 }
 
 export function whatsappHref(number: string, text: string) {
@@ -68,13 +63,13 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3 lg:ml-0">
           <div className="hidden sm:block">{switcher}</div>
-          <Link href="/login" className="hidden h-11 items-center px-3 text-[15px] font-medium text-ink no-underline hover:text-royal lg:inline-flex">
+          <Link href="/login" className="hidden h-11 items-center rounded-[10px] border-[1.5px] border-royal bg-white px-5 text-[15px] font-semibold text-royal no-underline hover:bg-[#EAF1FE] lg:inline-flex">
             {t("nav.login")}
           </Link>
           <Link
             href="/pricing"
             {...trackAttrs("cta_get_started", { location: "header" })}
-            className="hidden h-11 items-center rounded-[10px] bg-royal px-5 text-[15px] font-semibold text-white no-underline hover:brand-gradient hover:text-white sm:inline-flex"
+            className="hidden h-11 items-center rounded-[10px] bg-royal px-5 text-[15px] font-semibold text-white no-underline hover:bg-royal-600 hover:text-white sm:inline-flex"
           >
             {t("nav.getStarted")}
           </Link>
@@ -86,7 +81,7 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
             >
               {t("nav.getStarted")}
             </Link>
-            <Link href="/login" className="inline-flex min-h-[52px] items-center justify-center rounded-[12px] border-[1.5px] border-ink text-base font-semibold text-ink no-underline">
+            <Link href="/login" className="inline-flex min-h-[52px] items-center justify-center rounded-[12px] border-[1.5px] border-royal text-base font-semibold text-royal no-underline">
               {t("nav.login")}
             </Link>
             <div className="sm:hidden">{switcher}</div>
@@ -107,7 +102,7 @@ export async function SiteFooter({ markets, legal }: { markets: MarketInfo[]; le
     <footer className="bg-paper px-4 pb-10 pt-16 sm:px-6">
       <div className={cn(container, "grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4")}>
         <div className="col-span-2 md:col-span-1">
-          <p className="mb-2.5 font-display text-[22px] font-semibold">UpayaInd</p>
+          <div className="mb-3"><Brand height={40} /></div>
           <p className="max-w-[300px] text-[15px] text-[#3E4A6E]">{t("footer.about")}</p>
         </div>
         <nav aria-label={t("footer.product")} className="flex flex-col gap-1 text-[15px]">

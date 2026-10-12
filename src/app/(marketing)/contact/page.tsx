@@ -50,18 +50,18 @@ export default async function ContactPage() {
             <ContactForm copy={copy} consent={consent} markets={formMarkets} dialCodes={dialCodes} />
           </div>
           <div className="flex flex-col gap-6">
-            <div id="book" className="relative scroll-mt-6 overflow-hidden rounded-[22px] bg-ink p-6 text-white sm:p-8">
+            <div id="book" className="relative scroll-mt-6 overflow-hidden rounded-[22px] brand-deep p-6 text-white sm:p-8">
               <RisingArrow className="pointer-events-none absolute -bottom-8 -right-10 w-[260px] opacity-30" />
               <h2 className="relative mb-2 text-2xl font-bold">{t("bookTitle")}</h2>
               {env.CALCOM_LINK ? (
                 <>
-                  <p className="relative mb-6 text-[#C9D1EC]">{t("bookSub")}</p>
+                  <p className="relative mb-6 text-[#EEF4FF]">{t("bookSub")}</p>
                   <div className="relative">
                     <CalEmbed link={env.CALCOM_LINK} label={t("bookButton")} title={t("bookFrameTitle")} />
                   </div>
                 </>
               ) : (
-                <p className="relative text-[#C9D1EC]">{t("bookUnavailable")}</p>
+                <p className="relative text-[#EEF4FF]">{t("bookUnavailable")}</p>
               )}
             </div>
             {withContact.length ? (

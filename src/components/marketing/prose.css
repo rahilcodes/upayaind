@@ -30,7 +30,7 @@
   font-size: 18px;
 }
 .cms-prose a {
-  color: #0a35d6;
+  color: #2563DE;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -55,7 +55,7 @@
   margin: 0;
 }
 .cms-prose blockquote {
-  border-left: 3px solid #18b8f2;
+  border-left: 3px solid #38B6FF;
   padding: 0.2em 0 0.2em 1.1em;
   font-family: var(--font-display);
   font-size: 20px;
@@ -82,14 +82,14 @@
 }
 .cms-prose hr {
   border: 0;
-  border-top: 1px solid #e6e3d9;
+  border-top: 1px solid #E2E8F4;
   margin: 2em 0;
 }
 .cms-prose img {
   max-width: 100%;
   height: auto;
   border-radius: 14px;
-  border: 1px solid #e6e3d9;
+  border: 1px solid #E2E8F4;
 }
 .cms-prose strong {
   color: #0b1846;
@@ -104,7 +104,7 @@
   height: 0;
 }
 .cms-editor img.ProseMirror-selectednode {
-  outline: 3px solid #0a35d6;
+  outline: 3px solid #2563DE;
 }
 .cms-editor .ProseMirror-gapcursor:after {
   border-top-color: #0b1846;

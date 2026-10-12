@@ -40,11 +40,11 @@ export async function PortalShell({
         : undefined;
 
   const footer = (
-    <div className="flex items-center gap-3 rounded-[12px] bg-ink-800 p-3">
+    <div className="flex items-center gap-3 rounded-[14px] border border-sidebar-border bg-surface-muted p-3">
       <Avatar name={user.name} size={40} tone="blue" />
       <div className="min-w-0">
         <p className="truncate font-semibold">{user.name}</p>
-        <p className="truncate text-[13px] text-[#B9C3E3]">{roleLabel}</p>
+        <p className="truncate text-[13px] text-muted-foreground">{roleLabel}</p>
       </div>
     </div>
   );

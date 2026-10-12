@@ -96,7 +96,7 @@ export function DashboardDemo({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={copy.search}
-                className="h-11 w-full rounded-[10px] border-[1.5px] border-[#D5DAE6] bg-white px-3 text-[15px] placeholder:text-[#5A6585] focus:border-royal focus:outline-none focus:ring-[3px] focus:ring-[rgba(10,53,214,0.35)]"
+                className="h-11 w-full rounded-[10px] border-[1.5px] border-[#D5DAE6] bg-white px-3 text-[15px] placeholder:text-[#5A6585] focus:border-royal focus:outline-none focus:ring-[3px] focus:ring-[rgba(37, 99, 222,0.35)]"
               />
             </label>
           </div>
@@ -113,7 +113,7 @@ export function DashboardDemo({
                     type="button"
                     onClick={() => setOpen(a.i)}
                     aria-pressed={open === a.i}
-                    className="flex min-h-[60px] w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F8F9FD] aria-pressed:bg-[#EEF2FD] sm:px-4"
+                    className="flex min-h-[60px] w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F8F9FD] aria-pressed:bg-[#EAF1FE] sm:px-4"
                   >
                     <span aria-hidden="true" className="flex h-9 w-9 flex-none items-center justify-center rounded-[9px] bg-ink text-sm font-bold text-white">
                       {a.company[0]}
@@ -147,7 +147,7 @@ export function DashboardDemo({
                 <p className="mt-3 text-sm">{copy.detailKeywords}</p>
                 <ul className="mt-2 flex flex-wrap gap-1.5">
                   {sel.keywords.map((k) => (
-                    <li key={k} className="rounded-[6px] bg-[#DCEBFF] px-2 py-0.5 text-[13px]">
+                    <li key={k} className="rounded-[6px] bg-[#D6E5FD] px-2 py-0.5 text-[13px]">
                       {k}
                     </li>
                   ))}

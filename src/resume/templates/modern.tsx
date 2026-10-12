@@ -9,7 +9,7 @@ export const modernTheme: Theme = {
   margin: 42,
   sectionGap: 12,
   itemGap: 7,
-  accent: "#0A35D6",
+  accent: "#2563DE",
   text: "#0B1846",
   muted: "#4A5578",
   rule: "#C9D3F5",

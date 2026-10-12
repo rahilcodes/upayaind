@@ -7,7 +7,7 @@ export const badgeVariants = cva(
   {
     variants: {
       tone: {
-        blue: "bg-[#E8EFFE] text-[#0A35D6]",
+        blue: "bg-[#EAF1FE] text-[#2563DE]",
         violet: "bg-[#F0EAFE] text-[#5B2BC4]",
         amber: "bg-[#FDF3E1] text-[#7A4E0E]",
         cyan: "bg-[#E1F6FD] text-[#0B6C8F]",

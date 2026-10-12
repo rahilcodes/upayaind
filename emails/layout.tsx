@@ -1,9 +1,9 @@
 import * as React from "react";
-import { Body, Container, Head, Hr, Html, Link, Preview, Section, Text } from "@react-email/components";
+import { Body, Container, Head, Hr, Html, Img, Link, Preview, Section, Text } from "@react-email/components";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://upayaind.com";
 
-export const colors = { royal: "#0A35D6", ink: "#0B1846", muted: "#4A5578", paper: "#FBFAF6", border: "#E6E3D9" };
+export const colors = { royal: "#2563DE", ink: "#0B1846", muted: "#4A5578", paper: "#F7F9FF", border: "#E2E8F4" };
 
 export function EmailLayout({ preview, children }: { preview: string; children: React.ReactNode }) {
   return (
@@ -12,10 +12,10 @@ export function EmailLayout({ preview, children }: { preview: string; children: 
       <Preview>{preview}</Preview>
       <Body style={{ backgroundColor: colors.paper, margin: 0, padding: "32px 0", fontFamily: "Inter, Segoe UI, Helvetica, Arial, sans-serif", color: colors.ink }}>
         <Container style={{ maxWidth: 560, margin: "0 auto", backgroundColor: "#FFFFFF", borderRadius: 16, border: `1px solid ${colors.border}`, overflow: "hidden" }}>
-          <Section style={{ backgroundColor: colors.ink, padding: "20px 28px" }}>
-            <Text style={{ margin: 0, color: "#FFFFFF", fontFamily: "Georgia, serif", fontSize: 22, fontWeight: 600 }}>UpayaInd</Text>
+          <Section style={{ backgroundColor: "#FFFFFF", padding: "20px 28px 16px" }}>
+            <Img src={`${appUrl}/brand/upayaind-logo.png`} alt="UpayaInd" width={136} height={48} style={{ display: "block" }} />
           </Section>
-          <Section style={{ height: 4, backgroundImage: "linear-gradient(90deg,#0A35D6,#0A7CF0,#18B8F2)", backgroundColor: colors.royal }} />
+          <Section style={{ height: 4, backgroundImage: "linear-gradient(90deg, #1F5AD1, #2F73F2, #38B6FF)", backgroundColor: colors.royal }} />
           <Section style={{ padding: "28px" }}>{children}</Section>
           <Hr style={{ borderColor: colors.border, margin: 0 }} />
           <Section style={{ padding: "18px 28px" }}>

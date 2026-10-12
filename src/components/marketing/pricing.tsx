@@ -17,13 +17,13 @@ export async function PlanCard({ plan, price, market, compact = false }: { plan:
   const features = compact ? plan.features.slice(0, 4) : plan.features;
   const btn = cn(
     "mt-auto inline-flex min-h-[50px] items-center justify-center rounded-[12px] px-5 text-base font-semibold no-underline transition-colors",
-    featured ? "bg-white text-ink hover:bg-[#E8EDFB] hover:text-ink" : "bg-[#EEF2FD] text-royal hover:bg-royal hover:text-white",
+    featured ? "bg-white text-ink hover:bg-[#E8EDFB] hover:text-ink" : "bg-[#EAF1FE] text-royal hover:bg-royal hover:text-white",
   );
   return (
     <div
       className={cn(
         "relative flex h-full flex-col gap-5 rounded-[22px] p-7 sm:p-8",
-        featured ? "border-2 border-royal bg-ink text-white shadow-[0_30px_60px_-30px_rgba(11,24,70,0.6)]" : "border border-[#E3E6EF] bg-white text-ink",
+        featured ? "border-2 border-[#1747B8] brand-deep text-white shadow-[0_30px_60px_-30px_rgba(11,24,70,0.6)]" : "border border-[#E3E6EF] bg-white text-ink",
       )}
     >
       {featured ? (
@@ -39,7 +39,7 @@ export async function PlanCard({ plan, price, market, compact = false }: { plan:
           </span>
         ) : null}
       </div>
-      {plan.description && !compact ? <p className={cn("-mt-3 text-[15px]", featured ? "text-[#C9D1EC]" : "text-[#3E4A6E]")}>{plan.description}</p> : null}
+      {plan.description && !compact ? <p className={cn("-mt-3 text-[15px]", featured ? "text-[#EEF4FF]" : "text-[#3E4A6E]")}>{plan.description}</p> : null}
       <div>
         {price.purchasable ? (
           <>
@@ -48,7 +48,7 @@ export async function PlanCard({ plan, price, market, compact = false }: { plan:
               <span className="opacity-75">{t(`per.${interval}`)}</span>
             </p>
             {interval !== "MONTHLY" && interval !== "ONE_TIME" ? (
-              <p className={cn("mt-2 text-sm", featured ? "text-[#C9D1EC]" : "text-[#5A6585]")}>{t("perMonth", { amount: formatPrice(price.perMonthMinor, price.currency, market.locale) })}</p>
+              <p className={cn("mt-2 text-sm", featured ? "text-[#EEF4FF]" : "text-[#5A6585]")}>{t("perMonth", { amount: formatPrice(price.perMonthMinor, price.currency, market.locale) })}</p>
             ) : null}
           </>
         ) : (
@@ -59,7 +59,7 @@ export async function PlanCard({ plan, price, market, compact = false }: { plan:
       <ul className="flex flex-1 flex-col gap-2.5 text-[15px]">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2.5">
-            <Check className="mt-1" color={featured ? "#8FD8F7" : "#1E7B4F"} />
+            <Check className="mt-1" color={featured ? "#FFFFFF" : "#1E7B4F"} />
             <span>{f}</span>
           </li>
         ))}

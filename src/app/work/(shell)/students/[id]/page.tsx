@@ -93,7 +93,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         }
       />
       {data.assignment?.type === "COVER" ? (
-        <p role="status" className="mb-4 rounded-[12px] border border-[#C9D7FB] bg-[#EEF2FD] px-4 py-3 text-sm text-[#0A2BA8] dark:border-border dark:bg-accent dark:text-accent-foreground">
+        <p role="status" className="mb-4 rounded-[12px] border border-[#C6D9FC] bg-[#EAF1FE] px-4 py-3 text-sm text-[#1A4FB8] dark:border-border dark:bg-accent dark:text-accent-foreground">
           {t("coverNotice", { until: data.assignment.endsAt ? formatInTz(data.assignment.endsAt, tz, "d MMM, h:mm a") : "—" })}
         </p>
       ) : null}

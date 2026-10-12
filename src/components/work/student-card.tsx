@@ -48,7 +48,7 @@ export function StudentCard({ s, messageHref }: { s: StudentCardData; messageHre
       </div>
       <div className="flex gap-2">
         {s.active ? (
-          <Link href={`/work/students/${s.id}/apply`} className="flex h-11 flex-1 items-center justify-center rounded-[10px] bg-ink text-sm font-semibold text-white hover:bg-ink-700 dark:bg-primary">
+          <Link href={`/work/students/${s.id}/apply`} className="flex h-11 flex-1 items-center justify-center rounded-[10px] bg-primary text-sm font-semibold text-white hover:bg-royal-600 hover:bg-ink-700 dark:bg-primary">
             {t("applyNext")}
           </Link>
         ) : (

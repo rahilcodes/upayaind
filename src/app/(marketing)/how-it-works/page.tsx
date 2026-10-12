@@ -55,7 +55,7 @@ export default async function HowItWorksPage() {
         <ol className="relative flex flex-col gap-10 before:absolute before:bottom-6 before:left-6 before:top-6 before:w-0.5 before:bg-gradient-to-b before:from-royal before:via-blue before:to-sky sm:gap-12">
           {timeline.map((s, i) => (
             <li key={s.title} className="relative grid gap-4 pl-[72px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
-              <span aria-hidden="true" className="absolute left-0 top-0 flex h-12 w-12 items-center justify-center rounded-[14px] bg-ink font-display text-xl font-semibold text-white ring-8 ring-white">
+              <span aria-hidden="true" className="absolute left-0 top-0 flex h-12 w-12 items-center justify-center rounded-[14px] brand-deep font-display text-xl font-semibold text-white ring-8 ring-white">
                 {i + 1}
               </span>
               <div>
@@ -84,7 +84,7 @@ export default async function HowItWorksPage() {
         <ul className="grid gap-5 md:grid-cols-3">
           {needs.map((n, i) => (
             <li key={n.title} className="rounded-[18px] border border-sand bg-white p-7">
-              <span aria-hidden="true" className="mb-4 flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#EEF2FD] font-bold text-royal">
+              <span aria-hidden="true" className="mb-4 flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#EAF1FE] font-bold text-royal">
                 {i + 1}
               </span>
               <h3 className="mb-2 text-lg font-bold">{n.title}</h3>
@@ -118,8 +118,8 @@ export default async function HowItWorksPage() {
             </li>
           ))}
         </ol>
-        <p className="mt-8 flex items-start gap-3 rounded-[16px] bg-ink px-5 py-4 font-semibold text-white">
-          <Check className="mt-1" color="#8FD8F7" />
+        <p className="mt-8 flex items-start gap-3 rounded-[16px] brand-deep px-5 py-4 font-semibold text-white">
+          <Check className="mt-1" color="#FFFFFF" />
           {t("how.truth")}
         </p>
       </Section>

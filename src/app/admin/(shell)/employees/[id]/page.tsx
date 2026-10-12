@@ -26,7 +26,7 @@ const CAL_TONE: Record<string, string> = {
   PRESENT: "bg-success text-white",
   HALF_DAY: "bg-warning text-white",
   ABSENT: "bg-danger text-white",
-  ON_LEAVE: "bg-[#18B8F2] text-ink",
+  ON_LEAVE: "bg-[#38B6FF] text-ink",
   HOLIDAY: "bg-[#C9D1EC] text-ink",
   WEEKEND: "bg-surface-muted text-muted-foreground",
 };

@@ -26,7 +26,7 @@ export default async function BlogIndex() {
               const text = htmlToText(p.bodyHtml);
               return (
                 <li key={p.id}>
-                  <article className="group relative flex h-full flex-col overflow-hidden rounded-[20px] border border-sand bg-paper transition-shadow focus-within:shadow-[0_0_0_3px_rgba(10,53,214,0.35)] hover:shadow-[0_20px_40px_-24px_rgba(11,24,70,0.35)]">
+                  <article className="group relative flex h-full flex-col overflow-hidden rounded-[20px] border border-sand bg-paper transition-shadow focus-within:shadow-[0_0_0_3px_rgba(37, 99, 222,0.35)] hover:shadow-[0_20px_40px_-24px_rgba(11,24,70,0.35)]">
                     {p.ogImageKey ? (
                       <div className="relative aspect-[1200/630] bg-[#E3E6EF]">
                         <Image src={mediaUrl(p.ogImageKey)} alt="" fill sizes="(min-width: 1024px) 380px, (min-width: 768px) 45vw, 100vw" className="object-cover" priority={i < 3} />

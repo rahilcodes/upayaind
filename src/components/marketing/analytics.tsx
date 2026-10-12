@@ -158,7 +158,7 @@ export function Analytics({ gaId, clarityId, copy }: { gaId?: string; clarityId?
           <button
             type="button"
             onClick={() => choose("granted")}
-            className="inline-flex min-h-11 items-center justify-center rounded-[10px] bg-royal px-5 text-[15px] font-semibold text-white hover:brand-gradient"
+            className="inline-flex min-h-11 items-center justify-center rounded-[10px] bg-royal px-5 text-[15px] font-semibold text-white hover:bg-royal-600"
           >
             {copy.accept}
           </button>

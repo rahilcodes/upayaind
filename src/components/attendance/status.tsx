@@ -9,7 +9,7 @@ export const ATT_STYLE: Record<AttendanceStatus | "LIVE", string> = {
   ON_LEAVE: "bg-[#F0EAFE] text-[#5B2BC4] dark:bg-[#5B2BC4]/25 dark:text-[#C9B5FA]",
   HOLIDAY: "bg-[#E1F6FD] text-[#0B6C8F] dark:bg-sky/20 dark:text-sky",
   WEEKEND: "bg-[#EEF0F5] text-[#4A5578] dark:bg-surface-muted dark:text-muted-foreground",
-  LIVE: "bg-[#E8EFFE] text-[#0A35D6] dark:bg-accent dark:text-accent-foreground",
+  LIVE: "bg-[#EAF1FE] text-[#2563DE] dark:bg-accent dark:text-accent-foreground",
 };
 
 /** Attendance status chip (text label + colour). `null` = today, still in progress. */

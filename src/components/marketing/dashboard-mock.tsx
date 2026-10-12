@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /** Status pill colours (SPEC §13), mirrored from the portal's StatusPill. */
 export const PILL: Record<string, string> = {
-  APPLIED: "bg-[#E8EFFE] text-[#0A35D6]",
+  APPLIED: "bg-[#EAF1FE] text-[#2563DE]",
   VIEWED: "bg-[#F0EAFE] text-[#5B2BC4]",
   RECRUITER_REPLIED: "bg-[#FDF3E1] text-[#7A4E0E]",
   ASSESSMENT: "bg-[#E1F6FD] text-[#0B6C8F]",

@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const STATE_STYLE: Record<BoardState, { dot: string; pill: string }> = {
   active: { dot: "bg-success", pill: "bg-[#E6F4EC] text-[#1E7B4F]" },
   idle: { dot: "bg-warning", pill: "bg-[#FDF3E1] text-[#7A4E0E]" },
-  break: { dot: "bg-blue", pill: "bg-[#E8EFFE] text-[#0A35D6]" },
+  break: { dot: "bg-blue", pill: "bg-[#EAF1FE] text-[#2563DE]" },
   notIn: { dot: "bg-danger", pill: "bg-[#FCEAE8] text-[#A82A21]" },
   leave: { dot: "bg-[#5B2BC4]", pill: "bg-[#F0EAFE] text-[#5B2BC4]" },
   out: { dot: "bg-[#8A93AD]", pill: "bg-[#EEF0F5] text-[#4A5578]" },

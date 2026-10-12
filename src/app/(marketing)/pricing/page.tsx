@@ -110,13 +110,13 @@ export default async function PricingPage() {
 
       {guarantee ? (
         <Section labelledBy="guarantee-title" inner="max-w-[820px]">
-          <div className="relative overflow-hidden rounded-[22px] bg-ink p-8 text-white sm:p-10">
+          <div className="relative overflow-hidden rounded-[22px] brand-deep p-8 text-white sm:p-10">
             <div aria-hidden="true" className="brand-gradient absolute inset-x-0 top-0 h-1" />
             <H2 id="guarantee-title" className="mb-4 text-[30px] sm:text-[34px] lg:text-[38px]">
               {guarantee.title || t("pricing.guaranteeTitle")}
             </H2>
-            {guaranteeText ? <p className="mb-6 text-lg text-[#C9D1EC]">{guaranteeText}</p> : null}
-            <Link href="/legal/guarantee" className="inline-flex min-h-11 items-center font-semibold text-[#8FD8F7] underline underline-offset-4 hover:text-white">
+            {guaranteeText ? <p className="mb-6 text-lg text-[#EEF4FF]">{guaranteeText}</p> : null}
+            <Link href="/legal/guarantee" className="inline-flex min-h-11 items-center font-semibold text-[#FFFFFF] underline underline-offset-4 hover:text-white">
               {t("pricing.guaranteeLink")}
             </Link>
           </div>

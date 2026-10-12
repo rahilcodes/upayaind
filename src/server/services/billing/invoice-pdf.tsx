@@ -1,7 +1,10 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { Document, Font, Page, StyleSheet, Svg, Path, Rect, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+
+/** Official client logo (public/brand). */
+const LOGO_PATH = path.join(process.cwd(), "public/brand/upayaind-logo.png");
 import { createTranslator } from "next-intl";
 import billingMessages from "@/i18n/messages/en/billing.json";
 import { formatMoney, formatInTz } from "@/lib/format";
@@ -27,7 +30,7 @@ export type InvoiceData = {
   paymentRef?: string | null;
 };
 
-const C = { ink: "#0B1846", royal: "#0A35D6", blue: "#0A7CF0", sky: "#18B8F2", muted: "#5B6688", border: "#E3E7F0", soft: "#F4F6FB", success: "#1E7B4F" };
+const C = { ink: "#0B1846", royal: "#2563DE", blue: "#2F73F2", sky: "#38B6FF", muted: "#5B6688", border: "#E3E7F0", soft: "#F4F6FB", success: "#1E7B4F" };
 
 const FONT_DIR = path.join(process.cwd(), "src", "resume", "fonts");
 let family: string | null = null;
@@ -83,12 +86,8 @@ function InvoiceDoc({ d, font }: { d: InvoiceData; font: string }) {
         <View style={s.body}>
           <View style={s.row}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Svg width={30} height={30} viewBox="0 0 34 34">
-                <Rect width={34} height={34} rx={9} fill={C.ink} />
-                <Path d="M8 24 L14 18 L18 21 L26 11" fill="none" stroke={C.sky} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-                <Path d="M20 11 H26 V17" fill="none" stroke={C.sky} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-              <Text style={{ fontSize: 16, marginLeft: 8, ...bold }}>UpayaInd</Text>
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt; the PDF carries the business name as text */}
+              <Image src={LOGO_PATH} style={{ width: 120, height: 120 * (69 / 194) }} />
             </View>
             <View style={{ alignItems: "flex-end" }}>
               <Text style={s.h1}>{t("title")}</Text>

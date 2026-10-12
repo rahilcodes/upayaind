@@ -46,7 +46,7 @@ export default async function HomePage() {
   );
   const statusLabels = Object.fromEntries(Object.keys(PILL).map((s) => [s, ts(s as "APPLIED")]));
   const faqList = faqItems(faqs);
-  const kw = (c: React.ReactNode) => <mark className="rounded-[3px] bg-[#DCEBFF] px-[3px] text-ink">{c}</mark>;
+  const kw = (c: React.ReactNode) => <mark className="rounded-[3px] bg-[#D6E5FD] px-[3px] text-ink">{c}</mark>;
 
   return (
     <>
@@ -54,7 +54,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden px-4 pb-20 pt-12 sm:px-6 sm:pb-[88px] sm:pt-[72px]">
         <div className="mx-auto flex max-w-[1200px] flex-col gap-14 lg:flex-row lg:items-center">
           <div className="min-w-0 lg:flex-[1_1_440px]">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#EEF2FD] px-3 py-1.5 text-[13px] font-semibold text-royal">
+            <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#EAF1FE] px-3 py-1.5 text-[13px] font-semibold text-royal">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 17l6-6 4 4 8-8" />
                 <path d="M14 7h7v7" />
@@ -97,19 +97,19 @@ export default async function HomePage() {
 
       {/* 2. Proof strip — only real, computed numbers */}
       {counters.length || companies.length ? (
-        <section aria-label={t("proof.label")} className="bg-ink px-4 py-10 text-white sm:px-6">
+        <section aria-label={t("proof.label")} className="brand-deep px-4 py-10 text-white sm:px-6">
           <div className="mx-auto grid max-w-[1200px] items-center gap-7 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
             {counters.length ? (
               <dl className="contents">
                 {counters.map((c) => (
                   <div key={c.label} className="flex flex-col-reverse">
-                    <dt className="text-sm text-[#B9C3E3]">{c.label}</dt>
+                    <dt className="text-sm text-[#E3ECFF]">{c.label}</dt>
                     <dd className="font-display text-[40px] font-semibold leading-tight tabular">{formatCount(c.n)}</dd>
                   </div>
                 ))}
               </dl>
             ) : null}
-            <p className="text-[13px] text-[#B9C3E3]">
+            <p className="text-[13px] text-[#E3ECFF]">
               {counters.length ? t("proof.note") : null}
               {companies.length ? (
                 <>
@@ -146,16 +146,16 @@ export default async function HomePage() {
               ))}
             </dl>
           </div>
-          <div className="relative overflow-hidden rounded-[20px] bg-ink p-7 text-white sm:p-8">
+          <div className="relative overflow-hidden rounded-[20px] brand-deep p-7 text-white sm:p-8">
             <div aria-hidden="true" className="brand-gradient absolute inset-x-0 top-0 h-1" />
-            <h3 className="mb-6 text-lg font-bold text-[#8FD8F7]">{t("compare.us")}</h3>
+            <h3 className="mb-6 text-lg font-bold text-[#FFFFFF]">{t("compare.us")}</h3>
             <dl className="flex flex-col gap-[18px]">
               {[
                 [t("compare.rowTime"), t("compare.usTime")],
                 [t("compare.rowApps"), t("compare.usApps", { min: formatCount(range.min * 20), max: formatCount(range.max * 20) })],
                 [t("compare.rowResume"), t("compare.usResume")],
               ].map(([k, v], i) => (
-                <div key={k} className={cn("flex justify-between gap-4", i < 2 && "border-b border-[#22305E] pb-[18px]")}>
+                <div key={k} className={cn("flex justify-between gap-4", i < 2 && "border-b border-[rgba(255,255,255,0.22)] pb-[18px]")}>
                   <dt>{k}</dt>
                   <dd className="text-right font-bold tabular">{v}</dd>
                 </div>
@@ -175,7 +175,7 @@ export default async function HomePage() {
           {steps.map((s, i) => (
             <li key={s.title}>
               <div className="mb-5 flex items-center gap-3">
-                <span aria-hidden="true" className="flex h-12 w-12 flex-none items-center justify-center rounded-[14px] bg-ink font-display text-xl font-semibold text-white">
+                <span aria-hidden="true" className="flex h-12 w-12 flex-none items-center justify-center rounded-[14px] brand-deep font-display text-xl font-semibold text-white">
                   {i + 1}
                 </span>
                 <span aria-hidden="true" className="h-0.5 flex-1 bg-gradient-to-r from-blue to-[rgba(24,184,242,0)]" />

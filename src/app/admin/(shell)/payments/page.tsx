@@ -34,7 +34,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title={t("title")} description={t("description")} />
       {!canRefund ? (
-        <p role="status" className="mb-4 rounded-[12px] border border-[#C9D7FB] bg-[#EEF2FD] px-4 py-3 text-sm text-[#0A2BA8]">
+        <p role="status" className="mb-4 rounded-[12px] border border-[#C6D9FC] bg-[#EAF1FE] px-4 py-3 text-sm text-[#1A4FB8]">
           {t("readOnly")}
         </p>
       ) : null}
