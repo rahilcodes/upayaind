@@ -7,6 +7,7 @@ const TTL_MS: Record<AuthTokenType, number> = {
   VERIFY_EMAIL: 24 * 3600e3, // SPEC F1: 24h
   RESET_PASSWORD: 30 * 60e3, // SPEC §10: 30 minutes
   INVITE: 7 * 24 * 3600e3,
+  MAGIC_LINK: 15 * 60e3, // student "email me a login link": 15 minutes, single use
 };
 
 /** Create a single-use token. Only its SHA-256 hash is stored. Older unused tokens of the same type are revoked. */

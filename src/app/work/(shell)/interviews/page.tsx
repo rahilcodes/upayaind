@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { CalendarClock, ExternalLink } from "lucide-react";
+import { CalendarClock, CalendarPlus, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/portal/portal-shell";
 import { StatusPill } from "@/components/portal/status-pill";
 import { CompanyLogo } from "@/components/portal/company-logo";
@@ -11,7 +11,8 @@ import { tzLabel } from "@/components/work/tz";
 import { requireStaff } from "@/server/auth/guards";
 import { listMyInterviews } from "@/server/services/work-dashboard";
 import { formatInTz } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { googleCalendarUrl, interviewCalendarEvent } from "@/lib/ics";
+import { absoluteUrl, cn } from "@/lib/utils";
 import { InterviewDialog } from "./interview-dialog";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ export default async function WorkInterviewsPage({ searchParams }: { searchParam
   const when = sp.when === "past" ? "past" : "upcoming";
   const t = await getTranslations("work.interviews");
   const tc = await getTranslations("work.common");
+  const tcal = await getTranslations("workspace.calendar");
   const data = await listMyInterviews(user, when);
   if (!data) {
     return (
@@ -80,7 +82,17 @@ export default async function WorkInterviewsPage({ searchParams }: { searchParam
                 {i.outcome ? <p className="mt-1 text-sm"><span className="font-semibold">{t("outcome")}:</span> {i.outcome}</p> : null}
               </div>
               <StatusPill status={i.application.status} />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={googleCalendarUrl(interviewCalendarEvent(i, { detailsUrl: absoluteUrl(`/work/interviews?application=${i.application.id}`), formatWhen: (d, z) => formatInTz(d, z, "EEE d MMM yyyy, h:mm a") }))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ size: "sm", variant: "ghost" })}
+                  aria-label={tcal("googleFor", { company: i.application.companyName })}
+                >
+                  <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+                  {tcal("google")}
+                </a>
                 {i.meetingLink ? (
                   <a href={i.meetingLink} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "sm", variant: "ghost" })}>
                     {t("join")}<ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />

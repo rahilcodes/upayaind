@@ -87,8 +87,8 @@ export async function planState(studentId: string, now = new Date()) {
     select: { status: true, currentPeriodStart: true, currentPeriodEnd: true, cancelAtPeriodEnd: true, provider: true, planPrice: { select: { dailyTarget: true, interval: true, plan: { select: { name: true } } } } },
   });
   const pending = await db.subscription.count({ where: { studentId, status: "PENDING_PAYMENT" } });
-  const s = subs.find((x) => x.status === "ACTIVE") ?? subs[0] ?? null;
-  if (!s) return { hasPlan: false as const, pendingPayment: pending > 0 };
+  const s = subs.find((x) => x.status === "ACTIVE") ?? subs.find((x) => x.status === "PAUSED") ?? subs[0] ?? null;
+  if (!s) return { hasPlan: false as const, pendingPayment: pending > 0, paused: false };
   const start = s.currentPeriodStart;
   const end = s.currentPeriodEnd;
   const totalDays = start && end ? Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400e3)) : null;
@@ -98,6 +98,7 @@ export async function planState(studentId: string, now = new Date()) {
     hasPlan: true as const,
     pendingPayment: pending > 0,
     active: s.status === "ACTIVE",
+    paused: s.status === "PAUSED", // admin pause (D-121): targets off, no renew nag
     status: s.status,
     planName: s.planPrice.plan.name,
     dailyTarget: s.planPrice.dailyTarget,

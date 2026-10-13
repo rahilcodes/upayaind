@@ -216,7 +216,7 @@ export async function deactivateEmployee(actor: Actor, employeeId: string, reaso
   if (e.user.status === "DEACTIVATED") throw new EmployeeAdminError("This employee is already deactivated.");
   const students = await db.assignment.count({ where: { employeeId, isActive: true, type: "PRIMARY" } });
   await db.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: e.userId }, data: { status: "DEACTIVATED" } });
+    await tx.user.update({ where: { id: e.userId }, data: { status: "DEACTIVATED", sessionVersion: { increment: 1 } } }); // also ends open sessions (D-124)
     await tx.employeeProfile.update({ where: { id: employeeId }, data: { acceptingNewStudents: false } });
     await tx.authToken.updateMany({ where: { userId: e.userId, consumedAt: null }, data: { consumedAt: new Date() } });
     await audit({ actorId: actor.id, action: "employee.deactivate", entity: "EmployeeProfile", entityId: employeeId, before: { status: e.user.status }, after: { status: "DEACTIVATED", reason, students } }, tx);
@@ -372,7 +372,7 @@ export async function getEmployeeDetail(employeeId: string, now = new Date()) {
       managerId: true,
       joiningDate: true,
       workSchedule: true,
-      user: { select: { id: true, name: true, email: true, phone: true, role: true, status: true, timezone: true, lastLoginAt: true, createdAt: true } },
+      user: { select: { id: true, name: true, email: true, phone: true, role: true, status: true, timezone: true, lastLoginAt: true, createdAt: true, totpEnabled: true } },
     },
   });
   if (!e) return null;

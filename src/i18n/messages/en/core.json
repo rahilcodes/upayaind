@@ -65,7 +65,11 @@
     "reject": "Reject",
     "confirm": "Confirm",
     "areYouSure": "Are you sure?",
-    "yourTime": "your time"
+    "yourTime": "your time",
+    "theme": "Appearance",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System"
   },
   "status": {
     "DRAFT": "Draft",

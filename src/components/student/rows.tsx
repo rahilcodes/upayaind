@@ -6,7 +6,8 @@ import { CompanyLogo } from "@/components/portal/company-logo";
 import { StatusPill } from "@/components/portal/status-pill";
 import { buttonVariants } from "@/components/ui/button";
 import { formatInTz } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { googleCalendarUrl, interviewCalendarEvent } from "@/lib/ics";
+import { absoluteUrl, cn } from "@/lib/utils";
 
 export type AppRow = {
   id: string;
@@ -78,6 +79,8 @@ export type InterviewRowData = {
 
 export async function InterviewItem({ i, tz, showPrep = true, stacked = false }: { i: InterviewRowData; tz: string; showPrep?: boolean; stacked?: boolean }) {
   const t = await getTranslations("student.rows");
+  const tc = await getTranslations("workspace.calendar");
+  const gcal = googleCalendarUrl(interviewCalendarEvent(i, { detailsUrl: absoluteUrl(`/app/applications/${i.application.id}`), formatWhen: (d, z) => formatInTz(d, z, "EEE d MMM yyyy, h:mm a") }));
   const Icon = i.mode === "Onsite" ? MapPin : Video;
   return (
     <li className={cn("flex min-w-0 flex-col gap-3 rounded-[14px] border border-border bg-surface p-3.5", !stacked && "sm:flex-row sm:items-center")}>
@@ -111,6 +114,10 @@ export async function InterviewItem({ i, tz, showPrep = true, stacked = false }:
         <a href={`/api/student/interviews/${i.id}/ics`} className={buttonVariants({ size: "sm", variant: "outline" })} aria-label={t("addToCalendarFor", { company: i.application.companyName })}>
           <CalendarPlus className="h-4 w-4" aria-hidden="true" />
           {t("addToCalendar")}
+        </a>
+        <a href={gcal} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "sm", variant: "outline" })} aria-label={tc("googleFor", { company: i.application.companyName })}>
+          <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+          {tc("google")}
         </a>
         {showPrep ? (
           <Link href="/app/prep" className={buttonVariants({ size: "sm", variant: "ghost" })}>

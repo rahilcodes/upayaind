@@ -19,6 +19,7 @@ export const LIMITS = {
   aiStudent: { tokens: 300, window: "1 d" },
   upload: { tokens: 60, window: "1 h" },
   message: { tokens: 120, window: "1 h" },
+  search: { tokens: 60, window: "1 m" },
 } as const satisfies Record<string, { tokens: number; window: Window }>;
 export type LimitName = keyof typeof LIMITS;
 

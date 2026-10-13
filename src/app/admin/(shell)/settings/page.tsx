@@ -6,7 +6,9 @@ import { requireAction } from "@/server/auth/guards";
 import { db } from "@/server/db";
 import { templateDefaults } from "@/server/services/admin-settings";
 import { getSettings } from "@/server/services/settings";
-import { BusinessForm, GeneralForm, TemplateEditor } from "./settings-forms";
+import { BusinessForm, GeneralForm, ReferralForm, TemplateEditor } from "./settings-forms";
+import { WebhooksForm } from "./webhooks-form";
+import type { AlertWebhook } from "@/server/services/alerts";
 
 export const metadata: Metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -14,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   await requireAction("settings.manage");
   const t = await getTranslations("admin.settings");
-  const [s, markets] = await Promise.all([getSettings(), db.market.findMany({ orderBy: { name: "asc" }, select: { code: true, name: true, isActive: true } })]);
+  const [s, markets] = await Promise.all([getSettings(), db.market.findMany({ orderBy: { name: "asc" }, select: { code: true, name: true, isActive: true, currency: true } })]);
   const templates = templateDefaults();
 
   return (
@@ -44,6 +46,12 @@ export default async function SettingsPage() {
           ) : (
             <p className="text-sm text-muted-foreground">{t("noMarkets")}</p>
           )}
+        </Section>
+        <Section id="referral" title={t("referralTitle")} description={t("referralDescription")}>
+          <ReferralForm value={s.referral} currencies={markets.map((m) => m.currency)} />
+        </Section>
+        <Section id="webhooks" title={t("webhooks.title")} description={t("webhooks.description")}>
+          <WebhooksForm value={(s.alertWebhooks ?? []) as AlertWebhook[]} />
         </Section>
         <Section id="templates" title={t("templatesTitle")} description={t("templatesDescription")}>
           <div className="grid gap-2.5">

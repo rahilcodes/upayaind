@@ -15,7 +15,7 @@ import { UserError } from "@/server/errors";
  */
 
 export type ModelTier = "main" | "fast";
-export type AiTask = "parse_resume" | "analyze_jd" | "tailor_resume" | "cover_letter";
+export type AiTask = "parse_resume" | "analyze_jd" | "tailor_resume" | "cover_letter" | "improve_bullet" | "rewrite_summary";
 
 export type AiMessage = { role: "user" | "assistant"; content: string };
 

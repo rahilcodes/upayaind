@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { LogOut, User as UserIcon, LayoutGrid } from "lucide-react";
+import { ThemeMenuItems } from "./theme-switch";
 import { Avatar } from "@/components/ui/avatar";
 import { Dropdown, DropdownContent, DropdownItem, DropdownLabel, DropdownSeparator, DropdownTrigger } from "@/components/ui/dropdown";
 import { logoutAction } from "@/app/(auth)/actions";
@@ -45,6 +46,8 @@ export function UserMenu({
             </Link>
           </DropdownItem>
         ))}
+        <DropdownSeparator />
+        <ThemeMenuItems />
         <DropdownSeparator />
         <DropdownItem
           onSelect={(e) => {

@@ -65,3 +65,32 @@ export function buildIcs(events: IcsEvent[], opts: { name?: string } = {}) {
   lines.push("END:VCALENDAR");
   return lines.map(foldLine).join("\r\n") + "\r\n";
 }
+
+/**
+ * "Add to Google Calendar" link (calendar.google.com/calendar/render?action=TEMPLATE…).
+ * Times in UTC (`Z`) so Google converts to the viewer's zone.
+ */
+export function googleCalendarUrl(e: Pick<IcsEvent, "start" | "durationMinutes" | "summary" | "description" | "location">) {
+  const end = new Date(e.start.getTime() + e.durationMinutes * 60e3);
+  const q = new URLSearchParams({ action: "TEMPLATE", text: e.summary, dates: `${utc(e.start)}/${utc(end)}` });
+  if (e.description) q.set("details", e.description);
+  if (e.location) q.set("location", e.location);
+  return `https://calendar.google.com/calendar/render?${q.toString()}`;
+}
+
+export type InterviewForCalendar = {
+  scheduledAt: Date;
+  timezone: string;
+  round: string;
+  mode: string;
+  meetingLink?: string | null;
+  interviewers?: string | null;
+  application: { companyName: string; jobTitle: string };
+};
+
+/** Shared event text for an interview (used by the .ics route and the Google link). */
+export function interviewCalendarEvent(i: InterviewForCalendar, opts: { detailsUrl?: string; formatWhen?: (d: Date, tz: string) => string } = {}): Pick<IcsEvent, "start" | "durationMinutes" | "summary" | "description" | "location"> {
+  const when = opts.formatWhen ? opts.formatWhen(i.scheduledAt, i.timezone) : i.scheduledAt.toISOString();
+  const description = [`Round: ${i.round}`, `Mode: ${i.mode}`, `Time: ${when} (${i.timezone})`, i.interviewers ? `Interviewers: ${i.interviewers}` : null, i.meetingLink ? `Join: ${i.meetingLink}` : null, opts.detailsUrl ? `Details: ${opts.detailsUrl}` : null].filter(Boolean).join("\n");
+  return { start: i.scheduledAt, durationMinutes: 60, summary: `Interview: ${i.application.jobTitle} at ${i.application.companyName}`, description, location: i.mode === "Onsite" ? i.application.companyName : (i.meetingLink ?? null) };
+}

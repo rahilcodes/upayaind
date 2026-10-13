@@ -1,20 +1,28 @@
 "use client";
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { RotateCcw, Trash2, Wand2, X } from "lucide-react";
+import { Eye, Pause, Play, RotateCcw, Trash2, Wand2, X } from "lucide-react";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { ReassignDialog, type EmployeeOption } from "@/components/admin/reassign-dialog";
 import { useServerAction } from "@/components/portal/action-form";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
-import { autoAssignStudentAction, confirmDeletionAction, dismissDeletionAction, reassignStudentAction, restoreStudentAction, saveNotesAction } from "../actions";
+import { autoAssignStudentAction, confirmDeletionAction, dismissDeletionAction, pauseSubscriptionAction, reassignStudentAction, restoreStudentAction, resumeSubscriptionAction, saveNotesAction, startViewAsAction } from "../actions";
 
-export function StudentReassign({ studentId, studentName, currentEmployeeId, options, isAdmin }: { studentId: string; studentName: string; currentEmployeeId: string | null; options: EmployeeOption[]; isAdmin: boolean }) {
+export function StudentReassign({ studentId, studentName, currentEmployeeId, options, isAdmin, canViewAs }: { studentId: string; studentName: string; currentEmployeeId: string | null; options: EmployeeOption[]; isAdmin: boolean; canViewAs?: boolean }) {
   const t = useTranslations("admin.reassign");
+  const tv = useTranslations("admin.viewAs");
   const action = React.useCallback((employeeId: string, reason: string, over: boolean) => reassignStudentAction(studentId, employeeId, reason, over), [studentId]);
   const auto = useServerAction(autoAssignStudentAction);
+  const [viewPending, startView] = React.useTransition();
   return (
     <div className="flex flex-wrap gap-2">
+      {isAdmin && canViewAs ? (
+        <Button variant="outline" size="sm" loading={viewPending} onClick={() => startView(() => startViewAsAction(studentId))} aria-label={tv("buttonFor", { name: studentName })}>
+          <Eye className="h-4 w-4" aria-hidden="true" />
+          {tv("button")}
+        </Button>
+      ) : null}
       {!currentEmployeeId ? (
         <Button size="sm" onClick={() => auto.run(studentId)} loading={auto.pending}>
           <Wand2 className="h-4 w-4" aria-hidden="true" />
@@ -85,5 +93,37 @@ export function DeletionControls({ studentId, state }: { studentId: string; stat
         />
       ) : null}
     </div>
+  );
+}
+
+/** ADMIN only: pause / resume the live subscription (SPEC F11, D-121). */
+export function PauseControls({ subscriptionId, status, pausedSince }: { subscriptionId: string; status: string; pausedSince: string | null }) {
+  const t = useTranslations("admin.pause");
+  const pause = React.useCallback((reason: string) => pauseSubscriptionAction(subscriptionId, reason), [subscriptionId]);
+  const resume = React.useCallback(() => resumeSubscriptionAction(subscriptionId), [subscriptionId]);
+  if (status === "PAUSED") {
+    return (
+      <ConfirmAction
+        trigger={<><Play className="h-4 w-4" aria-hidden="true" />{t("resume")}</>}
+        title={t("resumeTitle")}
+        description={pausedSince ? t("resumeBody", { since: pausedSince }) : t("resumeBodyShort")}
+        confirmLabel={t("resume")}
+        confirmVariant="primary"
+        action={resume}
+      />
+    );
+  }
+  if (status !== "ACTIVE") return null;
+  return (
+    <ConfirmAction
+      trigger={<><Pause className="h-4 w-4" aria-hidden="true" />{t("pause")}</>}
+      title={t("pauseTitle")}
+      description={t("pauseBody")}
+      confirmLabel={t("pause")}
+      confirmVariant="primary"
+      reasonLabel={t("reason")}
+      reasonHint={t("reasonHint")}
+      action={pause}
+    />
   );
 }

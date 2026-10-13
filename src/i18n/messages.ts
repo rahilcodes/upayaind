@@ -3,7 +3,7 @@
  * and merged here, so features can own their copy without editing one huge file.
  * Each file's top-level keys are namespaces; files must not share namespaces.
  */
-const FILES = ["core", "auth", "nav", "marketing", "billing", "workspace", "resume", "student", "work", "admin", "messaging", "cms", "emails"] as const;
+const FILES = ["core", "auth", "nav", "marketing", "billing", "workspace", "resume", "student", "work", "admin", "messaging", "cms", "emails", "system"] as const;
 
 export async function loadMessages(locale: string) {
   const merged: Record<string, unknown> = {};
@@ -18,7 +18,7 @@ export async function loadMessages(locale: string) {
   return merged;
 }
 
-export const CORE_NAMESPACES = ["common", "status", "subscriptionStatus", "interval", "intervalPer", "workMode", "employmentType", "jobSource", "attendance", "leaveStatus", "role", "rag", "auth", "nav"] as const;
+export const CORE_NAMESPACES = ["common", "status", "subscriptionStatus", "interval", "intervalPer", "workMode", "employmentType", "jobSource", "attendance", "leaveStatus", "role", "rag", "auth", "nav", "system"] as const;
 
 /** Only ship the namespaces a subtree needs to the client (keeps HTML small). */
 export function pickMessages(all: Record<string, unknown>, namespaces: readonly string[]) {

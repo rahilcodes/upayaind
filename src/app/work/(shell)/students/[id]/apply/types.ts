@@ -7,6 +7,8 @@ import type { ValidationResult } from "@/server/ai/validators";
 export type JobState = {
   jobUrl: string;
   companyName: string;
+  /** From the company autocomplete (optional; derived from the URL otherwise). */
+  companyDomain: string;
   jobTitle: string;
   location: string;
   workMode: WorkMode | "";
@@ -15,7 +17,17 @@ export type JobState = {
   jd: string;
 };
 
-export const EMPTY_JOB: JobState = { jobUrl: "", companyName: "", jobTitle: "", location: "", workMode: "", employmentType: "FULL_TIME", source: "LINKEDIN", jd: "" };
+export const EMPTY_JOB: JobState = { jobUrl: "", companyName: "", companyDomain: "", jobTitle: "", location: "", workMode: "", employmentType: "FULL_TIME", source: "LINKEDIN", jd: "" };
+
+/** Last-used defaults per employee (D-102), applied when a new form opens. */
+export type WorkspaceDefaults = { source?: JobSource; workMode?: WorkMode | null; employmentType?: EmploymentType | null; location?: string | null };
+
+export function jobWithDefaults(d: WorkspaceDefaults | null | undefined): JobState {
+  if (!d) return EMPTY_JOB;
+  return { ...EMPTY_JOB, source: d.source ?? EMPTY_JOB.source, workMode: d.workMode ?? "", employmentType: d.employmentType === null ? "" : (d.employmentType ?? EMPTY_JOB.employmentType), location: d.location ?? "" };
+}
+
+export type CompanySuggestion = { name: string; domain: string | null; count: number };
 
 export type DuplicateState = {
   block: null | { code: "same_url" | "avoid_company"; message: string; applicationId?: string };

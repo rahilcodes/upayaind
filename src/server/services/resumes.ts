@@ -17,6 +17,7 @@ import { heuristicJdAnalysis } from "@/server/ai/jd-heuristic";
 import { enforceRateLimit } from "./ratelimit";
 import { getSetting } from "./settings";
 import { readObject, storeGenerated } from "./files";
+import { log } from "@/server/log";
 
 /**
  * Resume engine services (SPEC §9): parsing, JD analysis (cached), tailoring
@@ -213,7 +214,7 @@ export async function parseUploadedResume(studentId: string, source: { fileKey: 
       return { resume: n.resume, method: "ai", warnings: n.warnings, textLength: text.length };
     } catch (e) {
       if (!(e instanceof AiOutputError) && !(e instanceof UserError) && !(e instanceof AiNotConfiguredError)) throw e;
-      console.error("[resume.parse] AI parse failed, using heuristic", (e as Error).message);
+      log.warn("resume.parse_ai_failed_fallback", { err: e });
     }
   }
   const n = normalizeParsedResume(heuristicParseResume(text), fallback);

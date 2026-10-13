@@ -1,6 +1,7 @@
 import "server-only";
 import { Inngest } from "inngest";
 import { env, integrations } from "@/env";
+import { log } from "@/server/log";
 
 /**
  * Background jobs (SPEC §4: Inngest). Every job is declared with `defineJob`,
@@ -56,7 +57,7 @@ export async function emit(name: string, data: Record<string, unknown>, opts: { 
   const runAll = Promise.all(
     jobs.map((j) =>
       j.run(data).catch((e) => {
-        console.error(`[job ${j.id}] failed`, e);
+        log.error("job.failed", { job: j.id, event: name, err: e });
         if (opts.sync) throw e;
       }),
     ),

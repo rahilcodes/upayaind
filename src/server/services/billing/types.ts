@@ -87,6 +87,12 @@ export interface PaymentProvider {
   createPrice(input: CreatePriceInput): Promise<{ priceId: string }>;
   createCoupon(input: CreateCouponInput): Promise<{ couponId: string }>;
   retrieveSubscription(id: string): Promise<ProviderSubscription>;
+  /** Credit a customer's balance (applied to their next invoice). Used by the referral programme (D-113). */
+  applyCredit(input: { customerId: string; amountMinor: number; currency: string; description: string; idempotencyKey: string }): Promise<{ creditId: string }>;
+  /** Stop collecting payment (Stripe `pause_collection: void`) without canceling (F11 pause, D-121). */
+  pauseSubscription(id: string): Promise<void>;
+  /** Undo `pauseSubscription`. */
+  resumeSubscription(id: string): Promise<void>;
   /** Verify a webhook signature and return the parsed event. Throws on a bad signature. */
   verifyWebhook(rawBody: string, signature: string | null): Promise<ProviderEvent>;
 }

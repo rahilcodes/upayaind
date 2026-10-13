@@ -171,6 +171,36 @@ export const stripeProvider: PaymentProvider = {
     }
   },
 
+  async pauseSubscription(id: string) {
+    try {
+      await stripeClient().subscriptions.update(id, { pause_collection: { behavior: "void" } });
+    } catch (e) {
+      wrap(e);
+    }
+  },
+
+  async resumeSubscription(id: string) {
+    try {
+      await stripeClient().subscriptions.update(id, { pause_collection: "" });
+    } catch (e) {
+      wrap(e);
+    }
+  },
+
+  async applyCredit({ customerId, amountMinor, currency, description, idempotencyKey }) {
+    try {
+      // Negative amount = credit the customer; Stripe applies it to the next invoice.
+      const tx = await stripeClient().customers.createBalanceTransaction(
+        customerId,
+        { amount: -Math.abs(amountMinor), currency: currency.toLowerCase(), description: description.slice(0, 350) },
+        { idempotencyKey },
+      );
+      return { creditId: tx.id };
+    } catch (e) {
+      wrap(e);
+    }
+  },
+
   async verifyWebhook(rawBody: string, signature: string | null): Promise<ProviderEvent> {
     if (!env.STRIPE_WEBHOOK_SECRET) throw new BillingError("STRIPE_WEBHOOK_SECRET is not configured.");
     if (!signature) throw new BillingError("Missing Stripe-Signature header.");

@@ -14,7 +14,9 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const t = await getTranslations("auth");
   const [markets, plan] = await Promise.all([listSignupMarkets(), sp.plan ? getPlanPriceSummary(sp.plan) : null]);
-  const cookieMarket = (await cookies()).get("market")?.value;
+  const jar = await cookies();
+  const cookieMarket = jar.get("market")?.value;
+  const referral = (sp.ref ?? jar.get("ref")?.value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) || undefined;
   const defaultMarket = plan?.marketCode ?? (markets.some((m) => m.code === cookieMarket) ? cookieMarket! : markets[0]?.code ?? "US");
   return (
     <AuthShell>
@@ -29,7 +31,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           </div>
         </>
       ) : null}
-      <SignupForm markets={markets} defaultMarket={defaultMarket} plan={plan?.id} />
+      <SignupForm markets={markets} defaultMarket={defaultMarket} plan={plan?.id} referral={referral} />
       <p className="mt-6 text-center text-sm text-muted-foreground">
         {t("haveAccount")}{" "}
         <Link href="/login" className="font-semibold text-primary hover:underline">

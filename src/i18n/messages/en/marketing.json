@@ -607,7 +607,19 @@
       "minutes": "{n} min read",
       "back": "All articles",
       "published": "Published {date}",
-      "updated": "Updated {date}"
+      "updated": "Updated {date}",
+      "share": {
+        "label": "Share",
+        "on": "Share on {network}",
+        "copy": "Copy link",
+        "copied": "Link copied",
+        "copyFailed": "Copy the link below"
+      },
+      "related": "Keep reading",
+      "relatedSub": "More from the UpayaInd blog.",
+      "feeds": "Subscribe",
+      "rss": "RSS feed",
+      "atom": "Atom feed"
     },
     "landing": {
       "eyebrow": "UpayaInd for you",

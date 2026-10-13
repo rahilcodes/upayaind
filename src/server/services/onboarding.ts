@@ -9,6 +9,7 @@ import { parseMaster } from "./resumes";
 import { audit } from "./audit";
 import { notify } from "./notify";
 import { trackEvent } from "./events";
+import { log } from "@/server/log";
 
 /**
  * Onboarding wizard state (SPEC F3). `StudentProfile.onboardingStep` = number
@@ -100,7 +101,7 @@ export async function completeOnboarding(user: Actor, input: { consent: boolean 
   });
   const recipients = [...new Set(assignments.map((a) => a.employee.userId))];
   for (const uid of recipients) {
-    await notify(uid, "onboarding_completed", { studentName: s.user.name, studentId: s.id }).catch((e) => console.error("[onboarding] notify failed", e));
+    await notify(uid, "onboarding_completed", { studentName: s.user.name, studentId: s.id }).catch((e) => log.error("onboarding.notify_failed", { err: e }));
   }
   return { completedAt: now, notified: recipients.length > 0 };
 }

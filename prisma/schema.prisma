@@ -143,6 +143,12 @@ enum AuthTokenType {
   VERIFY_EMAIL
   RESET_PASSWORD
   INVITE
+  MAGIC_LINK
+}
+
+enum ReferralStatus {
+  PENDING
+  CREDITED
 }
 
 // ───────────────────────────── Users & auth ─────────────────────────────
@@ -161,6 +167,8 @@ model User {
   locale            String     @default("en")
   totpSecretEnc     String? // encrypted; required for EMPLOYEE/MANAGER/ADMIN
   totpEnabled       Boolean    @default(false)
+  totpBackupCodes   String[]   @default([]) // sha256 hashes of unused one-time backup codes
+  sessionVersion    Int        @default(0) // bumped to invalidate every JWT ("log out everywhere")
   lastLoginAt       DateTime?
   lastActiveAt      DateTime?
   createdAt         DateTime   @default(now())
@@ -354,10 +362,16 @@ model StudentProfile {
   assignmentQueue        AssignmentQueueStatus?
   awaitingSince          DateTime?
   internalNotes          String?
+  lastDigestKey          String? // "YYYY-MM-DD" of the last daily digest sent (student tz)
+  lastWeeklyReportKey    String? // "YYYY-MM-DD" (Monday) of the last weekly report sent
+  referralCode           String?          @unique
+  referredById           String? // StudentProfile.id of the referrer (set at signup from ?ref / cookie)
   createdAt              DateTime         @default(now())
 
   user           User             @relation(fields: [userId], references: [id])
   market         Market           @relation(fields: [marketId], references: [id])
+  referralsMade  Referral[]       @relation("ReferralReferrer")
+  referralsGot   Referral[]       @relation("ReferralReferred")
   subscriptions  Subscription[]
   assignments    Assignment[]
   applications   JobApplication[]
@@ -367,6 +381,23 @@ model StudentProfile {
   studentDays    StudentDay[]
   mockInterviews MockInterview[]
   payments       Payment[]
+}
+
+/** Referral programme: one row per referred friend; CREDITED on the friend's first successful payment. */
+model Referral {
+  id          String         @id @default(cuid())
+  referrerId  String
+  referredId  String         @unique
+  status      ReferralStatus @default(PENDING)
+  creditMinor Int            @default(0)
+  currency    String?
+  createdAt   DateTime       @default(now())
+  creditedAt  DateTime?
+
+  referrer StudentProfile @relation("ReferralReferrer", fields: [referrerId], references: [id])
+  referred StudentProfile @relation("ReferralReferred", fields: [referredId], references: [id])
+
+  @@index([referrerId, status])
 }
 
 model EmployeeProfile {
@@ -381,6 +412,7 @@ model EmployeeProfile {
   joiningDate          DateTime?
   managerId            String?
   workSchedule         Json // {days:[1..5], startTime:"09:30", hours:9}
+  workspacePrefs       Json? // {source, workMode, employmentType, location} — last-used defaults for the application workspace
 
   user         User             @relation(fields: [userId], references: [id])
   assignments  Assignment[]
@@ -405,6 +437,7 @@ model Subscription {
   currentPeriodEnd   DateTime?
   cancelAtPeriodEnd  Boolean            @default(false)
   pausedDays         Int                @default(0)
+  pausedAt           DateTime? // set while status = PAUSED (F11 pause)
   remindersSent      String[]           @default([])
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
@@ -608,6 +641,8 @@ model Interview {
   interviewers  String?
   prepNotes     String?
   outcome       String?
+  reminder24SentAt DateTime?
+  reminder1hSentAt DateTime?
   createdAt     DateTime       @default(now())
   application   JobApplication @relation(fields: [applicationId], references: [id])
 

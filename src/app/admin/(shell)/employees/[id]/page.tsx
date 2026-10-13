@@ -17,7 +17,7 @@ import { addDayKey, formatMinutes, weekdayOfKey } from "@/lib/dates";
 import { formatDate, formatInTz } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { EmployeeFormDialog } from "../employee-form";
-import { DeactivateButton, ReactivateButton, ResendInviteButton } from "../employee-row-actions";
+import { DeactivateButton, ReactivateButton, ResendInviteButton, ResetTwoFactorButton } from "../employee-row-actions";
 
 export const metadata: Metadata = { title: "Employee" };
 export const dynamic = "force-dynamic";
@@ -86,6 +86,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                   value={{ employeeId: e.id, name: e.user.name, email: e.user.email, phone: e.user.phone, title: e.title, marketIds: e.marketIds, maxStudents: e.maxStudents, managerId: e.managerId, timezone: e.user.timezone, schedule: e.schedule, role: e.user.role === "MANAGER" ? "MANAGER" : "EMPLOYEE", acceptingNewStudents: e.accepting }}
                 />
               ) : null}
+              {isAdmin && e.user.status === "ACTIVE" && e.user.totpEnabled ? <ResetTwoFactorButton employeeId={e.id} name={e.user.name} /> : null}
               {e.user.status === "DEACTIVATED" ? <ReactivateButton employeeId={e.id} /> : <DeactivateButton employeeId={e.id} name={e.user.name} students={e.activeLoad} />}
             </>
           ) : null

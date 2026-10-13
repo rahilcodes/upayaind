@@ -11,7 +11,9 @@ import { rateLimit } from "@/server/services/ratelimit";
 import { safeEqual } from "@/server/crypto";
 import { authConfig, STAFF_SESSION_HOURS, STUDENT_SESSION_DAYS, type MfaState } from "./config.edge";
 import { burnPasswordCheck, verifyPassword } from "./password";
+import { consumeMagicLink, MagicLinkError } from "@/server/services/magic-link";
 import { isStaff } from "./rbac";
+import { sessionVersionValid } from "./sessions";
 
 /** Lockout after 8 failed attempts in 15 minutes (SPEC §10). */
 export const LOCKOUT = { attempts: 8, windowMinutes: 15 } as const;
@@ -62,6 +64,27 @@ export function signMfaProof(userId: string) {
   return `${ts}.${mac}`;
 }
 
+/**
+ * Signed proof that the current device may adopt a new `sessionVersion`
+ * (after the user changed their own password): keeps this device signed in
+ * while every other JWT is invalidated (D-124).
+ */
+export function signSessionVersionProof(userId: string, version: number) {
+  const ts = Date.now();
+  const mac = createHmac("sha256", env.AUTH_SECRET).update(`sv:${userId}:${version}:${ts}`).digest("base64url");
+  return `${version}.${ts}.${mac}`;
+}
+
+function verifySessionVersionProof(userId: string, proof: unknown): number | null {
+  if (typeof proof !== "string") return null;
+  const [vRaw, tsRaw, mac] = proof.split(".");
+  const version = Number(vRaw);
+  const ts = Number(tsRaw);
+  if (!Number.isInteger(version) || !ts || !mac || Date.now() - ts > 60_000 || ts > Date.now() + 5_000) return null;
+  const expected = createHmac("sha256", env.AUTH_SECRET).update(`sv:${userId}:${version}:${ts}`).digest("base64url");
+  return safeEqual(expected, mac) ? version : null;
+}
+
 function verifyMfaProof(userId: string, proof: unknown) {
   if (typeof proof !== "string") return false;
   const [tsRaw, mac] = proof.split(".");
@@ -83,6 +106,7 @@ async function claimsFor(userId: string) {
       status: true,
       timezone: true,
       totpEnabled: true,
+      sessionVersion: true,
       deletedAt: true,
       student: { select: { id: true, onboardingCompletedAt: true } },
     },
@@ -135,6 +159,30 @@ const providers = [
         data: { lastLoginAt: new Date(), status: user.status === "INVITED" ? "ACTIVE" : undefined },
       });
       return { id: user.id, name: user.name, email: user.email, role: user.role };
+    },
+  }),
+  /** Students only: single-use emailed login link (D-111). Staff are refused before any session exists. */
+  Credentials({
+    id: "magic",
+    name: "Magic link",
+    credentials: { token: {} },
+    async authorize(raw) {
+      const token = typeof raw?.token === "string" ? raw.token : "";
+      if (!token || token.length > 200) throw new AuthError("invalid");
+      const meta = await requestMeta().catch(() => ({ ip: null }));
+      const rl = await rateLimit("login", `magic:${meta.ip ?? "unknown"}`);
+      if (!rl.success) throw new AuthError("rate_limited");
+      try {
+        const user = await consumeMagicLink(token);
+        await logLogin({ userId: user.id, email: user.email, success: true, reason: "magic" });
+        return user;
+      } catch (e) {
+        if (e instanceof MagicLinkError) {
+          await logLogin({ email: "", success: false, reason: `magic_${e.code}` });
+          throw new AuthError(e.code === "inactive" ? "inactive" : "invalid");
+        }
+        throw e;
+      }
     },
   }),
   ...(integrations.google ? [Google({ clientId: env.AUTH_GOOGLE_ID, clientSecret: env.AUTH_GOOGLE_SECRET })] : []),
@@ -202,6 +250,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         token.needsProfile = c.role === "STUDENT" && !c.student;
         token.onboarded = Boolean(c.student?.onboardingCompletedAt);
         token.sessionExpiresAt = Date.now() + (staff ? STAFF_SESSION_HOURS * 3600e3 : STUDENT_SESSION_DAYS * 86400e3);
+        token.sv = c.sessionVersion;
         token.checkedAt = Date.now();
         return token;
       }
@@ -214,6 +263,10 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       if (trigger === "update" || stale) {
         const c = await claimsFor(uid);
         if (!c) return null;
+        // "Log out everywhere" (D-124): the device that just bumped the version may adopt it with a signed proof.
+        const adopted = trigger === "update" && session ? verifySessionVersionProof(uid, (session as { svProof?: unknown }).svProof) : null;
+        if (adopted !== null && adopted === c.sessionVersion) token.sv = adopted;
+        if (!sessionVersionValid(token.sv, c.sessionVersion)) return null;
         token.role = c.role;
         token.name = c.name;
         token.timezone = c.timezone;

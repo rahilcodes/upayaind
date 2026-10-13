@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ArrowRight, CalendarDays, Clock, Inbox, MessageSquare, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/portal/portal-shell";
+import { PausedBanner } from "@/components/billing/paused-banner";
 import { StatCard } from "@/components/portal/stat-card";
 import { Avatar } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { ApplicationsChart } from "@/components/student/applications-chart";
 import { Celebration } from "@/components/student/celebration";
+import { InstallHint } from "@/components/student/install-hint";
 import { ApplicationListItem, InterviewItem, RenewBanner } from "@/components/student/rows";
 import { requireStudent } from "@/server/auth/guards";
 import { getDashboard } from "@/server/services/student-dashboard";
@@ -27,7 +29,7 @@ function greetingKey(hour: number) {
 /** F6: student tracking dashboard. */
 export default async function StudentDashboard({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
-  const { user } = await requireStudent();
+  const { user, student } = await requireStudent();
   const t = await getTranslations("student.dashboard");
   const d = await getDashboard(user);
   const tz = d.studentTimezone;
@@ -50,7 +52,9 @@ export default async function StudentDashboard({ searchParams }: { searchParams:
         }
       />
 
-      {inactive ? <RenewBanner /> : null}
+      <PausedBanner studentId={student.id} timezone={tz} />
+      {inactive && !plan.paused ? <RenewBanner /> : null}
+      <InstallHint />
       {d.celebrate ? <Celebration applicationId={d.celebrate.id} status={d.celebrate.status as "OFFER" | "HIRED"} company={d.celebrate.companyName} title={d.celebrate.jobTitle} /> : null}
       {!d.specialist && !inactive ? (
         <div role="status" className="mb-6 flex items-start gap-3 rounded-[16px] border border-[#C6D9FC] bg-[#EAF1FE] p-4 text-[#1A4FB8]">

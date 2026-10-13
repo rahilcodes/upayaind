@@ -3,7 +3,7 @@
 /*
  * UpayaInd design tokens (SPEC §13).
  * Brand (client logo / sign-up blue): blue #2F73F2 · royal #2563DE (accessible fill for white text) · deep #1F5AD1 · sky #38B6FF · ink #0B1846 · paper #F7F9FF
- * Portals follow the system dark mode (scoped to `.portal`); the marketing site is light only.
+ * Portals support light / dark / system themes (scoped to `.portal`, see below); the marketing site is light only.
  */
 
 @theme {
@@ -57,8 +57,14 @@
   --track: #e4ebf8;
 }
 
+/*
+ * Portal dark mode. The theme preference lives in the `theme` cookie (+ localStorage)
+ * and is mirrored onto <html data-theme="light|dark|system"> by a tiny inline script in
+ * PortalShell before first paint. "dark" forces dark; "system" (or no attribute) follows
+ * the OS; "light" forces light. Scoped to `.portal` so the marketing site stays light.
+ */
 @media (prefers-color-scheme: dark) {
-  .portal {
+  html:not([data-theme="light"]) .portal {
     --background: #0a1130;
     --foreground: #e8ecf8;
     --surface: #111a3d;
@@ -81,11 +87,55 @@
     --track: #24305e;
     color-scheme: dark;
   }
-  /* The official logo is blue on transparent: give it a white backing on dark surfaces. */
-  .portal .sidebar-logo {
+}
+html[data-theme="dark"] .portal {
+    --background: #0a1130;
+    --foreground: #e8ecf8;
+    --surface: #111a3d;
+    --surface-muted: #16214a;
+    --canvas: #0a1130;
+    --muted-foreground: #a9b3d3;
+    --subtle-foreground: #95a0c4;
+    --border: #233061;
+    --border-strong: #2e3d75;
+    --ring: rgba(24, 184, 242, 0.45);
+    --primary: #4c86f5;
+    --primary-foreground: #ffffff;
+    --accent: #1b2a63;
+    --accent-foreground: #b9c8ff;
+    --sidebar: #0c1638;
+    --sidebar-foreground: #b9c3e3;
+    --sidebar-active: #1b2a63;
+    --sidebar-active-foreground: #ffffff;
+    --sidebar-border: #1b2756;
+    --track: #24305e;
+    color-scheme: dark;
+}
+/* The official logo is blue on transparent: give it a white backing on dark surfaces. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .portal .sidebar-logo {
     background: #ffffff;
     border-radius: 12px;
     padding: 6px 10px;
+  }
+}
+html[data-theme="dark"] .portal .sidebar-logo {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+/* `dark:` utilities follow the same rule as the tokens above. */
+@custom-variant dark {
+  html[data-theme="dark"] .portal &,
+  html[data-theme="dark"] &.portal {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    html:not([data-theme="light"]) .portal &,
+    html:not([data-theme="light"]) &.portal {
+      @slot;
+    }
   }
 }
 

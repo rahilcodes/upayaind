@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db";
-import { integrations } from "@/env";
+import { env, integrations } from "@/env";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,14 @@ export async function GET() {
   const started = Date.now();
   try {
     await db.$queryRaw`SELECT 1`;
-    return NextResponse.json({ status: "ok", db: "ok", latencyMs: Date.now() - started, integrations, at: new Date().toISOString() });
+    return NextResponse.json({
+      status: "ok",
+      db: "ok",
+      latencyMs: Date.now() - started,
+      integrations,
+      sentry: env.SENTRY_DSN || env.NEXT_PUBLIC_SENTRY_DSN ? "configured" : "off",
+      at: new Date().toISOString(),
+    });
   } catch {
     return NextResponse.json({ status: "error", db: "unreachable" }, { status: 503 });
   }

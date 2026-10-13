@@ -6,11 +6,16 @@ import { MobileNav, Sidebar, type Badges } from "./sidebar";
 import { NotificationBell } from "./notification-bell";
 import { UserMenu } from "./user-menu";
 import { adminNavFor, STUDENT_NAV, WORK_NAV } from "./nav-config";
+import { CommandPalette } from "./command-palette";
+import { ViewAsBanner } from "./view-as-banner";
+import { getViewAs } from "@/server/auth/view-as";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 
 /**
  * Shared shell for /app, /work and /admin (SPEC M1): ink sidebar from the
  * approved design, top bar with notifications and account menu, responsive
- * sheet navigation under 1024px. `.portal` scopes system dark mode.
+ * sheet navigation under 1024px. `.portal` scopes dark mode; the theme preference
+ * (cookie `theme`) is applied to <html data-theme> by an inline script before paint.
  */
 export async function PortalShell({
   portal,
@@ -29,6 +34,7 @@ export async function PortalShell({
 }) {
   const t = await getTranslations();
   const allMessages = await getMessages();
+  const viewAs = portal === "app" ? await getViewAs() : null; // read-only admin impersonation (D-120)
   const items = portal === "app" ? STUDENT_NAV : portal === "work" ? WORK_NAV : adminNavFor(user.role);
   const root = `/${portal}`;
   const roleLabel = subtitle ?? t(`role.${user.role}`);
@@ -51,15 +57,19 @@ export async function PortalShell({
 
   return (
     <NextIntlClientProvider messages={allMessages}>
+    {/* Constant, dependency-free boot script (no user data): applies the saved theme before paint. */}
+    <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
     <div className="portal flex min-h-dvh bg-canvas text-foreground">
       <a href="#main" className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         {t("common.skipToContent")}
       </a>
       <Sidebar items={items} root={root} badges={badges} footer={footer} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-canvas/90 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+        {viewAs ? <ViewAsBanner studentName={viewAs.studentName} exp={viewAs.exp} timezone={viewAs.studentTimezone} /> : null}
+        <header className={`sticky ${viewAs ? "top-11" : "top-0"} z-30 flex items-center gap-3 border-b border-border bg-canvas/90 px-4 py-3 backdrop-blur sm:px-6 lg:px-8`}>
           <MobileNav items={items} root={root} badges={badges} footer={footer} />
           <div className="flex-1">{topbarExtra}</div>
+          {portal !== "app" ? <CommandPalette portal={portal} items={items.map((i) => ({ href: i.href, label: t(`nav.${i.label}` as "nav.dashboard") }))} /> : null}
           <NotificationBell />
           <UserMenu name={user.name} subtitle={roleLabel} profileHref={`${root}/${portal === "admin" ? "settings" : "profile"}`} switchTo={switchTo} />
         </header>

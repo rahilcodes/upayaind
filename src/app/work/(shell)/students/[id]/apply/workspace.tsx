@@ -17,13 +17,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { generateCoverLetterAction, markAppliedAction, saveCoverLetterAction, saveVersionAction } from "./actions";
+import { generateCoverLetterAction, markAppliedAction, saveCoverLetterAction, saveVersionAction, suggestEditAction } from "./actions";
 import { DuplicateNotice, JD_MAX, JD_MIN, JobForm, useDuplicateCheck } from "./job-form";
 import { CoverLetterPanel, GenerationProgress, KeywordPanel, ScoreChip, ValidationPanel } from "./panels";
-import { ResumeEditor } from "./resume-editor";
+import { ResumeEditor, type AiAssist } from "./resume-editor";
 import { MarkAppliedDialog, QuickLogDialog } from "./dialogs";
 import { usePreview } from "./use-preview";
-import { EMPTY_JOB, type GenStep, type JobState, type RecentApp, type SaveState, type StyleInfo, type TailorState } from "./types";
+import { jobWithDefaults, type CompanySuggestion, type GenStep, type JobState, type RecentApp, type SaveState, type StyleInfo, type TailorState, type WorkspaceDefaults } from "./types";
 
 type Props = {
   student: { id: string; name: string; firstName: string; timezone: string; hasMaster: boolean };
@@ -31,7 +31,9 @@ type Props = {
   style: StyleInfo;
   subscription: { active: boolean; status: string | null; planName: string | null; dailyTarget: number };
   today: { applied: number; target: number };
-  companies: string[];
+  companies: CompanySuggestion[];
+  /** Last-used source / work mode / employment type / location (D-102). */
+  defaults: WorkspaceDefaults | null;
   recent: RecentApp[];
   master: ResumeData | null;
   masterIssues: string[];
@@ -67,7 +69,8 @@ export function ApplyWorkspace(props: Props) {
   const desktop = useDesktop();
 
   // ── Job input ──
-  const [job, setJob] = React.useState<JobState>(EMPTY_JOB);
+  const [defaults, setDefaults] = React.useState<WorkspaceDefaults | null>(props.defaults);
+  const [job, setJob] = React.useState<JobState>(() => jobWithDefaults(props.defaults));
   const patchJob = React.useCallback((p: Partial<JobState>) => setJob((j) => ({ ...j, ...p })), []);
   const { dup, checking, run: runDup, reset: resetDup } = useDuplicateCheck(student.id);
   const [confirmSimilar, setConfirmSimilar] = React.useState(false);
@@ -287,6 +290,7 @@ export function ApplyWorkspace(props: Props) {
     setMarking(false);
     if (r.ok) {
       setToday(r.data.today);
+      setDefaults({ source: job.source, workMode: job.workMode || null, employmentType: job.employmentType || null, location: job.location || null });
       setTailor((s) => (s ? { ...s, locked: true, applicationId: r.data.applicationId } : s));
       setMarkOpen(false);
       toast.success(t("loggedToast", { company: job.companyName, applied: r.data.today.applied, target: r.data.today.target }));
@@ -300,7 +304,7 @@ export function ApplyWorkspace(props: Props) {
   // ── New application ──
   const reset = React.useCallback(() => {
     if (tailor && !tailor.locked && !window.confirm(t("confirmDiscard"))) return;
-    setJob((j) => ({ ...EMPTY_JOB, source: j.source }));
+    setJob(jobWithDefaults(defaults));
     setTailor(null);
     setContent(null);
     setServerValidation(null);
@@ -314,7 +318,20 @@ export function ApplyWorkspace(props: Props) {
     setJobOpen(true);
     resetDup();
     window.setTimeout(() => document.getElementById("job-jobUrl")?.focus(), 0);
-  }, [tailor, resetDup, t]);
+  }, [tailor, resetDup, t, defaults]);
+
+  // ── AI editor assists (D-101): the server validates; the editor shows before/after ──
+  const aiAssist = React.useMemo<AiAssist | null>(() => {
+    if (!tailor || tailor.locked) return null;
+    return {
+      request: async (req) => {
+        const c = latest.current.content;
+        if (!c) return { error: t("errors.noResume") };
+        const r = await suggestEditAction({ versionId: tailor.versionId, mode: req.mode, target: req.target, content: c, jobTitle: job.jobTitle || null, company: job.companyName || null, jd: job.jd || null });
+        return r.ok ? { suggestion: r.data } : { error: r.error };
+      },
+    };
+  }, [tailor, job.jobTitle, job.companyName, job.jd, t]);
 
   // ── Keyboard shortcuts: ⌘/Ctrl+Enter generate, ⌘/Ctrl+S mark applied, N new ──
   React.useEffect(() => {
@@ -360,7 +377,7 @@ export function ApplyWorkspace(props: Props) {
     <PreviewPane pages={preview.pages} loading={preview.loading} error={preview.error} label={tailor ? t("preview.tailored") : t("preview.base")} pageCount={preview.pageCount} maxPages={style.maxPages} hasContent={Boolean(content ?? master)} />
   );
   const editorPane = tailor && content && master ? (
-    <ResumeEditor value={content} master={master} style={renderStyle} locked={tailor.locked || disabled} issues={[...(validation?.errors ?? []), ...(validation?.warnings ?? [])]} onChange={onEdit} />
+    <ResumeEditor value={content} master={master} style={renderStyle} locked={tailor.locked || disabled} issues={[...(validation?.errors ?? []), ...(validation?.warnings ?? [])]} onChange={onEdit} ai={disabled ? null : aiAssist} />
   ) : (
     <EmptyState icon={<Pencil className="h-5 w-5" aria-hidden="true" />} title={t("editor.emptyTitle")} body={t("editor.emptyBody")} className="bg-surface" />
   );
@@ -625,7 +642,7 @@ export function ApplyWorkspace(props: Props) {
         pending={marking}
         blockedReason={blockedReason}
       />
-      <QuickLogDialog open={quickOpen} onOpenChange={setQuickOpen} studentId={student.id} companies={props.companies} disabled={disabled} onLogged={setToday} />
+      <QuickLogDialog open={quickOpen} onOpenChange={setQuickOpen} studentId={student.id} companies={props.companies} defaults={defaults} disabled={disabled} onLogged={setToday} />
     </div>
   );
 }

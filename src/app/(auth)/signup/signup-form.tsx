@@ -67,7 +67,7 @@ function MarketSelect({ markets, defaultMarket, state }: { markets: Market[]; de
   );
 }
 
-export function SignupForm({ markets, defaultMarket, plan }: { markets: Market[]; defaultMarket: string; plan?: string }) {
+export function SignupForm({ markets, defaultMarket, plan, referral }: { markets: Market[]; defaultMarket: string; plan?: string; referral?: string }) {
   const t = useTranslations("auth");
   const tz = useTimezone();
   const [state, action] = useActionState<FormState, FormData>(signupAction, {});
@@ -75,7 +75,9 @@ export function SignupForm({ markets, defaultMarket, plan }: { markets: Market[]
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
       {state.error ? <FormAlert>{state.error}</FormAlert> : null}
+      {referral ? <FormAlert tone="info">{t("referralBanner")}</FormAlert> : null}
       <input type="hidden" name="plan" value={plan ?? ""} />
+      <input type="hidden" name="ref" value={referral ?? ""} />
       <input type="hidden" name="timezone" value={tz} />
       <Field id="name" label={t("fullName")} error={fe?.name}>
         <Input {...fieldA11y("name", fe?.name)} autoComplete="name" required defaultValue={state.values?.name} />

@@ -57,3 +57,17 @@ export const ParsedResume = z.object({
   languages: z.array(z.object({ name: z.string(), level: z.string() })).default([]),
 });
 export type ParsedResumeData = z.infer<typeof ParsedResume>;
+
+/** Editor assists (F4 employee speed): one bullet or the summary, rewritten under the truthfulness rules. */
+export const BulletRewriteOutput = z.object({
+  text: z.string().min(1).max(400).describe("The rewritten bullet (one sentence, no trailing period needed, no markdown)"),
+  skillsMentioned: z.array(z.string()).default([]).describe("Every tool, technology or named skill that appears in the rewritten text, exactly as written"),
+  keywordsUsed: z.array(z.string()).default([]).describe("JD keywords the rewritten text now contains (only ones the original bullet already supported)"),
+});
+export type BulletRewriteData = z.infer<typeof BulletRewriteOutput>;
+
+export const SummaryRewriteOutput = z.object({
+  summary: z.string().min(20).max(800).describe("The rewritten professional summary (2–4 sentences, plain text)"),
+  skillsMentioned: z.array(z.string()).default([]).describe("Every tool, technology or named skill that appears in the summary, exactly as written"),
+});
+export type SummaryRewriteData = z.infer<typeof SummaryRewriteOutput>;

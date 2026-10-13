@@ -2,6 +2,7 @@ import "server-only";
 import { db, Prisma } from "@/server/db";
 import { audit } from "./audit";
 import { deleteObject } from "./files";
+import { log } from "@/server/log";
 
 /**
  * Account purge (SPEC §10 privacy): users soft-deleted more than 30 days ago are
@@ -28,7 +29,7 @@ export async function purgeDeletedUsers(now = new Date(), opts: { limit?: number
       await purgeUser(u.id, u.student?.id ?? null);
       purged++;
     } catch (e) {
-      console.error(`[purge] failed for ${u.id}`, e);
+      log.error("privacy.purge_failed", { userId: u.id, err: e });
     }
   }
   return { purged, candidates: users.length };

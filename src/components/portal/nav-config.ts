@@ -3,7 +3,7 @@ import { managerMayOpen } from "@/server/auth/rbac";
 
 export type NavIcon =
   | "home" | "list" | "building" | "calendar" | "file" | "message" | "graduation" | "user" | "key" | "card" | "settings"
-  | "sun" | "users" | "clock" | "plane" | "chart" | "shuffle" | "tag" | "globe" | "palette" | "inbox" | "pen" | "shield" | "briefcase";
+  | "sun" | "users" | "clock" | "plane" | "chart" | "shuffle" | "tag" | "globe" | "palette" | "inbox" | "pen" | "shield" | "briefcase" | "gift";
 
 export type NavItem = { href: string; label: string; icon: NavIcon; badgeKey?: "messages" | "leave" | "awaiting" | "leads"; group?: string };
 
@@ -15,6 +15,8 @@ export const STUDENT_NAV: NavItem[] = [
   { href: "/app/resumes", label: "resumes", icon: "file" },
   { href: "/app/messages", label: "messages", icon: "message", badgeKey: "messages" },
   { href: "/app/prep", label: "prep", icon: "graduation" },
+  { href: "/app/reports", label: "weeklyReports", icon: "chart" },
+  { href: "/app/referrals", label: "referrals", icon: "gift" },
   { href: "/app/profile", label: "profile", icon: "user" },
   { href: "/app/vault", label: "vault", icon: "key" },
   { href: "/app/billing", label: "billing", icon: "card" },

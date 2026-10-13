@@ -16,9 +16,10 @@ import { Table, TableWrap, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireAction } from "@/server/auth/guards";
 import { getStudent360, reassignOptions, studentApplications } from "@/server/services/admin-students";
 import { getThreadForAdmin } from "@/server/services/messaging";
+import { listReferralsForAdmin } from "@/server/services/referrals";
 import { formatDate, formatInTz, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { DeletionControls, NotesEditor, StudentReassign } from "./student-actions";
+import { DeletionControls, NotesEditor, PauseControls, StudentReassign } from "./student-actions";
 import { AuditDiff } from "@/components/admin/audit-diff";
 
 export const metadata: Metadata = { title: "Student" };
@@ -34,6 +35,8 @@ export default async function Student360Page({ params, searchParams }: { params:
   const tab: Tab = TABS.includes(sp.tab as Tab) ? (sp.tab as Tab) : "overview";
   const s = await getStudent360(id);
   if (!s) notFound();
+  const referrals = await listReferralsForAdmin(s.id);
+  const tcore = await getTranslations("common");
   const t = await getTranslations("admin.student360");
   const tc = await getTranslations("admin.common");
   const ti = await getTranslations("interval");
@@ -43,7 +46,8 @@ export default async function Student360Page({ params, searchParams }: { params:
   const isAdmin = user.role === "ADMIN";
   const current = s.assignments.find((a) => a.isActive && a.type === "PRIMARY") ?? null;
   const covers = s.assignments.filter((a) => a.isActive && a.type === "COVER");
-  const activeSub = s.subscriptions.find((x) => x.status === "ACTIVE") ?? s.subscriptions[0] ?? null;
+  const activeSub = s.subscriptions.find((x) => x.status === "ACTIVE" || x.status === "PAUSED") ?? s.subscriptions[0] ?? null;
+  const pausable = isAdmin && activeSub && (activeSub.status === "ACTIVE" || activeSub.status === "PAUSED") ? activeSub : null;
   const deletionState = s.user.deletedAt ? "deleted" : s.user.deletionRequestedAt ? "requested" : "none";
   const tabHref = (k: Tab) => (k === "overview" ? `/admin/students/${s.id}` : `/admin/students/${s.id}?tab=${k}`);
 
@@ -64,7 +68,12 @@ export default async function Student360Page({ params, searchParams }: { params:
             {!s.onboardingCompletedAt ? <Badge tone="amber">{t("onboardingStep", { step: s.onboardingStep })}</Badge> : null}
           </span>
         }
-        actions={<StudentReassign studentId={s.id} studentName={s.user.name} currentEmployeeId={current?.employee.id ?? null} options={await reassignOptions(s.id)} isAdmin={isAdmin} />}
+        actions={
+          <>
+            <StudentReassign studentId={s.id} studentName={s.user.name} currentEmployeeId={current?.employee.id ?? null} options={await reassignOptions(s.id)} isAdmin={isAdmin} canViewAs={deletionState !== "deleted"} />
+            {pausable ? <PauseControls subscriptionId={pausable.id} status={pausable.status} pausedSince={pausable.pausedAt ? formatDate(pausable.pausedAt, tz) : null} /> : null}
+          </>
+        }
       />
 
       {deletionState !== "none" ? (
@@ -373,6 +382,49 @@ export default async function Student360Page({ params, searchParams }: { params:
               </TableWrap>
             ) : (
               <p className="text-sm text-muted-foreground">{t("paymentsEmpty")}</p>
+            )}
+          </Section>
+          <Section id="referrals" title={t("referralsTitle")} description={t("referralsDescription")}>
+            {referrals.referredBy ? (
+              <p className="mb-3 text-sm">
+                {t("referredBy")}{" "}
+                <Link href={`/admin/students/${referrals.referredBy.referrer.id}`} className="font-semibold text-primary hover:underline">
+                  {referrals.referredBy.referrer.user.name}
+                </Link>{" "}
+                <Badge tone={referrals.referredBy.status === "CREDITED" ? "green" : "amber"}>{t(`referralStatus.${referrals.referredBy.status}`)}</Badge>
+              </p>
+            ) : null}
+            {referrals.made.length ? (
+              <TableWrap>
+                <Table>
+                  <THead>
+                    <TR>
+                      <TH>{t("referralFriend")}</TH>
+                      <TH>{tcore("status")}</TH>
+                      <TH className="text-right">{t("referralCredit")}</TH>
+                      <TH>{tcore("date")}</TH>
+                    </TR>
+                  </THead>
+                  <tbody>
+                    {referrals.made.map((r) => (
+                      <TR key={r.id}>
+                        <TD>
+                          <Link href={`/admin/students/${r.referred.id}`} className="font-semibold text-primary hover:underline">
+                            {r.referred.user.name}
+                          </Link>
+                        </TD>
+                        <TD>
+                          <Badge tone={r.status === "CREDITED" ? "green" : "amber"}>{t(`referralStatus.${r.status}`)}</Badge>
+                        </TD>
+                        <TD className="text-right tabular">{r.currency ? formatMoney(r.creditMinor, r.currency) : "—"}</TD>
+                        <TD>{formatDate(r.creditedAt ?? r.createdAt, user.timezone)}</TD>
+                      </TR>
+                    ))}
+                  </tbody>
+                </Table>
+              </TableWrap>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("noReferrals")}</p>
             )}
           </Section>
         </div>

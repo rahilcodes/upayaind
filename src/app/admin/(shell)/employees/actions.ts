@@ -1,7 +1,8 @@
 "use server";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
-import { requireAction } from "@/server/auth/guards";
+import { requireAction, requireRole } from "@/server/auth/guards";
+import { adminResetTwoFactor } from "@/server/services/accounts";
 import { safeAction } from "@/server/errors";
 import { createEmployee, deactivateEmployee, reactivateEmployee, resendInvite, updateEmployee, type EmployeeInput } from "@/server/services/employees";
 
@@ -46,4 +47,13 @@ export async function reactivateEmployeeAction(employeeId: string) {
     const user = await requireAction("employee.manage");
     return reactivateEmployee(user, z.string().min(1).parse(employeeId));
   }, t("reactivated"));
+}
+
+/** ADMIN only: clear the employee's authenticator + backup codes and sign them out everywhere (D-123). */
+export async function resetTwoFactorAction(employeeId: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireRole(["ADMIN"]);
+    return adminResetTwoFactor(user, z.string().min(1).parse(employeeId));
+  }, t("twoFactorReset"));
 }

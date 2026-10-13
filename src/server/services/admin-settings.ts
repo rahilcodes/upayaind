@@ -6,6 +6,7 @@ import { SECTION_KEYS } from "@/resume/schema";
 import { audit } from "./audit";
 import { getSettings, setSetting, type Settings } from "./settings";
 import { TEMPLATES, type NotificationType } from "./notify";
+import { alertWebhooksSchema, type AlertWebhook } from "./alerts";
 
 /** Admin settings, resume styles/templates (SPEC §11 Settings, §9.3). ADMIN only (enforced by callers). */
 
@@ -71,6 +72,31 @@ export async function saveTemplateOverride(actorId: string, type: string, raw: z
   if (Object.keys(clean).length) current[type] = clean;
   else delete current[type];
   return writeAll(actorId, { notificationTemplates: current }, "settings.template");
+}
+
+/** Outgoing webhook alerts (D-122). URLs are secrets-ish: audit logs keep only label + host. */
+export async function saveAlertWebhooks(actorId: string, raw: unknown) {
+  const hooks = alertWebhooksSchema.parse(raw) as AlertWebhook[];
+  const ids = new Set<string>();
+  for (const h of hooks) {
+    if (ids.has(h.id)) throw new UserError("Duplicate webhook id.");
+    ids.add(h.id);
+  }
+  const before = (await getSettings()).alertWebhooks ?? [];
+  const summary = (list: { id: string; url: string; label: string; events: string[]; enabled: boolean }[]) =>
+    list.map((h) => ({ id: h.id, label: h.label, host: safeHost(h.url), events: h.events, enabled: h.enabled }));
+  if (JSON.stringify(before) === JSON.stringify(hooks)) return { changed: 0 };
+  await setSetting("alertWebhooks", hooks);
+  await audit({ actorId, action: "settings.alert_webhooks", entity: "Setting", entityId: "alertWebhooks", before: summary(before), after: summary(hooks) });
+  return { changed: 1 };
+}
+
+function safeHost(url: string) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "?";
+  }
 }
 
 /** Sample text for the template editor (default subject/heading/body with placeholder values). */

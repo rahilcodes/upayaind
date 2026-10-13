@@ -11,8 +11,10 @@ import { firstName } from "@/lib/utils";
 import { audit } from "./audit";
 import { deleteObject, LIMITS, storeUpload } from "./files";
 import { notify, notifyManagers } from "./notify";
+import { sendAlert } from "./alerts";
 import { getSetting } from "./settings";
 import { getOrCreateBaseVersion, type StoredValidation } from "./resumes";
+import { log } from "@/server/log";
 
 /**
  * Applications (SPEC F4 logging + F5 status lifecycle).
@@ -64,6 +66,16 @@ export const JobFields = z.object({
   studentId: z.string().min(1),
   jobUrl: httpUrl,
   companyName: z.string().trim().min(1, "Company is required.").max(200),
+  /** Optional: from the company autocomplete (D-102); otherwise derived from the job URL. */
+  companyDomain: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(253)
+    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Enter a valid domain.")
+    .optional()
+    .nullable()
+    .or(z.literal("").transform(() => null)),
   jobTitle: z.string().trim().min(1, "Job title is required.").max(200),
   location: z.string().trim().max(200).optional().nullable(),
   workMode: z.enum(WORK_MODES).optional().nullable(),
@@ -292,7 +304,7 @@ async function createApplication(
           studentId: input.studentId,
           employeeId,
           companyName: input.companyName,
-          companyDomain: domainFromUrl(input.jobUrl),
+          companyDomain: input.companyDomain || domainFromUrl(input.jobUrl),
           jobTitle: input.jobTitle,
           jobUrl: input.jobUrl,
           jobUrlNormalized: normalized,
@@ -685,12 +697,13 @@ async function notifyTransition(app: AppRow, to: ApplicationStatus, opts: { bySt
     }
     if ((to === "OFFER" || to === "HIRED") && !opts.byStudent) await notify(app.student.userId, "status_offer", base);
     if (to === "OFFER" || to === "HIRED") await notifyManagers("offer_admin", base);
+    if (to === "OFFER" || to === "HIRED") void sendAlert("offer_hired", { title: `${app.student.user.name} → ${app.companyName}`, lines: [`${app.jobTitle} · ${to}`], link: `/admin/students/${app.studentId}`, linkLabel: "Open student" });
     if (opts.byStudent) {
       const empUserId = await primaryEmployeeUserId(app.studentId, app.employee.userId);
       await notify(empUserId, "status_update_employee", { ...base, status: STATUS_LABEL[to], byStudent: 1 });
     }
   } catch (e) {
-    console.error("[applications] notification failed", e);
+    log.error("applications.notify_failed", { err: e });
   }
 }
 

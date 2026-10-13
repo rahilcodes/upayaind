@@ -1,9 +1,16 @@
 "use server";
 import { z } from "zod";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { requireAction, requireRole } from "@/server/auth/guards";
+import { getViewAs, issueViewAsToken, VIEW_AS_COOKIE, VIEW_AS_COOKIE_OPTIONS, VIEW_AS_MINUTES } from "@/server/auth/view-as";
+import { db } from "@/server/db";
 import { safeAction, UserError } from "@/server/errors";
+import { requestMeta } from "@/server/request";
+import { audit } from "@/server/services/audit";
 import { autoAssign, reassign } from "@/server/services/assignment";
+import { pauseSubscription, resumeSubscription } from "@/server/services/billing/pause";
 import { confirmDeletion, dismissDeletionRequest, restoreDeletedStudent, saveInternalNotes } from "@/server/services/admin-students";
 
 const id = z.string().min(1).max(64);
@@ -61,4 +68,48 @@ export async function restoreStudentAction(studentId: string) {
     const user = await requireRole(["ADMIN"]);
     return restoreDeletedStudent(user.id, id.parse(studentId));
   }, t("restored"));
+}
+
+/** Subscription pause / resume are ADMIN only (SPEC F11, D-121). */
+export async function pauseSubscriptionAction(subscriptionId: string, reason: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireRole(["ADMIN"]);
+    return pauseSubscription(user.id, id.parse(subscriptionId), reasonSchema.parse(reason));
+  }, t("paused"));
+}
+
+export async function resumeSubscriptionAction(subscriptionId: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireRole(["ADMIN"]);
+    return resumeSubscription(user.id, id.parse(subscriptionId));
+  }, t("resumed"));
+}
+
+// ─────────────────────────── View as student (read-only, D-120) ───────────────────────────
+
+/** ADMIN only: open the student portal as this student, read-only, for 30 minutes. */
+export async function startViewAsAction(studentId: string) {
+  const user = await requireRole(["ADMIN"]);
+  const sid = id.parse(studentId);
+  const student = await db.studentProfile.findUnique({ where: { id: sid }, select: { id: true, user: { select: { id: true, deletedAt: true } } } });
+  if (!student || student.user.deletedAt) throw new UserError("Student not found.");
+  const token = await issueViewAsToken(user.id, student.id, student.user.id);
+  const meta = await requestMeta();
+  await audit({ actorId: user.id, action: "user.view_as", entity: "StudentProfile", entityId: student.id, after: { studentUserId: student.user.id, minutes: VIEW_AS_MINUTES }, ip: meta.ip });
+  (await cookies()).set(VIEW_AS_COOKIE, token, VIEW_AS_COOKIE_OPTIONS);
+  redirect("/app");
+}
+
+/** Leave "view as" and return to Student 360 (the admin session was never changed). */
+export async function exitViewAsAction() {
+  const v = await getViewAs();
+  const jar = await cookies();
+  jar.delete(VIEW_AS_COOKIE);
+  if (v) {
+    await audit({ actorId: v.adminId, action: "user.view_as_exit", entity: "StudentProfile", entityId: v.studentId });
+    redirect(`/admin/students/${v.studentId}`);
+  }
+  redirect("/admin/students");
 }

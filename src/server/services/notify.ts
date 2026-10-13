@@ -1,13 +1,16 @@
 import "server-only";
 import { db } from "@/server/db";
 import { absoluteUrl } from "@/lib/utils";
-import { sendEmail, type EmailAttachment } from "./email";
+import type { EmailAttachment } from "./email";
+import { CHANNELS, renderPlainText, toWhatsAppAddress } from "./channels";
 import { getSetting } from "./settings";
+import { log } from "@/server/log";
 
 /**
  * One notification service for every F13 event: writes an in-app Notification
- * (bell icon) and sends an email when the user's preferences allow.
- * WhatsApp (P1) plugs in through `channels` later.
+ * (bell icon) and sends an email when the user's preferences allow. Delivery
+ * goes through `./channels` (email always; WhatsApp when configured, the user
+ * opted in and the template is flagged `whatsapp: true`) — DECISIONS D-133.
  */
 
 type P = Record<string, string | number | null | undefined>;
@@ -26,6 +29,8 @@ type Template = {
   inAppOnly?: boolean;
   /** Email only (no bell entry). */
   emailOnly?: boolean;
+  /** Also sent on WhatsApp to users who opted in (plain text). */
+  whatsapp?: boolean;
 };
 
 const s = (v: unknown) => (v === null || v === undefined ? "" : String(v));
@@ -51,6 +56,7 @@ export const TEMPLATES = {
     link: (p) => `/admin/students/${s(p.studentId)}`,
   },
   assigned_student: {
+    whatsapp: true,
     title: (p) => `Your specialist is ${s(p.employeeFirstName)}`,
     body: (p) => `${s(p.employeeFirstName)} will start applying for you as soon as your onboarding is complete. You can message them any time.`,
     link: () => "/app/messages",
@@ -90,18 +96,21 @@ export const TEMPLATES = {
     cta: () => "Start applying",
   },
   daily_digest: {
+    whatsapp: true,
     title: (p) => `Today: ${s(p.count)} applications sent for you`,
     body: (p) => `${s(p.count)} of ${s(p.target)} today. Top companies: ${s(p.companies) || "—"}.`,
     link: () => "/app/applications",
     cta: () => "See today’s applications",
   },
   status_interview: {
+    whatsapp: true,
     title: (p) => `Interview: ${s(p.company)}`,
     body: (p) => `${s(p.title)} at ${s(p.company)} — ${s(p.when) || "details on your dashboard"}.`,
     link: (p) => `/app/applications/${s(p.applicationId)}`,
     cta: () => "View interview",
   },
   status_offer: {
+    whatsapp: true,
     title: (p) => `🎉 Offer from ${s(p.company)}`,
     body: (p) => `Congratulations on the ${s(p.title)} offer from ${s(p.company)}!`,
     link: (p) => `/app/applications/${s(p.applicationId)}`,
@@ -135,6 +144,7 @@ export const TEMPLATES = {
     link: () => "/admin/reports",
   },
   renewal_reminder: {
+    whatsapp: true,
     title: (p) => `Your plan renews in ${s(p.days)} days`,
     body: (p) => `${s(p.plan)} ${p.autoRenew ? "renews automatically" : "ends"} on ${s(p.date)}.`,
     link: () => "/app/billing",
@@ -180,10 +190,53 @@ export const TEMPLATES = {
     cta: () => "Share my story",
     emailOnly: true,
   },
+  interview_reminder: {
+    whatsapp: true,
+    title: (p) => `Interview ${s(p.inLabel)}: ${s(p.company)}`,
+    body: (p) => `${p.who ? `${s(p.who)}: ` : ""}${s(p.title)} at ${s(p.company)} — ${s(p.when)}. ${s(p.round)} · ${s(p.mode)}${p.meetingLink ? ` · ${s(p.meetingLink)}` : ""}`,
+    link: (p) => s(p.link) || undefined,
+    cta: () => "View interview",
+  },
   mock_interview_booked: {
     title: (p) => `Mock interview booked: ${s(p.when)}`,
     body: (p) => `${s(p.focus)} with ${s(p.with)}.`,
     link: () => "/app/prep",
+  },
+  referral_joined: {
+    title: (p) => `${s(p.friendName)} joined UpayaInd with your link`,
+    body: (p) => `You’ll get ${s(p.credit)} credit as soon as ${s(p.friendName)} makes their first payment.`,
+    link: () => "/app/referrals",
+    cta: () => "See my referrals",
+  },
+  referral_credited: {
+    title: (p) => `You earned ${s(p.credit)} referral credit`,
+    body: (p) => (p.friendName ? `${s(p.friendName)} made their first payment. ${s(p.credit)} is credited to your account and applied to your next invoice.` : `Your friend’s discount of ${s(p.credit)} was applied. Thanks for joining through a friend!`),
+    link: () => "/app/referrals",
+    cta: () => "See my referrals",
+  },
+  subscription_paused: {
+    title: (p) => `Your ${s(p.plan)} plan is paused`,
+    body: () => "Applications are on hold and your daily target is 0 while the plan is paused. The days you're paused are added back to your plan when it resumes.",
+    link: () => "/app/billing",
+    cta: () => "View billing",
+    mandatory: true,
+  },
+  subscription_resumed: {
+    title: (p) => `Your ${s(p.plan)} plan is active again`,
+    body: (p) => `We've added ${s(p.days)} paused day(s) back: your plan now runs until ${s(p.periodEnd)}.`,
+    link: () => "/app/billing",
+    cta: () => "View billing",
+    mandatory: true,
+  },
+  subscription_paused_employee: {
+    title: (p) => `${s(p.studentName)}'s plan is paused`,
+    body: (p) => `Stop applying for ${s(p.studentName)} until the plan resumes. Reason: ${s(p.reason) || "—"}.`,
+    link: (p) => `/work/students/${s(p.studentId)}`,
+  },
+  subscription_resumed_employee: {
+    title: (p) => `${s(p.studentName)}'s plan is active again`,
+    body: (p) => `Daily targets apply again from today. Period now ends ${s(p.periodEnd)}.`,
+    link: (p) => `/work/students/${s(p.studentId)}`,
   },
   generic: {
     title: (p) => s(p.title),
@@ -194,18 +247,21 @@ export const TEMPLATES = {
 
 export type NotificationType = keyof typeof TEMPLATES;
 
-export type NotificationPrefs = { email?: Partial<Record<NotificationType, boolean>>; emailAll?: boolean };
+export type NotificationPrefs = { email?: Partial<Record<NotificationType, boolean>>; emailAll?: boolean; whatsapp?: boolean };
+
+/** Template types that may go out on WhatsApp (shown on the opt-in toggle). */
+export const WHATSAPP_TYPES = (Object.keys(TEMPLATES) as NotificationType[]).filter((k) => (TEMPLATES[k] as Template).whatsapp);
 
 export async function notify(
   userId: string,
   type: NotificationType,
   payload: P = {},
-  opts: { attachments?: EmailAttachment[]; skipEmail?: boolean; skipInApp?: boolean } = {},
+  opts: { attachments?: EmailAttachment[]; skipEmail?: boolean; skipInApp?: boolean; skipWhatsApp?: boolean } = {},
 ) {
   const tpl = TEMPLATES[type] as Template;
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { email: true, name: true, notificationPrefs: true, deletedAt: true, status: true },
+    select: { email: true, name: true, phone: true, notificationPrefs: true, deletedAt: true, status: true },
   });
   if (!user || user.deletedAt) return;
 
@@ -223,20 +279,33 @@ export async function notify(
 
   const overrides = (await getSetting("notificationTemplates"))?.[type];
   const subject = overrides?.subject ?? tpl.subject?.(payload) ?? title;
+  const rendered = {
+    subject,
+    preview: body.slice(0, 140),
+    heading: overrides?.heading ?? title,
+    paragraphs: overrides?.body ? [overrides.body, ...(tpl.paragraphs?.(payload) ?? [])] : [body, ...(tpl.paragraphs?.(payload) ?? [])],
+    cta: link ? { label: tpl.cta?.(payload) ?? "Open UpayaInd", href: absoluteUrl(link) } : undefined,
+    attachments: opts.attachments,
+  };
+  const text = renderPlainText(rendered);
+
   try {
-    await sendEmail({
-      to: user.email,
-      subject,
-      attachments: opts.attachments,
-      content: {
-        preview: body.slice(0, 140),
-        heading: overrides?.heading ?? title,
-        paragraphs: overrides?.body ? [overrides.body, ...(tpl.paragraphs?.(payload) ?? [])] : [body, ...(tpl.paragraphs?.(payload) ?? [])],
-        cta: link ? { label: tpl.cta?.(payload) ?? "Open UpayaInd", href: absoluteUrl(link) } : undefined,
-      },
-    });
+    await CHANNELS.email.send({ to: user.email, template: type, payload: rendered, text });
   } catch (e) {
-    console.error(`notify(${type}) email failed`, e);
+    log.error("notify.email_failed", { type, err: e });
+  }
+
+  // WhatsApp: opt-in + configured + template flagged + E.164 phone (D-133).
+  if (tpl.whatsapp && prefs.whatsapp === true && CHANNELS.whatsapp.isConfigured() && !opts.skipWhatsApp) {
+    const to = toWhatsAppAddress(user.phone);
+    if (to) {
+      try {
+        const r = await CHANNELS.whatsapp.send({ to: user.phone!, template: type, payload: rendered, text });
+        if (r.skipped) log.info("notify.whatsapp_skipped", { type, reason: r.skipped });
+      } catch (e) {
+        log.error("notify.whatsapp_failed", { type, err: e });
+      }
+    }
   }
 }
 

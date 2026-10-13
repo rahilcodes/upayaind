@@ -1,11 +1,11 @@
 "use client";
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Mail, Power, RotateCcw } from "lucide-react";
+import { Mail, Power, RotateCcw, ShieldOff } from "lucide-react";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { useServerAction } from "@/components/portal/action-form";
 import { Button } from "@/components/ui/button";
-import { deactivateEmployeeAction, reactivateEmployeeAction, resendInviteAction } from "./actions";
+import { deactivateEmployeeAction, reactivateEmployeeAction, resendInviteAction, resetTwoFactorAction } from "./actions";
 
 export function ResendInviteButton({ employeeId, name }: { employeeId: string; name: string }) {
   const t = useTranslations("admin.employees");
@@ -42,5 +42,21 @@ export function ReactivateButton({ employeeId }: { employeeId: string }) {
       <RotateCcw className="h-4 w-4" aria-hidden="true" />
       {t("reactivate")}
     </Button>
+  );
+}
+
+/** ADMIN only (D-123). */
+export function ResetTwoFactorButton({ employeeId, name }: { employeeId: string; name: string }) {
+  const t = useTranslations("admin.employees");
+  const action = React.useCallback(() => resetTwoFactorAction(employeeId), [employeeId]);
+  return (
+    <ConfirmAction
+      trigger={<><ShieldOff className="h-4 w-4" aria-hidden="true" />{t("reset2fa")}</>}
+      triggerLabel={t("reset2faFor", { name })}
+      title={t("reset2faTitle", { name })}
+      description={t("reset2faBody")}
+      confirmLabel={t("reset2fa")}
+      action={action}
+    />
   );
 }

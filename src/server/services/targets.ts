@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { addDayKey, dateOnly, dayKey, dayRangeInTz, hhmmToMinutes, minutesIntoDay, startOfDayInTz, weekdayOfKey } from "@/lib/dates";
 import { formatInTz } from "@/lib/format";
 import { notify, notifyManagers } from "./notify";
+import { sendAlert } from "./alerts";
 import { getSetting } from "./settings";
 import { employeeContext, parseSchedule, type WorkSchedule } from "./attendance";
 
@@ -239,6 +240,7 @@ export async function runBelowTargetAlerts(now = new Date()) {
   if (managerLines.length) {
     const count = managerLines.reduce((a, l) => a + l.split(" · ").length, 0);
     await notifyManagers("below_target", { count, list: managerLines.join("\n"), link: "/admin/attendance" });
+    void sendAlert("below_target", { title: `${count} student(s) below 50% of today's target`, lines: managerLines, link: "/admin/attendance", linkLabel: "Open attendance" });
   }
   return { employees: notified };
 }

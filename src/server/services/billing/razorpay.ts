@@ -15,5 +15,8 @@ export const razorpayProvider: PaymentProvider = {
   createPrice: async () => unavailable(),
   createCoupon: async () => unavailable(),
   retrieveSubscription: async () => unavailable(),
+  applyCredit: async () => unavailable(),
+  pauseSubscription: async () => unavailable(),
+  resumeSubscription: async () => unavailable(),
   verifyWebhook: async () => unavailable(),
 };

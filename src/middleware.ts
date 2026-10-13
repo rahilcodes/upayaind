@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/server/auth/config.edge";
 import { canOpenPortal, isStaff, portalForRole } from "@/server/auth/rbac";
+import { verifyViewAs, VIEW_AS_COOKIE } from "@/server/auth/view-as.edge";
 
 const { auth } = NextAuth(authConfig);
 
@@ -21,7 +22,7 @@ function isUnder(pathname: string, prefix: string) {
  * - students without a profile → /signup/complete; not onboarded → /app/onboarding
  * Also sets the `market` cookie from the visitor's country (SPEC §6.1).
  */
-export default auth((req) => {
+export default auth(async (req) => {
   const { nextUrl } = req;
   const pathname = nextUrl.pathname;
   const user = req.auth?.user;
@@ -37,6 +38,14 @@ export default auth((req) => {
     }
     if (isStaff(user.role) && user.mfa !== "ok") {
       return NextResponse.redirect(new URL("/2fa", nextUrl));
+    }
+    // ADMIN "viewing as" a student may open /app read-only while the signed cookie is valid (D-120).
+    if (user.role === "ADMIN" && isUnder(pathname, "/app")) {
+      const v = await verifyViewAs(process.env.AUTH_SECRET ?? "", req.cookies.get(VIEW_AS_COOKIE)?.value);
+      if (v && v.adminId === user.id) return NextResponse.next();
+      const res = NextResponse.redirect(new URL("/admin/students", nextUrl));
+      if (req.cookies.get(VIEW_AS_COOKIE)) res.cookies.delete(VIEW_AS_COOKIE);
+      return res;
     }
     if (!canOpenPortal(user.role, pathname)) {
       return NextResponse.rewrite(new URL("/403", nextUrl), { status: 403 });
@@ -64,6 +73,12 @@ export default auth((req) => {
   }
 
   const res = NextResponse.next();
+
+  // Referral attribution (D-113): remember ?ref=CODE for 30 days so a later signup is still credited.
+  const ref = nextUrl.searchParams.get("ref");
+  if (ref && /^[A-Za-z0-9]{6,12}$/.test(ref) && req.cookies.get("ref")?.value !== ref.toUpperCase()) {
+    res.cookies.set("ref", ref.toUpperCase(), { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" });
+  }
 
   // Market detection: ?market= override → cookie → geo header → US.
   const override = nextUrl.searchParams.get("market")?.toUpperCase();

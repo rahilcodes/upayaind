@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { AlertTriangle, CalendarClock, CreditCard, Download, FileText, Info } from "lucide-react";
 import { PageHeader } from "@/components/portal/portal-shell";
+import { PausedBanner } from "@/components/billing/paused-banner";
 import { PaymentStatusPill, SubscriptionStatusPill } from "@/components/billing/status-pills";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,6 +45,7 @@ export default async function BillingPage() {
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
+      <PausedBanner studentId={student.id} timezone={tz} />
 
       <div className="grid gap-6">
         {b.pending && !live ? (

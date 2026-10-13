@@ -38,9 +38,10 @@ export async function changePassword(user: Actor, raw: { current?: string; passw
   if (u.passwordHash && !(await verifyPassword(u.passwordHash, input.current))) throw new UserError("Your current password isn't right.", "current");
   if (u.passwordHash && (await verifyPassword(u.passwordHash, input.password))) throw new UserError("Choose a password you haven't used here before.", "password");
   await checkPasswordPolicy(input.password, [u.email, u.name]);
-  await db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(input.password) } });
+  // Changing the password signs out every other device (D-124); the caller re-adopts the version on this one.
+  const updated = await db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(input.password), sessionVersion: { increment: 1 } }, select: { sessionVersion: true } });
   await audit({ actorId: user.id, action: "user.password_changed", entity: "User", entityId: user.id });
-  return { hadPassword: Boolean(u.passwordHash) };
+  return { hadPassword: Boolean(u.passwordHash), sessionVersion: updated.sessionVersion };
 }
 
 export async function hasPassword(userId: string) {

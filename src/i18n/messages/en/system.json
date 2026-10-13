@@ -1,0 +1,24 @@
+{
+  "system": {
+    "loading": {
+      "page": "Loading page…",
+      "list": "Loading list…"
+    },
+    "error": {
+      "title": "Something went wrong",
+      "body": "This page hit an unexpected error. You can try again, or send us a report so we can look into it.",
+      "retry": "Try again",
+      "report": "Report this problem",
+      "reported": "Thanks — reported.",
+      "reference": "Reference",
+      "home": "Back to dashboard",
+      "notConfigured": "Reporting isn't configured on this install."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "body": "The page you're looking for doesn't exist or was moved.",
+      "home": "Back to dashboard",
+      "back": "Go back"
+    }
+  }
+}

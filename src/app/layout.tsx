@@ -14,6 +14,10 @@ export const metadata: Metadata = {
     "Our specialists apply to 25–50 jobs for you every weekday, each with a resume tailored to the job. Track every application live.",
   applicationName: "UpayaInd",
   formatDetection: { telephone: false },
+  // PWA (D-110): manifest + iOS home-screen metadata. Icons live in public/brand.
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "UpayaInd", statusBarStyle: "default" },
+  icons: { apple: "/brand/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

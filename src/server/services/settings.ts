@@ -11,6 +11,10 @@ export type Settings = {
   aiLimits: { employeePerHour: number; studentPerDay: number };
   business: Record<string, { legalName: string; address: string; taxId: string }>;
   notificationTemplates?: Record<string, { subject?: string; heading?: string; body?: string }>;
+  /** Referral programme (D-113): friend's first-payment discount and the referrer's credit per currency (minor units). */
+  referral: { friendPercentOff: number; referrerCreditMinor: Record<string, number> };
+  /** Outgoing Slack/Teams-compatible webhooks (D-122). */
+  alertWebhooks?: { id: string; url: string; label: string; events: string[]; enabled: boolean }[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +25,8 @@ export const DEFAULT_SETTINGS: Settings = {
   aiLimits: { employeePerHour: 60, studentPerDay: 300 },
   business: {},
   notificationTemplates: {},
+  referral: { friendPercentOff: 10, referrerCreditMinor: { USD: 2500, CAD: 3000, GBP: 2000, AUD: 3500, INR: 150000 } },
+  alertWebhooks: [],
 };
 
 export async function getSettings(): Promise<Settings> {

@@ -1,13 +1,20 @@
 "use client";
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { ArrowDown, ArrowUp, ChevronDown, Eye, EyeOff, GripVertical, Lock, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowDown, ArrowUp, Check, ChevronDown, Eye, EyeOff, GripVertical, Loader2, Lock, Plus, RotateCcw, Scissors, Sparkles, Target, Trash2, X } from "lucide-react";
 import type { ResumeData, SectionKey } from "@/resume/schema";
 import { SECTION_KEYS } from "@/resume/schema";
 import { sectionHeading, dateRange, type RenderStyle } from "@/resume/styles";
 import type { ValidationIssue } from "@/server/ai/validators";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+/** AI assists (D-101): the server rewrites + validates; the editor shows before/after and the employee accepts or rejects. */
+export type AiEditMode = "improve" | "shorten" | "match" | "summary";
+export type AiEditTarget = { kind: "bullet"; experienceId: string; bulletId: string } | { kind: "summary" };
+export type AiSuggestion = { before: string; after: string; unchanged: boolean; keywordsUsed: string[] };
+export type AiAssist = { request: (req: { mode: AiEditMode; target: AiEditTarget }) => Promise<{ suggestion: AiSuggestion } | { error: string }> };
 
 type Props = {
   value: ResumeData;
@@ -16,7 +23,123 @@ type Props = {
   locked: boolean;
   issues: ValidationIssue[];
   onChange: (next: ResumeData) => void;
+  ai?: AiAssist | null;
 };
+
+type Pending = { mode: AiEditMode; loading: true } | { mode: AiEditMode; loading: false; suggestion: AiSuggestion };
+
+/** Word-level diff (LCS) for the before/after view. */
+export function wordDiff(before: string, after: string): { type: "same" | "del" | "ins"; text: string }[] {
+  const a = before.split(/(\s+)/).filter((x) => x.length);
+  const b = after.split(/(\s+)/).filter((x) => x.length);
+  const n = a.length;
+  const m = b.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i]![j] = a[i] === b[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
+  const out: { type: "same" | "del" | "ins"; text: string }[] = [];
+  const push = (type: "same" | "del" | "ins", text: string) => {
+    const last = out[out.length - 1];
+    if (last && last.type === type) last.text += text;
+    else out.push({ type, text });
+  };
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      push("same", a[i]!);
+      i++;
+      j++;
+    } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) push("del", a[i++]!);
+    else push("ins", b[j++]!);
+  }
+  while (i < n) push("del", a[i++]!);
+  while (j < m) push("ins", b[j++]!);
+  return out;
+}
+
+/** Before/after panel with Accept / Reject (also used for the summary). */
+function SuggestionPanel({ pending, label, onAccept, onReject }: { pending: Pending; label: string; onAccept: () => void; onReject: () => void }) {
+  const t = useTranslations("workspace.editor.ai");
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!pending.loading) ref.current?.querySelector<HTMLButtonElement>("button[data-accept]")?.focus();
+  }, [pending.loading]);
+  if (pending.loading) {
+    return (
+      <p className="mx-2 mb-1 flex items-center gap-2 text-[13px] text-muted-foreground" role="status">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        {t("working", { mode: t(`mode.${pending.mode}`) })}
+      </p>
+    );
+  }
+  const sg = pending.suggestion;
+  const parts = wordDiff(sg.before, sg.after);
+  return (
+    <div ref={ref} role="group" aria-label={t("panelLabel", { label })} className="mx-1 mb-1 rounded-[12px] border border-primary/30 bg-accent/40 p-3 text-[14px]">
+      <p className="mb-1.5 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-primary">
+        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+        {t("suggestion", { mode: t(`mode.${pending.mode}`) })}
+      </p>
+      {sg.unchanged ? (
+        <p className="text-muted-foreground">{t("unchanged")}</p>
+      ) : (
+        <>
+          <p className="sr-only">{t("beforeSr", { text: sg.before })}</p>
+          <p className="sr-only">{t("afterSr", { text: sg.after })}</p>
+          <p aria-hidden="true" className="leading-relaxed">
+            {parts.map((p, i) =>
+              p.type === "same" ? (
+                <span key={i}>{p.text}</span>
+              ) : p.type === "del" ? (
+                <del key={i} className="rounded bg-[#FCEAE8] px-0.5 text-[#A82A21] decoration-[#A82A21]/60">
+                  {p.text}
+                </del>
+              ) : (
+                <ins key={i} className="rounded bg-[#E6F4EC] px-0.5 font-semibold text-[#17633f] no-underline">
+                  {p.text}
+                </ins>
+              ),
+            )}
+          </p>
+          {sg.keywordsUsed.length ? <p className="mt-1.5 text-[12px] text-muted-foreground">{t("keywords", { list: sg.keywordsUsed.join(", ") })}</p> : null}
+        </>
+      )}
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        {!sg.unchanged ? (
+          <Button type="button" size="sm" data-accept onClick={onAccept}>
+            <Check className="h-4 w-4" aria-hidden="true" />
+            {t("accept")}
+          </Button>
+        ) : null}
+        <Button type="button" size="sm" variant={sg.unchanged ? "outline" : "ghost"} data-accept={sg.unchanged ? "" : undefined} onClick={onReject}>
+          <X className="h-4 w-4" aria-hidden="true" />
+          {sg.unchanged ? t("close") : t("reject")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AiButtons({ onRun, disabled, compact }: { onRun: (mode: Exclude<AiEditMode, "summary">) => void; disabled: boolean; compact?: boolean }) {
+  const t = useTranslations("workspace.editor.ai");
+  const cls = "inline-flex h-9 items-center gap-1 rounded-[8px] px-2 text-[12px] font-semibold text-primary hover:bg-accent disabled:opacity-40";
+  return (
+    <div className={cn("flex flex-wrap items-center", compact ? "gap-0" : "gap-0.5")} role="group" aria-label={t("groupLabel")}>
+      <button type="button" className={cls} disabled={disabled} onClick={() => onRun("improve")} title={t("improveTitle")}>
+        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+        {t("improve")}
+      </button>
+      <button type="button" className={cls} disabled={disabled} onClick={() => onRun("shorten")} title={t("shortenTitle")}>
+        <Scissors className="h-3.5 w-3.5" aria-hidden="true" />
+        {t("shorten")}
+      </button>
+      <button type="button" className={cls} disabled={disabled} onClick={() => onRun("match")} title={t("matchTitle")}>
+        <Target className="h-3.5 w-3.5" aria-hidden="true" />
+        {t("match")}
+      </button>
+    </div>
+  );
+}
 
 const move = <T,>(arr: T[], from: number, to: number) => {
   const a = [...arr];
@@ -48,11 +171,23 @@ const AutoTextarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAtt
 });
 
 /** Sortable list with HTML5 drag-and-drop + keyboard (Alt+↑/↓ and buttons). */
-function SortableBullets({ items, disabled, onChange, labelFor, itemIssue }: { items: { id: string; text: string }[]; disabled: boolean; onChange: (items: { id: string; text: string }[]) => void; labelFor: (i: number) => string; itemIssue?: (i: number) => string | undefined }) {
+function SortableBullets({ items, disabled, onChange, labelFor, itemIssue, ai }: { items: { id: string; text: string }[]; disabled: boolean; onChange: (items: { id: string; text: string }[]) => void; labelFor: (i: number) => string; itemIssue?: (i: number) => string | undefined; ai?: { request: (bulletId: string, mode: Exclude<AiEditMode, "summary">) => ReturnType<AiAssist["request"]> } | null }) {
   const t = useTranslations("workspace.editor");
   const [drag, setDrag] = React.useState<number | null>(null);
   const [over, setOver] = React.useState<number | null>(null);
   const refs = React.useRef<(HTMLTextAreaElement | null)[]>([]);
+  const [pending, setPending] = React.useState<({ id: string } & Pending) | null>(null);
+  const runAi = async (id: string, mode: Exclude<AiEditMode, "summary">) => {
+    if (!ai) return;
+    setPending({ id, mode, loading: true });
+    const r = await ai.request(id, mode);
+    if ("error" in r) {
+      setPending(null);
+      toast.error(r.error);
+      return;
+    }
+    setPending({ id, mode, loading: false, suggestion: r.suggestion });
+  };
   const focusLater = (i: number) => window.setTimeout(() => refs.current[i]?.focus(), 0);
   const shift = (i: number, d: -1 | 1) => {
     const j = i + d;
@@ -114,6 +249,26 @@ function SortableBullets({ items, disabled, onChange, labelFor, itemIssue }: { i
                 }}
               />
               {issue ? <p className="px-2 pb-1 text-xs font-medium text-[#7A4E0E]">{issue}</p> : null}
+              {ai && !disabled ? (
+                <div className="flex flex-wrap items-center justify-between gap-1 px-1 pb-0.5">
+                  <AiButtons compact disabled={Boolean(pending?.loading) || !b.text.trim()} onRun={(mode) => void runAi(b.id, mode)} />
+                </div>
+              ) : null}
+              {pending && pending.id === b.id ? (
+                <SuggestionPanel
+                  pending={pending}
+                  label={labelFor(i)}
+                  onAccept={() => {
+                    if (!pending.loading) onChange(items.map((x) => (x.id === b.id ? { ...x, text: pending.suggestion.after } : x)));
+                    setPending(null);
+                    focusLater(i);
+                  }}
+                  onReject={() => {
+                    setPending(null);
+                    focusLater(i);
+                  }}
+                />
+              ) : null}
             </div>
             {!disabled ? (
               <div className="flex shrink-0 items-center opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
@@ -176,8 +331,21 @@ function SectionCard({ title, hidden, onToggleHidden, onUp, onDown, disabled, ch
   );
 }
 
-export function ResumeEditor({ value, master, style, locked, issues, onChange }: Props) {
+export function ResumeEditor({ value, master, style, locked, issues, onChange, ai }: Props) {
   const t = useTranslations("workspace.editor");
+  const ta = useTranslations("workspace.editor.ai");
+  const [summaryPending, setSummaryPending] = React.useState<Pending | null>(null);
+  const rewriteSummary = async () => {
+    if (!ai) return;
+    setSummaryPending({ mode: "summary", loading: true });
+    const r = await ai.request({ mode: "summary", target: { kind: "summary" } });
+    if ("error" in r) {
+      setSummaryPending(null);
+      toast.error(r.error);
+      return;
+    }
+    setSummaryPending({ mode: "summary", loading: false, suggestion: r.suggestion });
+  };
   const hidden = new Set(value.meta?.hiddenSections ?? []);
   const order = React.useMemo(() => {
     const wanted = [...(value.meta?.sectionOrder ?? []), ...style.sectionOrder, ...SECTION_KEYS].filter((s): s is SectionKey => (SECTION_KEYS as readonly string[]).includes(s));
@@ -214,7 +382,28 @@ export function ResumeEditor({ value, master, style, locked, issues, onChange }:
         return (
           <SectionCard key={s} {...common}>
             <AutoTextarea aria-label={sectionHeading("summary", style)} value={value.summary ?? ""} maxLength={800} disabled={locked} onChange={(e) => onChange({ ...value, summary: e.target.value })} className="border-border" />
-            <p className="mt-1 text-right text-xs text-muted-foreground tabular">{(value.summary ?? "").length} / 800</p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              {ai && !locked ? (
+                <button type="button" className="inline-flex h-9 items-center gap-1 rounded-[8px] px-2 text-[12px] font-semibold text-primary hover:bg-accent disabled:opacity-40" disabled={Boolean(summaryPending?.loading)} onClick={() => void rewriteSummary()}>
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                  {ta("rewriteSummary")}
+                </button>
+              ) : (
+                <span />
+              )}
+              <p className="text-right text-xs text-muted-foreground tabular">{(value.summary ?? "").length} / 800</p>
+            </div>
+            {summaryPending ? (
+              <SuggestionPanel
+                pending={summaryPending}
+                label={sectionHeading("summary", style)}
+                onAccept={() => {
+                  if (!summaryPending.loading) onChange({ ...value, summary: summaryPending.suggestion.after });
+                  setSummaryPending(null);
+                }}
+                onReject={() => setSummaryPending(null)}
+              />
+            ) : null}
           </SectionCard>
         );
       case "skills":
@@ -313,6 +502,7 @@ export function ResumeEditor({ value, master, style, locked, issues, onChange }:
                         labelFor={(bi) => t("bulletLabel", { n: bi + 1, role: e.title })}
                         itemIssue={(bi) => issues.find((x) => x.path === `experience.${ei}.bullets.${bi}`)?.message}
                         onChange={(bullets) => onChange({ ...value, experience: value.experience.map((x) => (x.id === e.id ? { ...x, bullets } : x)) })}
+                        ai={ai ? { request: (bulletId, mode) => ai.request({ mode, target: { kind: "bullet", experienceId: e.id, bulletId } }) } : null}
                       />
                       {!locked ? (
                         <div className="mt-1 flex flex-wrap gap-1 px-1">

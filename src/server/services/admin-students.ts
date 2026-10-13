@@ -181,7 +181,7 @@ export async function getStudent360(studentId: string) {
     db.subscription.findMany({
       where: { studentId },
       orderBy: { createdAt: "desc" },
-      select: { id: true, status: true, provider: true, currentPeriodStart: true, currentPeriodEnd: true, cancelAtPeriodEnd: true, createdAt: true, planPrice: { select: { interval: true, amountMinor: true, currency: true, dailyTarget: true, plan: { select: { name: true } } } } },
+      select: { id: true, status: true, provider: true, currentPeriodStart: true, currentPeriodEnd: true, cancelAtPeriodEnd: true, pausedAt: true, pausedDays: true, createdAt: true, planPrice: { select: { interval: true, amountMinor: true, currency: true, dailyTarget: true, plan: { select: { name: true } } } } },
     }),
     db.payment.findMany({ where: { studentId }, orderBy: { createdAt: "desc" }, take: 50, select: { id: true, amountMinor: true, currency: true, status: true, invoiceNumber: true, invoiceKey: true, refundedMinor: true, paidAt: true, createdAt: true } }),
     db.assignment.findMany({

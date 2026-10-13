@@ -1,4 +1,5 @@
 import { PortalShell } from "@/components/portal/portal-shell";
+import { PortalObservability } from "@/components/observability/portal-observability";
 import { requireStaff } from "@/server/auth/guards";
 import { getStaffBadges } from "@/server/services/badges";
 import { Heartbeat } from "@/components/attendance/heartbeat";
@@ -9,6 +10,7 @@ export default async function WorkLayout({ children }: { children: React.ReactNo
   return (
     <PortalShell portal="work" user={user} badges={badges} subtitle={employee ? `${employee.employeeCode}` : undefined}>
       <Heartbeat />
+      <PortalObservability user={user} />
       {children}
     </PortalShell>
   );

@@ -8,6 +8,7 @@ import { requireStudent } from "@/server/auth/guards";
 import { INTERVAL_MONTHS } from "@/server/services/catalog";
 import { BillingError, getCheckoutQuote, liveRecurringSubscription, simulationEnabled, type CheckoutQuote } from "@/server/services/billing";
 import { formatMoney } from "@/lib/format";
+import { referralCouponFor } from "@/server/services/referrals";
 import { CheckoutPanel } from "./checkout-panel";
 
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
@@ -140,7 +141,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           interval={quote.interval}
           months={INTERVAL_MONTHS[quote.interval]}
           simulate={simulationEnabled()}
-          initialCoupon={sp.coupon ?? ""}
+          initialCoupon={sp.coupon ?? (await referralCouponFor(student.id)) ?? ""}
         />
       </div>
     </Shell>

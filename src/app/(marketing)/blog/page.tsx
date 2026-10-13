@@ -5,7 +5,9 @@ import { getTranslations } from "next-intl/server";
 import { formatDay, htmlToText } from "@/components/marketing/data";
 import { pageMetadata } from "@/components/marketing/seo";
 import { PageHero, Section } from "@/components/marketing/ui";
-import { listPublished, mediaUrl, readingMinutes } from "@/server/services/cms";
+import { listPublished, mediaUrl } from "@/server/services/cms";
+import { readingTime } from "@/server/services/blog";
+import { Rss } from "lucide-react";
 
 export const revalidate = 3600;
 
@@ -20,6 +22,17 @@ export default async function BlogIndex() {
     <>
       <PageHero eyebrow={t("eyebrow")} title={t("title")} sub={t("sub")} />
       <Section tone="white" label={t("title")} className="pt-12 sm:pt-16">
+        <p className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#5A6585]">
+          <span className="font-semibold">{t("feeds")}:</span>
+          <a href="/blog/feed.xml" className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-royal hover:underline">
+            <Rss className="h-4 w-4" aria-hidden="true" />
+            {t("rss")}
+          </a>
+          <a href="/blog/atom.xml" className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-royal hover:underline">
+            <Rss className="h-4 w-4" aria-hidden="true" />
+            {t("atom")}
+          </a>
+        </p>
         {posts.length ? (
           <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {posts.map((p, i) => {
@@ -38,7 +51,7 @@ export default async function BlogIndex() {
                       <p className="text-[13px] text-[#5A6585]">
                         {p.publishedAt ? <time dateTime={p.publishedAt.toISOString()}>{formatDay(p.publishedAt)}</time> : null}
                         {p.publishedAt ? " · " : null}
-                        {t("minutes", { n: readingMinutes(text) })}
+                        {t("minutes", { n: readingTime(text) })}
                       </p>
                       <h2 className="text-xl font-bold leading-snug">
                         <Link href={`/blog/${p.slug}`} className="text-ink no-underline after:absolute after:inset-0 focus-visible:outline-none group-hover:text-royal">

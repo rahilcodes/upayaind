@@ -49,7 +49,23 @@
       "jdTooShort": "Paste the full description (at least {min} characters).",
       "jdHint": "Paste the full description, including requirements.",
       "jdCount": "{n} / {max}",
-      "jdPlaceholder": "Paste the job description here…"
+      "jdPlaceholder": "Paste the job description here…",
+      "fetch": "Fetch",
+      "fetchAria": "Fetch job details from the page",
+      "fetchTitle": "Fill the form from the job page",
+      "fetching": "Fetching the job page…",
+      "fetched": "Fetched {fields} from the page — please check before generating.",
+      "fetchedNothing": "The page loaded, but every field was already filled. Nothing was changed.",
+      "fetchFailed": "Couldn't fetch the page: {reason} Paste the details manually.",
+      "dismiss": "Dismiss",
+      "fetchedField": {
+        "title": "title",
+        "company": "company",
+        "location": "location",
+        "workMode": "work mode",
+        "employmentType": "employment type",
+        "jd": "job description"
+      }
     },
     "duplicates": {
       "checking": "Checking for duplicates…",
@@ -107,7 +123,33 @@
       "removedRoles": "Removed roles (add back if the gap matters)",
       "removeItem": "Remove {item}",
       "projectDescription": "Description of {item}",
-      "removedItems": "Removed items"
+      "removedItems": "Removed items",
+      "ai": {
+        "groupLabel": "AI assists for this bullet",
+        "improve": "Improve",
+        "improveTitle": "Stronger verb and wording, same facts",
+        "shorten": "Shorten",
+        "shortenTitle": "Cut to the essentials, same facts",
+        "match": "Match JD",
+        "matchTitle": "Use JD keywords this bullet already supports",
+        "rewriteSummary": "Rewrite for this job",
+        "mode": {
+          "improve": "Improve",
+          "shorten": "Shorten",
+          "match": "Match JD",
+          "summary": "Rewrite summary"
+        },
+        "working": "{mode}: checking against the master profile…",
+        "panelLabel": "AI suggestion for {label}",
+        "suggestion": "{mode} suggestion",
+        "unchanged": "Nothing to change — the AI returned the same text.",
+        "beforeSr": "Before: {text}",
+        "afterSr": "After: {text}",
+        "keywords": "JD keywords used: {list}",
+        "accept": "Accept",
+        "reject": "Reject",
+        "close": "Close"
+      }
     },
     "keywords": {
       "emptyTitle": "No keywords yet",
@@ -223,11 +265,18 @@
       "optional": "optional",
       "screenshot": "Screenshot",
       "pasteText": "Paste email text",
-      "dropHint": "Drop, paste or choose a PNG/JPG (max 3 MB)",
+      "dropHint": "Drop, paste (Ctrl/⌘+V) or choose a PNG/JPG (max 3 MB)",
       "removeFile": "Remove screenshot",
       "badType": "Only PNG or JPG screenshots are accepted.",
       "tooBig": "The screenshot is larger than 3 MB.",
-      "textPlaceholder": "Paste the confirmation email text…"
+      "textPlaceholder": "Paste the confirmation email text…",
+      "dropAria": "Choose a screenshot. Press Enter to browse, or paste one with Ctrl or Command V.",
+      "replaceAria": "Replace the screenshot. Press Enter to browse.",
+      "pasteButton": "Paste screenshot",
+      "pasteShortcutHint": "Tip: press Ctrl/⌘+V to paste a screenshot.",
+      "clipboardEmpty": "No image on the clipboard. Copy a screenshot first.",
+      "clipboardDenied": "Clipboard access was blocked. Press Ctrl/⌘+V instead or choose a file.",
+      "previewAlt": "Preview of {name}"
     },
     "mark": {
       "title": "Mark as applied",
@@ -275,6 +324,15 @@
       "errorsSkipped": "Rows with errors are skipped.",
       "importN": "Import {n, plural, one {# application} other {# applications}}",
       "done": "Imported {imported} · skipped {skipped}"
+    },
+    "companies": {
+      "listLabel": "Companies you've applied to",
+      "times": "{n, plural, one {# app} other {# apps}}"
+    },
+    "calendar": {
+      "google": "Google Calendar",
+      "googleFor": "Add the {company} interview to Google Calendar",
+      "ics": "Download .ics"
     }
   }
 }

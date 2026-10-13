@@ -431,7 +431,8 @@
       "lastLogin": "Last sign-in {when}",
       "toasts": {
         "saved": "Profile saved",
-        "password": "Password changed"
+        "password": "Password changed",
+        "backupCodes": "New backup codes generated. The old ones no longer work."
       },
       "form": {
         "name": "Full name",
@@ -634,6 +635,29 @@
         "cancel": "Cancel",
         "save": "Save correction"
       }
+    },
+    "twofa": {
+      "useBackup": "Use a backup code instead",
+      "useApp": "Use my authenticator app",
+      "codeLabel": "Backup code",
+      "codeHint": "One of the 8-character codes you saved when you set up two-step verification. Each works once.",
+      "codesTitle": "Your backup codes",
+      "codesBody": "Save these somewhere safe. Each code signs you in once if you lose your authenticator app. They won't be shown again.",
+      "copy": "Copy codes",
+      "copied": "Copied",
+      "download": "Download .txt",
+      "savedContinue": "I've saved my codes — continue",
+      "backupTitle": "Backup codes",
+      "remaining": "{count, plural, =0 {No codes left — generate new ones.} one {# unused code} other {# unused codes}}",
+      "regenerate": "Generate new codes",
+      "regenerateTitle": "Generate new backup codes",
+      "regenerateBody": "Confirm your password. Your existing codes stop working immediately.",
+      "confirmPassword": "Your password",
+      "cancel": "Cancel",
+      "logoutAllTitle": "Log out of all devices",
+      "logoutAllBody": "Ends every session for this account, including this one.",
+      "logoutAll": "Log out everywhere",
+      "logoutAllConfirm": "Log out of every device, including this one?"
     }
   }
 }

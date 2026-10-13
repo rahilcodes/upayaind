@@ -5,8 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   BarChart3, Briefcase, Building2, Calendar, Clock, CreditCard, FileText, GraduationCap, Globe, Home, Inbox, KeyRound, List,
-  Menu, MessageSquare, Palette, PenSquare, Plane, Settings, Shield, Shuffle, Sun, Tag, User, Users,
-} from "lucide-react";
+  Menu, MessageSquare, Palette, PenSquare, Plane, Settings, Shield, Shuffle, Sun, Tag, User, Users, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
 import { Sheet } from "@/components/ui/dialog";
@@ -15,7 +14,7 @@ import type { NavIcon, NavItem } from "./nav-config";
 const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
   home: Home, list: List, building: Building2, calendar: Calendar, file: FileText, message: MessageSquare, graduation: GraduationCap,
   user: User, key: KeyRound, card: CreditCard, settings: Settings, sun: Sun, users: Users, clock: Clock, plane: Plane, chart: BarChart3,
-  shuffle: Shuffle, tag: Tag, globe: Globe, palette: Palette, inbox: Inbox, pen: PenSquare, shield: Shield, briefcase: Briefcase,
+  shuffle: Shuffle, tag: Tag, globe: Globe, palette: Palette, inbox: Inbox, pen: PenSquare, shield: Shield, briefcase: Briefcase, gift: Gift,
 };
 
 export type Badges = Partial<Record<NonNullable<NavItem["badgeKey"]>, number>>;

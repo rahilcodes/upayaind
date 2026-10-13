@@ -5,7 +5,7 @@ import { useServerAction } from "@/components/portal/action-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Textarea, fieldA11y } from "@/components/ui/input";
-import { saveBusinessAction, saveGeneralAction, saveTemplateAction } from "./actions";
+import { saveBusinessAction, saveGeneralAction, saveReferralAction, saveTemplateAction } from "./actions";
 
 type General = { autoAssignEnabled: boolean; defaultMaxStudents: number; noResponseDays: number; belowTargetAlertTime: string; aiLimits: { employeePerHour: number; studentPerDay: number } };
 
@@ -138,5 +138,39 @@ export function TemplateEditor({ tpl, override }: { tpl: { type: string; title: 
         </div>
       </form>
     </details>
+  );
+}
+
+/** Referral programme amounts (D-113): friend % off + referrer credit per market currency (major units in the UI). */
+export function ReferralForm({ value, currencies }: { value: { friendPercentOff: number; referrerCreditMinor: Record<string, number> }; currencies: string[] }) {
+  const t = useTranslations("admin.settings");
+  const { run, pending, fieldErrors } = useServerAction(saveReferralAction);
+  const all = Array.from(new Set([...currencies, ...Object.keys(value.referrerCreditMinor)]));
+  return (
+    <form
+      noValidate
+      className="grid gap-5 sm:grid-cols-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        const referrerCreditMinor: Record<string, number> = {};
+        for (const c of all) referrerCreditMinor[c] = Math.round(Number(fd.get(`credit-${c}`) || 0) * 100);
+        run({ friendPercentOff: Number(fd.get("friendPercentOff")), referrerCreditMinor });
+      }}
+    >
+      <Field id="ref-pct" label={t("friendPercentOff")} error={fieldErrors.friendPercentOff}>
+        <Input {...fieldA11y("ref-pct", fieldErrors.friendPercentOff, true)} name="friendPercentOff" type="number" min={0} max={100} defaultValue={value.friendPercentOff} className="tabular" />
+      </Field>
+      {all.map((c) => (
+        <Field key={c} id={`ref-credit-${c}`} label={t("referrerCredit", { currency: c })} error={fieldErrors[`referrerCreditMinor.${c}`]}>
+          <Input {...fieldA11y(`ref-credit-${c}`, fieldErrors[`referrerCreditMinor.${c}`], true)} name={`credit-${c}`} type="number" min={0} step="0.01" defaultValue={(value.referrerCreditMinor[c] ?? 0) / 100} className="tabular" />
+        </Field>
+      ))}
+      <div className="sm:col-span-2">
+        <Button type="submit" loading={pending}>
+          {t("saveReferral")}
+        </Button>
+      </div>
+    </form>
   );
 }

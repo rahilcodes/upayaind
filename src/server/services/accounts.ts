@@ -1,6 +1,7 @@
 import "server-only";
+import { createHash, randomBytes } from "node:crypto";
 import { db } from "@/server/db";
-import { hashPassword } from "@/server/auth/password";
+import { hashPassword, verifyPassword } from "@/server/auth/password";
 import { passwordStrength } from "@/server/auth/strength";
 import { newTotpSecret, totpQrDataUrl, verifyTotp } from "@/server/auth/totp";
 import { open as openSecret } from "@/server/crypto";
@@ -10,6 +11,7 @@ import { consumeToken, issueToken } from "./auth-tokens";
 import { sendEmail } from "./email";
 import { audit } from "./audit";
 import { trackEvent } from "./events";
+import { attributeReferral } from "./referrals";
 
 export class AccountError extends Error {
   constructor(
@@ -46,6 +48,8 @@ export async function registerStudent(input: {
   phone: string;
   marketCode: string;
   timezone?: string;
+  /** Referral code from ?ref= or the `ref` cookie (D-113). */
+  ref?: string | null;
 }) {
   const market = await db.market.findFirst({
     where: { code: input.marketCode, isActive: true },
@@ -75,15 +79,16 @@ export async function registerStudent(input: {
         },
       },
     },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, student: { select: { id: true } } },
   });
+  if (input.ref && user.student) await attributeReferral(user.student.id, input.ref).catch((e) => console.error("[referrals] attribution failed", e));
   await sendVerificationEmail(user.id);
   await trackEvent("signup_completed", user.id, { method: "password", market: input.marketCode });
-  return user;
+  return { id: user.id, email: user.email, name: user.name };
 }
 
 /** After Google sign-up: collect phone, market and consents (SPEC F1). */
-export async function completeStudentProfile(userId: string, input: { phone: string; marketCode: string; timezone?: string }) {
+export async function completeStudentProfile(userId: string, input: { phone: string; marketCode: string; timezone?: string; ref?: string | null }) {
   const market = await db.market.findFirst({
     where: { code: input.marketCode, isActive: true },
     select: { id: true, defaultTimezone: true },
@@ -103,6 +108,10 @@ export async function completeStudentProfile(userId: string, input: { phone: str
       },
     },
   });
+  if (input.ref) {
+    const sp = await db.studentProfile.findUnique({ where: { userId }, select: { id: true } });
+    if (sp) await attributeReferral(sp.id, input.ref).catch((e) => console.error("[referrals] attribution failed", e));
+  }
   await trackEvent("signup_completed", userId, { method: "google", market: input.marketCode });
 }
 
@@ -159,7 +168,8 @@ export async function resetPassword(token: string, password: string) {
   await checkPasswordPolicy(password, [user.email, user.name]);
   await db.user.update({
     where: { id: userId },
-    data: { passwordHash: await hashPassword(password), emailVerified: new Date(), status: undefined },
+    // A reset also signs out every other device (D-124).
+    data: { passwordHash: await hashPassword(password), emailVerified: new Date(), status: undefined, sessionVersion: { increment: 1 } },
   });
   await audit({ actorId: userId, action: "user.password_reset", entity: "User", entityId: userId });
   return userId;
@@ -197,14 +207,106 @@ export async function beginTotpSetup(userId: string) {
   return { secret, ...qr };
 }
 
-/** Verify a TOTP code; enables 2FA on first success. */
-export async function checkTotp(userId: string, code: string) {
+/** Verify a TOTP code; enables 2FA on first success and returns fresh backup codes then (D-123). */
+export async function checkTotp(userId: string, code: string): Promise<{ backupCodes: string[] | null }> {
   const user = await db.user.findUnique({ where: { id: userId }, select: { totpSecretEnc: true, totpEnabled: true } });
   if (!user?.totpSecretEnc) throw new AccountError("Set up your authenticator app first.", "code");
   if (!verifyTotp(user.totpSecretEnc, code)) throw new AccountError("That code didn't work. Check your app and try again.", "code");
   if (!user.totpEnabled) {
-    await db.user.update({ where: { id: userId }, data: { totpEnabled: true } });
+    const codes = newBackupCodes();
+    await db.user.update({ where: { id: userId }, data: { totpEnabled: true, totpBackupCodes: codes.map(hashBackupCode) } });
     await audit({ actorId: userId, action: "user.2fa_enabled", entity: "User", entityId: userId });
+    return { backupCodes: codes };
   }
+  return { backupCodes: null };
+}
+
+// ─────────────────────────── 2FA backup codes (D-123) ───────────────────────────
+
+export const BACKUP_CODE_COUNT = 8;
+
+/** `xxxx-xxxx` from a 32-symbol alphabet without look-alikes (0/O, 1/I/L). */
+export function newBackupCodes(count = BACKUP_CODE_COUNT): string[] {
+  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+  return Array.from({ length: count }, () => {
+    const bytes = randomBytes(8);
+    const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]!);
+    return `${chars.slice(0, 4).join("")}-${chars.slice(4).join("")}`;
+  });
+}
+
+export function normalizeBackupCode(raw: string) {
+  return raw.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+export function hashBackupCode(code: string) {
+  return createHash("sha256").update(`backup:${normalizeBackupCode(code)}`).digest("hex");
+}
+
+/**
+ * Consume one backup code (single use). The conditional `updateMany` makes two
+ * concurrent attempts with the same code race safely: only one row update
+ * still matches `has` after the first commits.
+ */
+export async function consumeBackupCode(userId: string, raw: string): Promise<boolean> {
+  const clean = normalizeBackupCode(raw);
+  if (clean.length !== 8) return false;
+  const hash = hashBackupCode(clean);
+  const user = await db.user.findUnique({ where: { id: userId }, select: { totpEnabled: true, totpBackupCodes: true } });
+  if (!user?.totpEnabled || !user.totpBackupCodes.includes(hash)) return false;
+  const r = await db.user.updateMany({ where: { id: userId, totpBackupCodes: { has: hash } }, data: { totpBackupCodes: user.totpBackupCodes.filter((h) => h !== hash) } });
+  if (r.count !== 1) return false;
+  await audit({ actorId: userId, action: "user.2fa_backup_used", entity: "User", entityId: userId, after: { remaining: user.totpBackupCodes.length - 1 } });
   return true;
+}
+
+export async function backupCodesRemaining(userId: string) {
+  const u = await db.user.findUnique({ where: { id: userId }, select: { totpBackupCodes: true } });
+  return u?.totpBackupCodes.length ?? 0;
+}
+
+/** Replace every backup code after confirming the account password. */
+export async function regenerateBackupCodes(userId: string, password: string): Promise<string[]> {
+  const u = await db.user.findUnique({ where: { id: userId }, select: { passwordHash: true, totpEnabled: true } });
+  if (!u) throw new AccountError("Account not found.");
+  if (!u.totpEnabled) throw new AccountError("Set up two-step verification first.");
+  if (!(await verifyPassword(u.passwordHash, password))) throw new AccountError("Your password is incorrect.", "password");
+  const codes = newBackupCodes();
+  await db.user.update({ where: { id: userId }, data: { totpBackupCodes: codes.map(hashBackupCode) } });
+  await audit({ actorId: userId, action: "user.2fa_backup_regenerated", entity: "User", entityId: userId });
+  return codes;
+}
+
+// ─────────────────────────── Sessions (D-124) ───────────────────────────
+
+/** Invalidate every JWT for this user; returns the new version (the caller may adopt it on the current device). */
+export async function bumpSessionVersion(userId: string, actorId: string | null = userId, reason = "logout_all") {
+  const u = await db.user.update({ where: { id: userId }, data: { sessionVersion: { increment: 1 } }, select: { sessionVersion: true } });
+  await audit({ actorId, action: "user.sessions_revoked", entity: "User", entityId: userId, after: { reason, sessionVersion: u.sessionVersion } });
+  return u.sessionVersion;
+}
+
+/** ADMIN: clear a staff member's authenticator + backup codes; their next login runs 2FA setup again (D-123). */
+export async function adminResetTwoFactor(actor: { id: string; role: string }, employeeId: string) {
+  if (actor.role !== "ADMIN") throw new AccountError("Only an admin can reset two-step verification.");
+  const e = await db.employeeProfile.findUnique({ where: { id: employeeId }, select: { userId: true, user: { select: { id: true, email: true, name: true, totpEnabled: true, deletedAt: true } } } });
+  if (!e || e.user.deletedAt) throw new AccountError("Employee not found.");
+  if (e.userId === actor.id) throw new AccountError("Reset your own authenticator from your profile instead.");
+  await db.user.update({ where: { id: e.userId }, data: { totpSecretEnc: null, totpEnabled: false, totpBackupCodes: [], sessionVersion: { increment: 1 } } });
+  await audit({ actorId: actor.id, action: "user.2fa_reset", entity: "User", entityId: e.userId, before: { totpEnabled: e.user.totpEnabled }, after: { totpEnabled: false, sessionsRevoked: true } });
+  await sendEmail({
+    to: e.user.email,
+    subject: "Your UpayaInd two-step verification was reset",
+    content: {
+      preview: "Set up your authenticator app again at your next sign-in",
+      heading: `Hi ${e.user.name.split(" ")[0]},`,
+      paragraphs: [
+        "An administrator reset the two-step verification on your UpayaInd account and signed you out of every device.",
+        "At your next sign-in you'll be asked to scan a new QR code with your authenticator app and you'll receive new backup codes.",
+      ],
+      cta: { label: "Sign in", href: absoluteUrl("/login") },
+      footnote: "If you didn't expect this, contact your manager right away.",
+    },
+  }).catch((err) => console.error("[accounts] 2FA reset email failed", err));
+  return { userId: e.userId };
 }

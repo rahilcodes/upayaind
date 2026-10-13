@@ -44,6 +44,8 @@
       "money": "Money",
       "content": "Content",
       "system": "System"
-    }
+    },
+    "referrals": "Refer a friend",
+    "weeklyReports": "Weekly reports"
   }
 }

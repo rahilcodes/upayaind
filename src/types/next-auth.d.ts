@@ -30,5 +30,7 @@ declare module "next-auth/jwt" {
     timezone?: string;
     sessionExpiresAt?: number;
     checkedAt?: number;
+    /** User.sessionVersion at sign-in ("log out everywhere", D-124). */
+    sv?: number;
   }
 }

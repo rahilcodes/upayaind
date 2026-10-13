@@ -3,7 +3,10 @@ import { getTranslations } from "next-intl/server";
 import type { z } from "zod";
 import { requireAction } from "@/server/auth/guards";
 import { safeAction } from "@/server/errors";
-import { saveBusinessInfo, saveGeneralSettings, saveTemplateOverride, type businessEntrySchema, type generalSettingsSchema, type templateOverrideSchema } from "@/server/services/admin-settings";
+import { saveReferralSettings, type referralSettingsSchema } from "@/server/services/referrals";
+import { saveAlertWebhooks, saveBusinessInfo, saveGeneralSettings, saveTemplateOverride, type businessEntrySchema, type generalSettingsSchema, type templateOverrideSchema } from "@/server/services/admin-settings";
+import { sendTestAlert, type AlertWebhook } from "@/server/services/alerts";
+import { UserError } from "@/server/errors";
 
 /** Settings are ADMIN only (SPEC §3). Every change is audit-logged in the service. */
 
@@ -29,4 +32,32 @@ export async function saveTemplateAction(type: string, input: z.input<typeof tem
     const user = await requireAction("settings.manage");
     return saveTemplateOverride(user.id, type, input);
   }, t("templateSaved"));
+}
+
+export async function saveReferralAction(input: z.input<typeof referralSettingsSchema>) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("settings.manage");
+    return saveReferralSettings(user.id, input);
+  }, t("referralSaved"));
+}
+
+export async function saveAlertWebhooksAction(hooks: AlertWebhook[]) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("settings.manage");
+    return saveAlertWebhooks(user.id, hooks);
+  }, t("webhooksSaved"));
+}
+
+export async function sendTestAlertAction(url: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("settings.manage");
+    try {
+      return await sendTestAlert(url, user.name);
+    } catch (e) {
+      throw new UserError(e instanceof Error ? e.message : "Test alert failed.");
+    }
+  }, t("testAlertSent"));
 }

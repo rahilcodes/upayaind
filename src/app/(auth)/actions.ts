@@ -11,22 +11,28 @@ import {
   AccountError,
   acceptInvite,
   checkTotp,
+  consumeBackupCode,
   completeStudentProfile,
   registerStudent,
   requestPasswordReset,
   resetPassword,
   sendVerificationEmail,
 } from "@/server/services/accounts";
+import { requestMagicLink } from "@/server/services/magic-link";
 import {
   completeProfileSchema,
   forgotSchema,
+  magicLinkSchema,
   loginSchema,
   phoneSchema,
   resetSchema,
   signupSchema,
   totpSchema,
+  backupCodeSchema,
 } from "@/lib/schemas/auth";
 import { db } from "@/server/db";
+import { REFERRAL_COOKIE } from "@/server/services/referrals";
+import { cookies } from "next/headers";
 
 export type FormState = {
   ok?: boolean;
@@ -65,6 +71,38 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
   redirect(safeNext(parsed.data.next) ?? portalForRole(role));
 }
 
+/** Students: "Email me a login link". Always reports success (no account enumeration). */
+export async function magicLinkRequestAction(_: FormState, fd: FormData): Promise<FormState> {
+  const parsed = magicLinkSchema.safeParse(Object.fromEntries(fd));
+  const values = valuesOf(fd, ["email"]);
+  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors, values };
+  const meta = await requestMeta();
+  try {
+    await enforceRateLimit("passwordReset", `magic:${meta.ip ?? "unknown"}:${parsed.data.email}`);
+    await requestMagicLink(parsed.data.email, safeNext(parsed.data.next));
+  } catch (e) {
+    if (e instanceof RateLimitError) return { error: e.message, values };
+    throw e;
+  }
+  return { ok: true, values };
+}
+
+/** Consume a magic link (POST from the /login/magic page so email scanners can't burn it). */
+export async function magicLinkLoginAction(_: FormState, fd: FormData): Promise<FormState> {
+  const token = String(fd.get("token") ?? "");
+  const next = safeNext(String(fd.get("next") ?? ""));
+  try {
+    await signIn("magic", { token, redirect: false });
+  } catch (e) {
+    if (e instanceof AuthError) {
+      const code = (e as AuthError & { code?: string }).code ?? "generic";
+      return { errorCode: ["invalid", "rate_limited", "inactive"].includes(code) ? code : "generic" };
+    }
+    throw e;
+  }
+  redirect(next ?? "/app");
+}
+
 export async function googleSignInAction(fd: FormData) {
   const plan = String(fd.get("plan") ?? "");
   const next = safeNext(String(fd.get("next") ?? "")) ?? (plan ? `/app/checkout?plan=${encodeURIComponent(plan)}` : "/app");
@@ -88,6 +126,7 @@ export async function signupAction(_: FormState, fd: FormData): Promise<FormStat
       phone: phone.data,
       marketCode: parsed.data.market,
       timezone: parsed.data.timezone,
+      ref: parsed.data.ref || (await cookies()).get(REFERRAL_COOKIE)?.value || null,
     });
   } catch (e) {
     if (e instanceof AccountError) return e.field ? { fieldErrors: { [e.field]: [e.message] }, values } : { error: e.message, values };
@@ -108,7 +147,12 @@ export async function completeProfileAction(_: FormState, fd: FormData): Promise
   const phone = phoneSchema(parsed.data.market).safeParse(parsed.data.phone);
   if (!phone.success) return { fieldErrors: { phone: [phone.error.issues[0]!.message] }, values };
   try {
-    await completeStudentProfile(session.user.id, { phone: phone.data, marketCode: parsed.data.market, timezone: parsed.data.timezone });
+    await completeStudentProfile(session.user.id, {
+      phone: phone.data,
+      marketCode: parsed.data.market,
+      timezone: parsed.data.timezone,
+      ref: parsed.data.ref || (await cookies()).get(REFERRAL_COOKIE)?.value || null,
+    });
   } catch (e) {
     if (e instanceof AccountError) return e.field ? { fieldErrors: { [e.field]: [e.message] }, values } : { error: e.message, values };
     throw e;
@@ -157,19 +201,44 @@ export async function acceptInviteAction(_: FormState, fd: FormData): Promise<Fo
   redirect("/2fa");
 }
 
-export async function verifyTotpAction(_: FormState, fd: FormData): Promise<FormState> {
+export type TotpState = FormState & { backupCodes?: string[]; next?: string };
+
+export async function verifyTotpAction(_: TotpState, fd: FormData): Promise<TotpState> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const parsed = totpSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   const meta = await requestMeta();
+  let backupCodes: string[] | null = null;
   try {
     await enforceRateLimit("login", `2fa:${meta.ip ?? "unknown"}:${session.user.id}`);
-    await checkTotp(session.user.id, parsed.data.code);
+    ({ backupCodes } = await checkTotp(session.user.id, parsed.data.code));
   } catch (e) {
     if (e instanceof AccountError) return { fieldErrors: { code: [e.message] } };
     if (e instanceof RateLimitError) return { error: e.message };
     throw e;
+  }
+  await unstable_update({ mfaProof: signMfaProof(session.user.id) } as never);
+  // First enrolment: show the one-time backup codes before entering the portal (D-123).
+  if (backupCodes) return { ok: true, backupCodes, next: portalForRole(session.user.role) };
+  redirect(portalForRole(session.user.role));
+}
+
+/** 2FA recovery with a one-time backup code (D-123). Same rate limit as TOTP attempts. */
+export async function verifyBackupCodeAction(_: TotpState, fd: FormData): Promise<TotpState> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const parsed = backupCodeSchema.safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  const meta = await requestMeta();
+  try {
+    await enforceRateLimit("login", `2fa:${meta.ip ?? "unknown"}:${session.user.id}`);
+  } catch (e) {
+    if (e instanceof RateLimitError) return { error: e.message };
+    throw e;
+  }
+  if (!(await consumeBackupCode(session.user.id, parsed.data.backupCode))) {
+    return { fieldErrors: { backupCode: ["That backup code isn't valid or was already used."] } };
   }
   await unstable_update({ mfaProof: signMfaProof(session.user.id) } as never);
   redirect(portalForRole(session.user.role));

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { routeUser } from "@/app/api/resumes/_auth";
+import { assertNotViewAs } from "@/server/auth/view-as";
 import { getThread, getThreadForAdmin, sendMessage, threadAccess } from "@/server/services/messaging";
 import { fileToBuffer } from "@/server/services/files";
 import { messagingError, serializeThread } from "../_shared";
@@ -26,6 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ threadI
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { threadId } = await params;
   try {
+    await assertNotViewAs();
     const fd = await req.formData();
     const files = fd.getAll("files").filter((f): f is File => typeof f !== "string");
     const attachments = [];

@@ -5,7 +5,7 @@ import { Lock } from "lucide-react";
 import { AuthHeading, AuthShell } from "@/components/auth/auth-shell";
 import { auth } from "@/server/auth";
 import { isStaff, portalForRole } from "@/server/auth/rbac";
-import { beginTotpSetup } from "@/server/services/accounts";
+import { backupCodesRemaining, beginTotpSetup } from "@/server/services/accounts";
 import { TotpForm } from "./totp-form";
 
 export const metadata: Metadata = { title: "Two-step verification", robots: { index: false } };
@@ -16,6 +16,7 @@ export default async function TwoFactorPage() {
   if (session.user.mfa === "ok") redirect(portalForRole(session.user.role));
   const t = await getTranslations("auth");
   const setup = session.user.mfa === "setup" ? await beginTotpSetup(session.user.id) : null;
+  const allowBackup = !setup && (await backupCodesRemaining(session.user.id)) > 0;
   return (
     <AuthShell variant="team">
       <div className="mb-5 flex h-[52px] w-[52px] items-center justify-center rounded-[14px] bg-accent text-accent-foreground">
@@ -32,7 +33,7 @@ export default async function TwoFactorPage() {
           </code>
         </div>
       ) : null}
-      <TotpForm />
+      <TotpForm allowBackup={allowBackup} />
     </AuthShell>
   );
 }

@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { isStaff } from "@/server/auth/rbac";
+import { getViewAs } from "@/server/auth/view-as";
 import { ForbiddenError } from "@/server/auth/access";
 import { UserError } from "@/server/errors";
 import { RateLimitError } from "@/server/services/ratelimit";
@@ -13,6 +14,8 @@ export async function routeUser(): Promise<{ id: string; role: Role; timezone: s
   const u = s?.user;
   if (!u?.id) return null;
   if (isStaff(u.role) && u.mfa !== "ok") return null;
+  const v = await getViewAs(); // admin "viewing as" a student reads as that student (D-120)
+  if (v) return { id: v.studentUserId, role: "STUDENT", timezone: v.studentTimezone, name: v.studentName };
   return { id: u.id, role: u.role, timezone: u.timezone, name: u.name };
 }
 

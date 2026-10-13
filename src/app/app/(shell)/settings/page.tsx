@@ -8,7 +8,11 @@ import { requireStudent } from "@/server/auth/guards";
 import { getDeletionState, getEmailPrefs, hasPassword } from "@/server/services/student-privacy";
 import { STUDENT_EMAIL_PREFS } from "@/lib/schemas/student";
 import { formatDate } from "@/lib/format";
+import { LogoutEverywhereButton } from "@/components/portal/logout-everywhere";
+import { logoutEverywhereAction } from "./actions";
 import { DeletionPanel, EmailPrefsForm, PasswordForm } from "./settings-forms";
+import { WhatsAppPrefForm } from "./whatsapp-pref-form";
+import { getWhatsAppPref } from "@/server/services/channels/prefs";
 
 export const metadata: Metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -17,7 +21,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const { user } = await requireStudent();
   const t = await getTranslations("student.settings");
-  const [prefs, pw, deletion] = await Promise.all([getEmailPrefs(user), hasPassword(user.id), getDeletionState(user)]);
+  const [prefs, pw, deletion, wa] = await Promise.all([getEmailPrefs(user), hasPassword(user.id), getDeletionState(user), getWhatsAppPref(user.id)]);
 
   return (
     <>
@@ -30,8 +34,9 @@ export default async function SettingsPage() {
               <CardDescription className="mt-1">{t("passwordDescription")}</CardDescription>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="grid gap-5">
             <PasswordForm hasPassword={pw} />
+            <LogoutEverywhereButton action={logoutEverywhereAction} />
           </CardContent>
         </Card>
 
@@ -44,6 +49,18 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent>
             <EmailPrefsForm initial={prefs} keys={STUDENT_EMAIL_PREFS} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>{t("whatsapp.title")}</CardTitle>
+              <CardDescription className="mt-1">{t("whatsapp.description")}</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <WhatsAppPrefForm initial={wa.enabled} phone={wa.phone} phoneValid={wa.phoneValid} available={wa.available} />
           </CardContent>
         </Card>
 

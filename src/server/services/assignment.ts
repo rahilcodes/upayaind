@@ -4,6 +4,7 @@ import { dateOnly, dayKey } from "@/lib/dates";
 import { firstName } from "@/lib/utils";
 import { audit } from "./audit";
 import { notify, notifyManagers } from "./notify";
+import { sendAlert } from "./alerts";
 import { getSetting } from "./settings";
 
 /**
@@ -187,6 +188,7 @@ async function notifyAssignment(studentId: string, result: AssignResult) {
   if (!student) return;
   if (result.status === "AWAITING") {
     await notifyManagers("awaiting_assignment", { studentName: student.user.name, reason: result.reason });
+    void sendAlert("awaiting_assignment", { title: student.user.name, lines: [result.reason], link: "/admin/assignments", linkLabel: "Open assignments" });
     return;
   }
   if (result.status !== "ASSIGNED") return;

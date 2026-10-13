@@ -7,6 +7,7 @@ import { audit } from "./audit";
 import { LIMITS, storeUpload, deleteObject } from "./files";
 import { notify, notifyManagers } from "./notify";
 import { employeeContext, rollupDay } from "./attendance";
+import { log } from "@/server/log";
 
 /**
  * Leave management (SPEC F9).
@@ -135,7 +136,7 @@ export async function applyLeave(user: Actor, raw: ApplyLeaveInputT, attachment:
       select: { id: true, days: true },
     });
     await audit({ actorId: user.id, action: "leave.request", entity: "LeaveRequest", entityId: req.id, after: { type: type.name, from: input.from, to: input.to, days } });
-    await notifyManagers("leave_request", { employeeName: ctx.name, type: type.name, from: input.from, to: input.to, days, reason: input.reason }).catch((e) => console.error("[leave] notify failed", e));
+    await notifyManagers("leave_request", { employeeName: ctx.name, type: type.name, from: input.from, to: input.to, days, reason: input.reason }).catch((e) => log.error("leave.notify_failed", { err: e }));
     return req;
   } catch (e) {
     if (attachmentKey) await deleteObject(attachmentKey).catch(() => undefined);
@@ -249,7 +250,7 @@ export async function decideLeave(actor: Actor, raw: z.input<typeof DecideInput>
     const today = dayKey(now, ctx.timezone);
     for (const k of eachDayKey(from, to)) if (k < today) await rollupDay(req.employeeId, k, now, ctx);
   }
-  await notify(req.employee.userId, "leave_decision", { decision: input.decision === "APPROVED" ? "approved" : "rejected", type: req.leaveType.name, from, to, note: input.note ?? "" }).catch((e) => console.error("[leave] notify failed", e));
+  await notify(req.employee.userId, "leave_decision", { decision: input.decision === "APPROVED" ? "approved" : "rejected", type: req.leaveType.name, from, to, note: input.note ?? "" }).catch((e) => log.error("leave.notify_failed", { err: e }));
   return { id: req.id, status: input.decision as LeaveStatus, employeeId: req.employeeId, from, to };
 }
 

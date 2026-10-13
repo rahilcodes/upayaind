@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireStaff } from "@/server/auth/guards";
 import { getMyWorkProfile } from "@/server/services/work-dashboard";
 import { formatInTz } from "@/lib/format";
-import { PasswordForm, ProfileForm } from "./profile-forms";
+import { backupCodesRemaining } from "@/server/services/accounts";
+import { LogoutEverywhereButton } from "@/components/portal/logout-everywhere";
+import { logoutEverywhereAction } from "./actions";
+import { BackupCodesForm, PasswordForm, ProfileForm } from "./profile-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +24,7 @@ export default async function WorkProfilePage() {
   const t = await getTranslations("work.profile");
   const tr = await getTranslations("role");
   const p = await getMyWorkProfile(user);
+  const backupRemaining = p.totpEnabled ? await backupCodesRemaining(user.id) : 0;
   const zones = Intl.supportedValuesOf("timeZone");
   if (!zones.includes(p.timezone)) zones.unshift(p.timezone);
   const dayNames = [1, 2, 3, 4, 5, 6, 7].map((i) => formatInTz(new Date(Date.UTC(2026, 0, 4 + i, 12)), "UTC", "EEE"));
@@ -68,6 +72,8 @@ export default async function WorkProfilePage() {
                 </div>
               </div>
               <PasswordForm />
+              {p.totpEnabled ? <BackupCodesForm remaining={backupRemaining} /> : null}
+              <LogoutEverywhereButton action={logoutEverywhereAction} />
             </CardContent>
           </Card>
         </div>

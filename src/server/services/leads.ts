@@ -7,6 +7,7 @@ import { emailSchema } from "@/lib/schemas/auth";
 import { enforceRateLimit } from "./ratelimit";
 import { sendEmail } from "./email";
 import { notifyManagers } from "./notify";
+import { sendAlert } from "./alerts";
 import { trackEvent } from "./events";
 
 /**
@@ -105,6 +106,7 @@ export async function submitContact(raw: ContactInput, meta: { ip: string | null
       },
     }),
     notifyManagers("new_lead", { name: input.name, email: input.email, source: "Contact form", message: input.message.slice(0, 200) }),
+    sendAlert("new_lead", { title: input.name, lines: [input.email, input.message.slice(0, 200)], link: "/admin/leads", linkLabel: "Open leads" }),
     trackEvent("contact_submitted", null, { leadId: lead.id, market: input.market }),
   ]);
 

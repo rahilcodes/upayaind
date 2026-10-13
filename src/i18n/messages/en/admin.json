@@ -137,7 +137,35 @@
       "customised": "Customised",
       "mandatory": "Always sent",
       "inAppOnly": "In-app only",
-      "notSet": "Not set yet"
+      "notSet": "Not set yet",
+      "referralTitle": "Referral programme",
+      "referralDescription": "Friend discount on the first payment and the credit the referrer earns, per currency (applied to their next invoice).",
+      "friendPercentOff": "Friend discount (%)",
+      "referrerCredit": "Referrer credit · {currency}",
+      "saveReferral": "Save referral settings",
+      "webhooks": {
+        "title": "Webhook alerts",
+        "description": "Post ops alerts to Slack, Microsoft Teams or Discord incoming webhooks. Pick which events each URL receives. Deliveries are best effort and never block the app.",
+        "label": "Label",
+        "labelPlaceholder": "#ops-alerts",
+        "url": "Webhook URL",
+        "events": "Send these events",
+        "event": {
+          "new_lead": "New lead",
+          "offer_hired": "Offer / hired",
+          "payment_failed": "Payment failed",
+          "awaiting_assignment": "Student awaiting assignment",
+          "below_target": "Below-target alert",
+          "new_signup_payment": "New signup / payment"
+        },
+        "enabled": "Enabled",
+        "sendTest": "Send test alert",
+        "remove": "Remove",
+        "removeFor": "Remove webhook {label}",
+        "untitled": "(untitled)",
+        "empty": "No webhooks yet. Add one to get Slack or Teams alerts.",
+        "add": "Add webhook"
+      }
     },
     "days": {
       "1": "Mon",
@@ -208,7 +236,11 @@
         "startTime": "Start time",
         "hours": "Hours per day",
         "accepting": "Accepting new students"
-      }
+      },
+      "reset2fa": "Reset 2FA",
+      "reset2faFor": "Reset two-step verification for {name}",
+      "reset2faTitle": "Reset two-step verification for {name}?",
+      "reset2faBody": "Their authenticator and backup codes are cleared and every session is signed out. At the next sign-in they set up a new authenticator app. We'll email them."
     },
     "employeeDetail": {
       "back": "All employees",
@@ -620,7 +652,13 @@
       "fileUploaded": "File uploaded",
       "slotsCreated": "Slots created",
       "slotDeleted": "Slot deleted",
-      "outcomeSaved": "Outcome recorded"
+      "outcomeSaved": "Outcome recorded",
+      "referralSaved": "Referral settings saved",
+      "paused": "Subscription paused. Targets are off until it resumes.",
+      "resumed": "Subscription resumed and the period extended.",
+      "twoFactorReset": "Two-step verification reset. The employee has been emailed.",
+      "webhooksSaved": "Webhook alerts saved",
+      "testAlertSent": "Test alert delivered"
     },
     "reassign": {
       "assign": "Assign",
@@ -829,7 +867,64 @@
       "auditTitle": "Audit trail",
       "auditDescription": "The latest 50 changes involving this student.",
       "auditFull": "Open audit log",
-      "auditEmpty": "Nothing recorded yet."
+      "auditEmpty": "Nothing recorded yet.",
+      "referralsTitle": "Referrals",
+      "referralsDescription": "Friends this student invited and who invited them.",
+      "referredBy": "Referred by",
+      "referralFriend": "Friend",
+      "referralCredit": "Referrer credit",
+      "referralStatus": {
+        "PENDING": "Pending first payment",
+        "CREDITED": "Credited"
+      },
+      "noReferrals": "No referrals yet."
+    },
+    "viewAs": {
+      "button": "View as student",
+      "buttonFor": "View the portal as {name} (read-only)",
+      "banner": "Viewing as {name} — read-only",
+      "until": "Ends {time}",
+      "exit": "Exit"
+    },
+    "pause": {
+      "pause": "Pause plan",
+      "pauseTitle": "Pause this subscription?",
+      "pauseBody": "Daily targets stop, the specialist is told to hold applications and no renewal is collected while paused. When you resume, the paused days are added to the period end.",
+      "reason": "Reason",
+      "reasonHint": "Shown to the student's specialist and kept in the audit log.",
+      "resume": "Resume plan",
+      "resumeTitle": "Resume this subscription?",
+      "resumeBody": "Paused since {since}. The period end moves forward by the paused days and targets apply again from today.",
+      "resumeBodyShort": "The period end moves forward by the paused days and targets apply again from today.",
+      "studentBannerTitle": "Your {plan} plan is paused",
+      "studentBannerBody": "Paused since {since}. Applications are on hold and the paused days will be added back when your plan resumes.",
+      "studentBannerBodyShort": "Applications are on hold and the paused days will be added back when your plan resumes."
+    },
+    "palette": {
+      "open": "Search (⌘K)",
+      "title": "Search",
+      "placeholder": "Search students, employees, applications, pages…",
+      "close": "Close search",
+      "results": "Search results",
+      "searching": "Searching…",
+      "noResults": "No matches. Try a name, email, company or job title.",
+      "hint": "Type to search the {portal}. Students, employees and applications need at least 2 characters.",
+      "adminPortal": "admin portal",
+      "workPortal": "workspace",
+      "tooFast": "Too many searches. Wait a moment and try again.",
+      "failed": "Search failed. Please try again.",
+      "group": {
+        "recent": "Recent",
+        "students": "Students",
+        "employees": "Employees",
+        "applications": "Applications",
+        "pages": "Pages"
+      },
+      "keys": {
+        "move": "move",
+        "open": "open",
+        "close": "close"
+      }
     }
   }
 }

@@ -7,6 +7,7 @@ import { getWorkspaceData } from "@/server/services/applications";
 import { getStudentResumeContext } from "@/server/services/resumes";
 import { allProfileSkills } from "@/resume/schema";
 import { aiConfigured } from "@/server/ai/client";
+import { getWorkspaceDefaults, listCompanySuggestions } from "@/server/services/workspace-prefs";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ApplyWorkspace } from "./workspace";
@@ -46,7 +47,7 @@ export default async function ApplyPage({ params }: { params: Promise<{ id: stri
     }
     throw e;
   }
-  const ctx = await getStudentResumeContext(id);
+  const [ctx, defaults, companies] = await Promise.all([getStudentResumeContext(id), getWorkspaceDefaults(user.id), listCompanySuggestions(user)]);
 
   return (
     <ApplyWorkspace
@@ -55,7 +56,8 @@ export default async function ApplyPage({ params }: { params: Promise<{ id: stri
       style={{ ...ctx.style, styleName: ctx.style.name }}
       subscription={{ active: data.subscription.active, status: data.subscription.status, planName: data.subscription.planName, dailyTarget: data.subscription.dailyTarget }}
       today={data.today}
-      companies={data.companies}
+      companies={companies}
+      defaults={defaults}
       recent={data.recent.map((r) => ({ id: r.id, companyName: r.companyName, jobTitle: r.jobTitle, status: r.status, appliedAt: (r.appliedAt ?? r.createdAt).toISOString(), resumeVersionId: r.resumeVersionId }))}
       master={ctx.master}
       masterIssues={ctx.masterIssues}

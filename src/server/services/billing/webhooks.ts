@@ -7,9 +7,11 @@ import { emit } from "@/server/jobs";
 import { audit } from "@/server/services/audit";
 import { trackEvent } from "@/server/services/events";
 import { notify, notifyManagers } from "@/server/services/notify";
+import { sendAlert } from "@/server/services/alerts";
 import { formatDate, formatMoney } from "@/lib/format";
 import { redeemCoupon } from "./coupons";
 import { generateInvoiceForPayment } from "./invoices";
+import { onFirstPaymentSucceeded } from "@/server/services/referrals";
 import { nextInvoiceNumber } from "./invoice-number";
 import { normaliseStripeSubscription } from "./stripe";
 import { providerFor } from "./provider";
@@ -117,6 +119,7 @@ const idOf = (v: string | { id: string } | null | undefined) => (typeof v === "s
 const SUB_SELECT = {
   id: true,
   status: true,
+  pausedAt: true,
   studentId: true,
   planPriceId: true,
   provider: true,
@@ -277,12 +280,14 @@ async function afterPayment(paymentId: string, ctx: { discountMinor: number; per
     select: {
       amountMinor: true,
       currency: true,
-      student: { select: { userId: true, market: { select: { locale: true } }, user: { select: { timezone: true } } } },
+      studentId: true,
+      student: { select: { userId: true, market: { select: { locale: true } }, user: { select: { timezone: true, name: true } } } },
       subscription: { select: { currentPeriodEnd: true, planPrice: { select: { plan: { select: { name: true } } } } } },
     },
   });
   const end = p.subscription?.currentPeriodEnd ?? ctx.periodEnd;
   await trackEvent("payment_succeeded", p.student.userId, { paymentId, amountMinor: p.amountMinor, currency: p.currency });
+  void sendAlert("new_signup_payment", { title: `${p.student.user.name} paid ${formatMoney(p.amountMinor, p.currency, p.student.market.locale)}`, lines: [p.subscription?.planPrice.plan.name ?? "UpayaInd"], link: "/admin/payments", linkLabel: "Open payments" });
   await notify(
     p.student.userId,
     "payment_succeeded",
@@ -293,6 +298,8 @@ async function afterPayment(paymentId: string, ctx: { discountMinor: number; per
     },
     attachment ? { attachments: [attachment] } : {},
   );
+  // Referral programme (D-113): credits the referrer once, on the friend's first successful payment.
+  await onFirstPaymentSucceeded(p.studentId).catch((e) => console.error("[billing] referral credit failed", paymentId, e));
 }
 
 // ───────────────────────────── handlers ─────────────────────────────
@@ -434,6 +441,7 @@ async function onInvoiceFailed(inv: Stripe.Invoice): Promise<string> {
   const amount = formatMoney(inv.amount_due, inv.currency.toUpperCase(), s.market.locale);
   await notify(s.userId, "payment_failed", { amount, plan: plan?.plan.name });
   await notifyManagers("payment_failed_admin", { student: s.user.name, studentId: s.id, amount, plan: plan?.plan.name ?? "—", reason });
+  void sendAlert("payment_failed", { title: s.user.name, lines: [`${amount} · ${plan?.plan.name ?? "—"}`, `Reason: ${reason || "unknown"}`], link: `/admin/students/${s.id}`, linkLabel: "Open student" });
   return "payment failure recorded";
 }
 
@@ -465,6 +473,8 @@ async function onSubscriptionChanged(raw: Stripe.Subscription, deleted: boolean)
   // Activation needs a recorded payment (checkout / invoice.paid). A status
   // update never moves a never-paid subscription to ACTIVE on its own.
   if (status === "ACTIVE" && local.status === "PENDING_PAYMENT") status = null;
+  // An admin pause (D-121) keeps Stripe's status "active" (pause_collection); don't let a sync un-pause it.
+  if (status === "ACTIVE" && local.status === "PAUSED" && local.pausedAt) status = null;
 
   // Upgrade/downgrade from the customer portal: follow the new price.
   let planPriceId: string | undefined;

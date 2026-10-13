@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -62,4 +63,23 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+/**
+ * Sentry (DECISIONS D-130). Source maps are uploaded only when SENTRY_AUTH_TOKEN
+ * is set (CI release builds); otherwise the plugin only injects the runtime
+ * configs. Browser events go through the same-origin `/monitoring` tunnel so
+ * ad-blockers don't drop them (already covered by connect-src 'self').
+ */
+const sentryEnabled = Boolean(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN);
+const sentryUpload = Boolean(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT);
+
+export default withSentryConfig(withNextIntl(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  telemetry: false,
+  tunnelRoute: sentryEnabled ? "/monitoring" : undefined,
+  widenClientFileUpload: sentryUpload,
+  sourcemaps: { disable: !sentryUpload, deleteSourcemapsAfterUpload: true },
+  bundleSizeOptimizations: { excludeDebugStatements: true, excludeReplayIframe: true, excludeReplayShadowDom: true, excludeReplayWorker: true },
+});
