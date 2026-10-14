@@ -4,7 +4,7 @@ Full spec: docs/SPEC.md. Read the relevant section before any task. Log new deci
 
 ## Stack
 Next.js 15 App Router + TS strict, Tailwind v4 + shadcn-style UI (src/components/ui), Prisma 7 (pg driver adapter) + Postgres, Auth.js v5,
-Inngest jobs, R2 storage, Anthropic API for resume AI, @react-pdf/renderer + docx, Resend, Stripe.
+Inngest jobs, R2 storage, OpenAI or Anthropic API for resume AI (D-136), @react-pdf/renderer + docx, Resend, Stripe.
 
 ## Rules
 - Server-side auth on every action: `await requireRole([...])`; for student data from staff use `assertEmployeeCanAccessStudent`.

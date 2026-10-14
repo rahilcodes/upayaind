@@ -98,7 +98,7 @@ Enforce all rules **on the server** in every server action and route handler. Ne
 | Auth | **Auth.js (NextAuth v5)** with Credentials (email + password, argon2id) + Google OAuth for students | JWT sessions with `role`, `userId`; TOTP 2FA for Employee/Manager/Admin |
 | File storage | **Cloudflare R2** (S3 API) | Private bucket; short-lived signed URLs only |
 | Background jobs & cron | **Inngest** | Resume generation, notifications, daily rollups, renewals |
-| AI | **Anthropic Claude API** (`@anthropic-ai/sdk`) | Model in env `ANTHROPIC_MODEL` (default: current Claude Sonnet, e.g. `claude-sonnet-5-5`) |
+| AI | **OpenAI** (Chat Completions, `OPENAI_MODEL`, default `gpt-5.5`) or **Anthropic Claude** (`@anthropic-ai/sdk`, `ANTHROPIC_MODEL`), chosen by `AI_PROVIDER` (D-136) | Same prompts, schemas and §9.4 validator for both |
 | Resume output | **@react-pdf/renderer** (PDF) + **docx** (DOCX) | Both rendered from the same resume JSON |
 | Email | **Resend + React Email** | Transactional templates in `/emails` |
 | WhatsApp (P1) | Twilio WhatsApp or Interakt | Behind a `NotificationChannel` interface |

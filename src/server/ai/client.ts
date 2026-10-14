@@ -1,16 +1,18 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { env } from "@/env";
+import { aiProvider, env } from "@/env";
+import { openAiTransport } from "@/server/ai/openai";
 import { db } from "@/server/db";
 import { UserError } from "@/server/errors";
 
 /**
- * Anthropic client wrapper (SPEC §9.4).
+ * Resume AI client (SPEC §9.4). Provider per env (D-136): Anthropic Messages
+ * API, or OpenAI Chat Completions via openai.ts.
  * - Structured output via a single forced tool whose input_schema is generated
  *   from the zod schema (`z.toJSONSchema`), then re-validated with zod.
  * - Every call is logged in AiUsage (tokens + cost estimate).
- * - Without ANTHROPIC_API_KEY every call throws a clear UserError.
+ * - Without the selected provider's API key every call throws a clear UserError.
  * - Tests inject a fake transport with `setAiTransport()` (no network).
  */
 
@@ -44,7 +46,7 @@ export function setAiTransport(t: AiTransport | null) {
 
 export class AiNotConfiguredError extends UserError {
   constructor() {
-    super("AI isn't configured on this server yet (ANTHROPIC_API_KEY is missing). You can still edit the base resume manually.");
+    super(`AI isn't configured on this server yet (${aiProvider === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY"} is missing). You can still edit the base resume manually.`);
     this.name = "UserError";
   }
 }
@@ -61,39 +63,50 @@ export class AiOutputError extends Error {
   }
 }
 
+function apiKey() {
+  return aiProvider === "openai" ? env.OPENAI_API_KEY : env.ANTHROPIC_API_KEY;
+}
+
 export function aiConfigured() {
-  return Boolean(testTransport || env.ANTHROPIC_API_KEY);
+  return Boolean(testTransport || apiKey());
 }
 
 export function modelFor(tier: ModelTier) {
+  if (aiProvider === "openai") return tier === "fast" ? (env.OPENAI_MODEL_FAST ?? env.OPENAI_MODEL) : env.OPENAI_MODEL;
   return tier === "fast" ? (env.ANTHROPIC_MODEL_FAST ?? env.ANTHROPIC_MODEL) : env.ANTHROPIC_MODEL;
 }
 
-let sdk: Anthropic | null = null;
+let live: AiTransport | null = null;
 function transport(): AiTransport {
   if (testTransport) return testTransport;
-  if (!env.ANTHROPIC_API_KEY) throw new AiNotConfiguredError();
-  sdk ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 90_000 });
-  const client = sdk;
-  return async (req) => {
-    const r = await client.messages.create(req as unknown as Anthropic.MessageCreateParamsNonStreaming);
-    return r as unknown as TransportResponse;
-  };
+  const key = apiKey();
+  if (!key) throw new AiNotConfiguredError();
+  if (!live && aiProvider === "openai") live = openAiTransport({ apiKey: key, baseUrl: env.OPENAI_BASE_URL, maxRetries: 2, timeoutMs: 90_000 });
+  if (!live) {
+    const client = new Anthropic({ apiKey: key, maxRetries: 2, timeout: 90_000 });
+    live = async (req) => {
+      const r = await client.messages.create(req as unknown as Anthropic.MessageCreateParamsNonStreaming);
+      return r as unknown as TransportResponse;
+    };
+  }
+  return live;
 }
 
 /**
  * Cost estimate in micro-USD. Prices are NOT hard-coded (they change and differ
- * per model): set ANTHROPIC_PRICE_INPUT_PER_MTOK / ANTHROPIC_PRICE_OUTPUT_PER_MTOK
- * (USD per million tokens, from the Anthropic pricing page) and optionally the
- * *_FAST variants for the fast model. Unset → cost 0 (tokens are still logged).
+ * per model): set <PROVIDER>_PRICE_INPUT_PER_MTOK / <PROVIDER>_PRICE_OUTPUT_PER_MTOK
+ * (PROVIDER = ANTHROPIC or OPENAI; USD per million tokens, from the provider's
+ * pricing page) and optionally the *_FAST variants for the fast model.
+ * Unset → cost 0 (tokens are still logged).
  */
 export function estimateCostMicros(tier: ModelTier, inputTokens: number, outputTokens: number) {
   const num = (k: string) => {
     const v = Number(process.env[k]);
     return Number.isFinite(v) && v > 0 ? v : null;
   };
-  const inP = (tier === "fast" ? num("ANTHROPIC_PRICE_INPUT_PER_MTOK_FAST") : null) ?? num("ANTHROPIC_PRICE_INPUT_PER_MTOK") ?? 0;
-  const outP = (tier === "fast" ? num("ANTHROPIC_PRICE_OUTPUT_PER_MTOK_FAST") : null) ?? num("ANTHROPIC_PRICE_OUTPUT_PER_MTOK") ?? 0;
+  const p = aiProvider === "openai" ? "OPENAI" : "ANTHROPIC";
+  const inP = (tier === "fast" ? num(`${p}_PRICE_INPUT_PER_MTOK_FAST`) : null) ?? num(`${p}_PRICE_INPUT_PER_MTOK`) ?? 0;
+  const outP = (tier === "fast" ? num(`${p}_PRICE_OUTPUT_PER_MTOK_FAST`) : null) ?? num(`${p}_PRICE_OUTPUT_PER_MTOK`) ?? 0;
   // $/MTok == micro-$ per token.
   return Math.round(inputTokens * inP + outputTokens * outP);
 }
@@ -143,7 +156,7 @@ export async function callTool<S extends z.ZodType>(input: CallToolInput<S>): Pr
     if (e instanceof UserError) throw e;
     const status = (e as { status?: number }).status;
     console.error(`[ai] ${input.task} failed`, status, (e as Error).message);
-    if (status === 401 || status === 403) throw new UserError("The AI service rejected our API key. Ask an admin to check the Anthropic configuration.");
+    if (status === 401 || status === 403) throw new UserError(`The AI service rejected our API key. Ask an admin to check the ${aiProvider === "openai" ? "OpenAI" : "Anthropic"} configuration.`);
     if (status === 429 || status === 529) throw new UserError("The AI service is busy right now. Please try again in a minute.");
     throw new UserError("The AI service didn't respond. Please try again.");
   }

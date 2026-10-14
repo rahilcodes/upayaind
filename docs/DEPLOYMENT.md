@@ -8,7 +8,7 @@ Target setup (SPEC §4): Vercel (app) + Neon Postgres + Cloudflare R2 + Inngest 
 |---|---|---|
 | Neon | A Postgres 16 database (enable `pg_trgm`, allowed by default) | `DATABASE_URL` |
 | Cloudflare R2 | A **private** bucket + an API token with read/write on it | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` |
-| Anthropic | API key | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), optional `ANTHROPIC_MODEL_FAST`, optional `ANTHROPIC_PRICE_*_PER_MTOK` for cost logging |
+| AI: OpenAI **or** Anthropic (D-136) | One API key. `AI_PROVIDER` picks the provider (unset: OpenAI if only `OPENAI_API_KEY` is set, otherwise Anthropic) | OpenAI: `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-5.5`), optional `OPENAI_MODEL_FAST`, `OPENAI_BASE_URL`, `OPENAI_PRICE_*_PER_MTOK`. Anthropic: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), optional `ANTHROPIC_MODEL_FAST`, `ANTHROPIC_PRICE_*_PER_MTOK` |
 | Stripe | Secret key; webhook endpoint `https://<domain>/api/webhooks/stripe` with events `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` |
 | Resend | Verified sending domain | `RESEND_API_KEY`, `EMAIL_FROM` |
 | Inngest | App synced to `https://<domain>/api/inngest` | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` |

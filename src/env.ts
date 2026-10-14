@@ -15,6 +15,8 @@ const isProd = process.env.NODE_ENV === "production" && process.env.SKIP_ENV_STR
 const optionalInDev = (schema: z.ZodString = z.string().min(1)) =>
   isProd ? schema : schema.optional().or(z.literal("").transform(() => undefined));
 
+const optionalString = (schema: z.ZodString = z.string().min(1)) => schema.optional().or(z.literal("").transform(() => undefined));
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().url(),
@@ -32,9 +34,17 @@ const schema = z.object({
   R2_SECRET_ACCESS_KEY: optionalInDev(),
   R2_BUCKET: optionalInDev(),
 
-  ANTHROPIC_API_KEY: optionalInDev(),
+  /** Resume AI provider (D-136). Unset: OpenAI when only OPENAI_API_KEY is set, otherwise Anthropic. */
+  AI_PROVIDER: z.enum(["anthropic", "openai"]).optional().or(z.literal("").transform(() => undefined)),
+  // The selected provider's key is required in production (checked below).
+  ANTHROPIC_API_KEY: optionalString(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
-  ANTHROPIC_MODEL_FAST: z.string().optional(),
+  ANTHROPIC_MODEL_FAST: optionalString(),
+  OPENAI_API_KEY: optionalString(),
+  OPENAI_MODEL: z.string().default("gpt-5.5"),
+  OPENAI_MODEL_FAST: optionalString(),
+  /** Any OpenAI-compatible Chat Completions endpoint; default https://api.openai.com/v1. */
+  OPENAI_BASE_URL: optionalString(z.string().url()),
 
   STRIPE_SECRET_KEY: optionalInDev(),
   STRIPE_WEBHOOK_SECRET: optionalInDev(),
@@ -67,7 +77,16 @@ const schema = z.object({
   NEXT_PUBLIC_GA_ID: z.string().optional(),
   NEXT_PUBLIC_CLARITY_ID: z.string().optional(),
   CALCOM_LINK: z.string().optional(),
+}).superRefine((e, ctx) => {
+  if (!isProd) return;
+  const key = resolveAiProvider(e) === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
+  if (!e[key]) ctx.addIssue({ code: "custom", path: [key], message: `Required for AI_PROVIDER=${resolveAiProvider(e)}` });
 });
+
+type AiProviderInput = { AI_PROVIDER?: "anthropic" | "openai"; ANTHROPIC_API_KEY?: string; OPENAI_API_KEY?: string };
+function resolveAiProvider(e: AiProviderInput): "anthropic" | "openai" {
+  return e.AI_PROVIDER ?? (e.OPENAI_API_KEY && !e.ANTHROPIC_API_KEY ? "openai" : "anthropic");
+}
 
 function parse() {
   const parsed = schema.safeParse(process.env);
@@ -81,9 +100,12 @@ function parse() {
 export const env = parse();
 export type Env = typeof env;
 
+/** Which provider the resume AI uses (D-136). */
+export const aiProvider = resolveAiProvider(env);
+
 export const integrations = {
   storage: Boolean(env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET),
-  ai: Boolean(env.ANTHROPIC_API_KEY),
+  ai: Boolean(aiProvider === "openai" ? env.OPENAI_API_KEY : env.ANTHROPIC_API_KEY),
   stripe: Boolean(env.STRIPE_SECRET_KEY),
   email: Boolean(env.RESEND_API_KEY),
   redis: Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN),
