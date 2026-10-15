@@ -41,7 +41,7 @@ describe("OpenAI transport mapping (D-136)", () => {
     expect(isReasoningModel("gpt-4.1")).toBe(false);
     const r = toOpenAiRequest(REQ);
     expect(r).not.toHaveProperty("temperature");
-    expect(r).toMatchObject({ reasoning_effort: "low" });
+    expect(r).not.toHaveProperty("reasoning_effort");
     expect(r.max_completion_tokens).toBeGreaterThan(8000);
     const c = toOpenAiRequest({ ...REQ, model: "gpt-4.1" });
     expect(c).toMatchObject({ temperature: 0.2, max_completion_tokens: 8000 });

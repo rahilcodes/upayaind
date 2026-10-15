@@ -38,8 +38,8 @@ export function toOpenAiRequest(req: TransportRequest) {
     tool_choice: { type: "function", function: { name: req.tool_choice.name } },
     parallel_tool_calls: false,
     max_completion_tokens: req.max_tokens + (reasoning ? REASONING_HEADROOM : 0),
-    // Structured rewrites don't need deep reasoning; keeps tailoring inside the 120 s route budget.
-    ...(reasoning ? { reasoning_effort: "low" } : {}),
+    // No reasoning_effort: Chat Completions rejects function tools combined with a
+    // reasoning effort on gpt-5.5 ("set reasoning_effort to 'none'"); the default works.
     ...(reasoning || req.temperature === undefined ? {} : { temperature: req.temperature }),
   };
 }
