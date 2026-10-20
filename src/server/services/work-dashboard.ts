@@ -161,7 +161,7 @@ export async function getStudentOverview(user: Actor, studentId: string, now = n
       market: { select: { code: true, name: true, workingDays: true } },
     },
   });
-  if (!s) throw new WorkError("Student not found.");
+  if (!s) throw new WorkError("Applicant not found.");
   const { start, end } = dayRangeInTz(now, tz);
   const [sub, today, recent, interviews, totals, thread, assignment] = await Promise.all([
     getSubscriptionState(studentId),
@@ -320,7 +320,7 @@ export async function getMyWorkProfile(user: Actor) {
   });
   if (!u) throw new WorkError("Account not found.");
   const manager = u.employee?.managerId ? await db.employeeProfile.findUnique({ where: { id: u.employee.managerId }, select: { user: { select: { name: true } } } }) : null;
-  return { ...u, schedule: u.employee ? parseSchedule(u.employee.workSchedule) : null, managerName: manager?.user.name ?? null };
+  return { ...u, schedule: u.employee ? parseSchedule(u.employee.workSchedule, u.timezone) : null, managerName: manager?.user.name ?? null };
 }
 
 const validTz = (tz: string) => {

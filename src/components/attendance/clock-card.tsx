@@ -23,6 +23,24 @@ export type ClockState = {
   firstLoginLabel: string | null;
   tzLabel: string;
   canTrack: boolean;
+  /** Admin-set working window (D-139); null when the account has no employee profile. */
+  window: {
+    /** "09:00–18:00 ET" */
+    label: string;
+    enforced: boolean;
+    inWindow: boolean;
+    /** ISO instant of the next (or current) opening, for the "opens in" countdown. */
+    opensAt: string | null;
+    /** Next opening in the employee's own zone, e.g. "6:30 PM IST" / "Mon 6:30 PM IST". */
+    opensLabel: string | null;
+    /** Current window close in the employee's own zone. */
+    closesLabel: string | null;
+  } | null;
+};
+
+const untilLabel = (ms: number) => {
+  const m = Math.max(0, Math.ceil(ms / 60000));
+  return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m` : `${m}m`;
 };
 
 const fmt = (m: number) => `${Math.floor(m / 60)}h ${String(Math.floor(m % 60)).padStart(2, "0")}m`;
@@ -35,12 +53,26 @@ export function ClockCard({ state, action }: { state: ClockState; action: (kind:
   const t = useTranslations("work.today.clock");
   const { run, pending } = useServerAction(action);
   const [now, setNow] = React.useState(() => Date.parse(state.computedAt));
+  const w = state.window;
+  const waitingForWindow = Boolean(w?.enforced && !w.inWindow);
   React.useEffect(() => {
     setNow(Date.now());
-    if (!state.open) return;
+    if (!state.open && !waitingForWindow) return;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, [state.open, state.computedAt]);
+  }, [state.open, state.computedAt, waitingForWindow]);
+  // Clock-in opens once the countdown reaches zero (the server re-checks on submit).
+  const opensInMs = w?.opensAt ? Date.parse(w.opensAt) - now : null;
+  const clockInBlocked = waitingForWindow && (opensInMs === null || opensInMs > 0);
+  const windowLine = w
+    ? waitingForWindow
+      ? opensInMs !== null && opensInMs > 0
+        ? t("window.opensIn", { window: w.label, in: untilLabel(opensInMs) })
+        : t("window.label", { window: w.label })
+      : w.inWindow && w.closesLabel
+        ? t("window.closesAt", { window: w.label, at: w.closesLabel })
+        : t("window.label", { window: w.label })
+    : null;
 
   const elapsedMin = Math.max(0, (now - Date.parse(state.computedAt)) / 60000);
   const clocked = state.clockedMinutes + (state.open && !state.onBreak ? elapsedMin : 0);
@@ -77,6 +109,16 @@ export function ClockCard({ state, action }: { state: ClockState; action: (kind:
             {t(`status.${mode}`)}
           </p>
           <p className="text-sm text-muted-foreground">{sub}</p>
+          {windowLine ? (
+            <p className="mt-0.5 text-[13px] text-muted-foreground" suppressHydrationWarning>
+              {windowLine}
+            </p>
+          ) : null}
+          {clockInBlocked && !state.open ? (
+            <p className="mt-0.5 text-[13px] font-semibold text-[#8A5A12] dark:text-warning" role="status">
+              {w?.opensLabel ? t("window.blocked", { at: w.opensLabel }) : t("window.blockedNoDays")}
+            </p>
+          ) : null}
         </div>
       </div>
       <dl className="flex flex-wrap gap-7 tabular">
@@ -116,7 +158,7 @@ export function ClockCard({ state, action }: { state: ClockState; action: (kind:
               </Button>
             )
           ) : (
-            <Button variant="success" loading={pending} onClick={() => run("in")}>
+            <Button variant="success" loading={pending} disabled={clockInBlocked} aria-disabled={clockInBlocked} title={clockInBlocked && w?.opensLabel ? t("window.blocked", { at: w.opensLabel }) : undefined} onClick={() => run("in")}>
               {t("clockIn")}
             </Button>
           )}

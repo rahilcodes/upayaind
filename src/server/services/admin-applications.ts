@@ -76,7 +76,7 @@ export async function listAllApplications(raw: Record<string, string | undefined
     db.jobApplication.count({ where }),
     db.jobApplication.groupBy({ by: ["status"], where: { ...where, status: undefined }, _count: { _all: true } }),
     db.market.findMany({ orderBy: { name: "asc" }, select: { code: true, name: true } }),
-    db.employeeProfile.findMany({ where: { user: { deletedAt: null } }, orderBy: { user: { name: "asc" } }, select: { id: true, user: { select: { name: true } } } }),
+    db.employeeProfile.findMany({ where: { user: { deletedAt: null, role: { not: "COACH" } } }, orderBy: { user: { name: "asc" } }, select: { id: true, user: { select: { name: true } } } }),
     f.student ? db.studentProfile.findUnique({ where: { id: f.student }, select: { user: { select: { name: true } } } }) : null,
   ]);
   return {

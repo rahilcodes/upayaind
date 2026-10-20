@@ -6,8 +6,56 @@ import { ConfirmAction } from "@/components/admin/confirm-action";
 import { ReassignDialog, type EmployeeOption } from "@/components/admin/reassign-dialog";
 import { useServerAction } from "@/components/portal/action-form";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/input";
-import { autoAssignStudentAction, confirmDeletionAction, dismissDeletionAction, pauseSubscriptionAction, reassignStudentAction, restoreStudentAction, resumeSubscriptionAction, saveNotesAction, startViewAsAction } from "../actions";
+import { Field, Select, Textarea } from "@/components/ui/input";
+import { assignCoachAction, autoAssignStudentAction, confirmDeletionAction, dismissDeletionAction, pauseSubscriptionAction, reassignStudentAction, restoreStudentAction, resumeSubscriptionAction, saveNotesAction, startViewAsAction } from "../actions";
+
+export type CoachOption = { id: string; name: string; code: string; coachees: number };
+
+/** Interview coach card (D-140): pick an active COACH, assign / change / unassign. */
+export function CoachAssign({ studentId, currentCoachId, currentCoachName, options }: { studentId: string; currentCoachId: string | null; currentCoachName: string | null; options: CoachOption[] }) {
+  const t = useTranslations("admin.student360.coach");
+  const [picked, setPicked] = React.useState(currentCoachId ?? "");
+  const { run, pending } = useServerAction(assignCoachAction);
+  const unassign = React.useCallback(() => assignCoachAction(studentId, null), [studentId]);
+  const selected = options.find((o) => o.id === picked);
+  return (
+    <div className="grid gap-4">
+      <p className="text-sm">
+        <span className="text-muted-foreground">{t("current")}: </span>
+        <span className="font-semibold">{currentCoachName ?? t("none")}</span>
+      </p>
+      {options.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("noCoaches")}</p>
+      ) : (
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!picked || picked === currentCoachId) return;
+            run(studentId, picked);
+          }}
+        >
+          <Field id="coach-pick" label={t("pick")} className="min-w-[220px] flex-1" hint={selected ? t("load", { count: selected.coachees }) : undefined}>
+            <Select id="coach-pick" value={picked} onChange={(e) => setPicked(e.target.value)}>
+              <option value="">{t("pickNone")}</option>
+              {options.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name} · {o.code}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Button type="submit" size="sm" loading={pending} disabled={!picked || picked === currentCoachId} className="h-11">
+            {currentCoachId ? t("change") : t("assign")}
+          </Button>
+          {currentCoachId ? (
+            <ConfirmAction trigger={<><X className="h-4 w-4" aria-hidden="true" />{t("unassign")}</>} title={t("unassignTitle")} description={t("unassignBody", { name: currentCoachName ?? "" })} confirmLabel={t("unassign")} action={unassign} />
+          ) : null}
+        </form>
+      )}
+    </div>
+  );
+}
 
 export function StudentReassign({ studentId, studentName, currentEmployeeId, options, isAdmin, canViewAs }: { studentId: string; studentName: string; currentEmployeeId: string | null; options: EmployeeOption[]; isAdmin: boolean; canViewAs?: boolean }) {
   const t = useTranslations("admin.reassign");

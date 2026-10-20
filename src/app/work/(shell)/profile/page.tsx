@@ -51,7 +51,11 @@ export default async function WorkProfilePage() {
                       ))}
                     </dd>
                   </div>
-                  <div><dt className="text-muted-foreground">{t("schedule.start")}</dt><dd className="font-semibold tabular">{p.schedule.startTime}</dd></div>
+                  <div className="col-span-2">
+                    <dt className="text-muted-foreground">{t("schedule.window")}</dt>
+                    <dd className="font-semibold tabular">{t("schedule.windowValue", { start: p.schedule.startTime, end: p.schedule.endTime, tz: p.schedule.timezone ?? p.timezone })}</dd>
+                    <dd className="mt-0.5 text-xs text-muted-foreground">{p.schedule.enforceWindow ? t("schedule.windowEnforced") : t("schedule.windowNotEnforced")}</dd>
+                  </div>
                   <div><dt className="text-muted-foreground">{t("schedule.hours")}</dt><dd className="font-semibold tabular">{t("schedule.hoursValue", { h: p.schedule.hours })}</dd></div>
                   {p.employee?.title ? <div><dt className="text-muted-foreground">{t("schedule.jobTitle")}</dt><dd className="font-semibold">{p.employee.title}</dd></div> : null}
                   {p.managerName ? <div><dt className="text-muted-foreground">{t("schedule.manager")}</dt><dd className="font-semibold">{p.managerName}</dd></div> : null}

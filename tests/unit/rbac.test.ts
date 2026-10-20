@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { can, canOpenPortal, portalForRole, type Action } from "@/server/auth/rbac";
+import { can, canOpenPortal, isStaff, portalForRole, STAFF_ROLES, type Action } from "@/server/auth/rbac";
 import type { Role } from "@/generated/prisma/enums";
 
 /**
  * One assertion per row of the SPEC §3 permissions table.
  * ✅ → allowed, ❌/— → denied. "own"/"assigned" scoping is tested in guards tests.
  */
-const S: Role = "STUDENT", E: Role = "EMPLOYEE", M: Role = "MANAGER", A: Role = "ADMIN";
+const S: Role = "STUDENT", E: Role = "EMPLOYEE", M: Role = "MANAGER", A: Role = "ADMIN", C: Role = "COACH";
 const table: [string, Action, Role[]][] = [
   ["Sign up themselves", "signup.self", [S]],
   ["View own dashboard / applications", "student.dashboard.view_own", [S]],
@@ -35,11 +35,14 @@ const table: [string, Action, Role[]][] = [
   ["Resume styles & templates", "resume_styles.manage", [A]],
   ["Settings", "settings.manage", [A]],
   ["Audit log (view)", "audit.view", [M, A]],
+  ["Interview prep admin", "prep.manage", [A]],
+  ["Coach: own slots, sessions, scorecards (D-140)", "coach.sessions", [C, A]],
+  ["Assign an interview coach (D-140)", "coach.assign", [A, M]],
 ];
 
 describe("RBAC matrix (SPEC §3)", () => {
   for (const [label, action, allowed] of table) {
-    for (const role of [S, E, M, A]) {
+    for (const role of [S, E, M, A, C]) {
       const expected = allowed.includes(role);
       it(`${label}: ${role} → ${expected ? "allowed" : "denied"}`, () => {
         expect(can(role, action)).toBe(expected);
@@ -57,6 +60,21 @@ describe("portal routing (SPEC §5 middleware)", () => {
     expect(portalForRole(E)).toBe("/work");
     expect(portalForRole(M)).toBe("/admin");
     expect(portalForRole(A)).toBe("/admin");
+    expect(portalForRole(C)).toBe("/coach");
+  });
+  it("interview coaches are staff (TOTP, 12h session) but only open /coach (D-140)", () => {
+    expect(isStaff(C)).toBe(true);
+    expect(STAFF_ROLES).toContain("COACH");
+    expect(canOpenPortal(C, "/coach")).toBe(true);
+    expect(canOpenPortal(C, "/coach/sessions")).toBe(true);
+    expect(canOpenPortal(C, "/work")).toBe(false);
+    expect(canOpenPortal(C, "/work/students")).toBe(false);
+    expect(canOpenPortal(C, "/admin")).toBe(false);
+    expect(canOpenPortal(C, "/app")).toBe(false);
+    expect(canOpenPortal(A, "/coach/applicants")).toBe(true);
+    expect(canOpenPortal(M, "/coach")).toBe(false);
+    expect(canOpenPortal(E, "/coach")).toBe(false);
+    expect(canOpenPortal(S, "/coach")).toBe(false);
   });
   it("keeps students out of staff portals and staff out of /app", () => {
     expect(canOpenPortal(S, "/work")).toBe(false);

@@ -218,7 +218,15 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 { label: t("phone"), value: e.user.phone },
                 { label: t("markets"), value: e.markets.map((m) => m.name).join(", ") || "—" },
                 { label: t("manager"), value: e.managerName },
-                { label: t("schedule"), value: t("scheduleValue", { days: e.schedule.days.map((d) => td(String(d) as "1")).join(" "), start: e.schedule.startTime, hours: e.schedule.hours }) },
+                {
+                  label: t("schedule"),
+                  value: (
+                    <>
+                      {t("scheduleValue", { days: e.schedule.days.map((d) => td(String(d) as "1")).join(" "), start: e.schedule.startTime, end: e.schedule.endTime, tz: e.schedule.timezone ?? e.user.timezone, hours: e.schedule.hours })}
+                      <span className={cn("mt-0.5 block text-[12px]", e.schedule.enforceWindow ? "font-semibold text-success" : "text-muted-foreground")}>{e.schedule.enforceWindow ? t("scheduleEnforced") : t("scheduleNotEnforced")}</span>
+                    </>
+                  ),
+                },
                 { label: t("timezone"), value: e.user.timezone },
                 { label: t("joined"), value: e.joiningDate ? formatDate(e.joiningDate, tz) : formatDate(e.user.createdAt, tz) },
               ]}

@@ -128,9 +128,10 @@ export const slotInputSchema = z.object({
 export async function createSlots(actorId: string, raw: z.input<typeof slotInputSchema>) {
   const input = slotInputSchema.parse(raw);
   const emp = await db.employeeProfile.findUnique({ where: { id: input.conductedById }, select: { user: { select: { status: true } } } });
-  if (!emp || emp.user.status === "DEACTIVATED") throw new UserError("Pick an active employee or trainer.", "conductedById");
+  if (!emp || emp.user.status === "DEACTIVATED") throw new UserError("Pick an active employee or interview coach.", "conductedById");
   const data = Array.from({ length: input.count }, (_, i) => ({
     conductedById: input.conductedById,
+    coachId: input.conductedById, // new rows always carry the EmployeeProfile id (D-140)
     scheduledAt: new Date(input.scheduledAt.getTime() + i * input.durationMin * 60000),
     durationMin: input.durationMin,
     status: "OPEN",
@@ -179,11 +180,14 @@ export async function listSlots(now = new Date()) {
     where: { scheduledAt: { gte: new Date(now.getTime() - 30 * 86400e3) } },
     orderBy: { scheduledAt: "asc" },
     take: 200,
-    select: { id: true, scheduledAt: true, durationMin: true, status: true, focus: true, meetingLink: true, scores: true, feedback: true, conductedById: true, student: { select: { id: true, user: { select: { name: true } } } } },
+    select: { id: true, scheduledAt: true, durationMin: true, status: true, focus: true, meetingLink: true, scores: true, feedback: true, conductedById: true, coachId: true, student: { select: { id: true, user: { select: { name: true } } } } },
   });
-  const emps = await db.employeeProfile.findMany({ where: { user: { status: { not: "DEACTIVATED" }, deletedAt: null } }, orderBy: { user: { name: "asc" } }, select: { id: true, user: { select: { name: true } } } });
+  // Interview coaches (D-140) are listed first so the picker leads with the people who actually run mocks.
+  const emps = (await db.employeeProfile.findMany({ where: { user: { status: { not: "DEACTIVATED" }, deletedAt: null } }, orderBy: { user: { name: "asc" } }, select: { id: true, user: { select: { name: true, role: true } } } })).sort(
+    (a, b) => Number(b.user.role === "COACH") - Number(a.user.role === "COACH"),
+  );
   const names = new Map(emps.map((e) => [e.id, e.user.name]));
-  const missing = [...new Set(rows.map((r) => r.conductedById).filter((id) => !names.has(id)))];
+  const missing = [...new Set(rows.map((r) => r.coachId ?? r.conductedById).filter((id) => !names.has(id)))];
   if (missing.length) {
     // conductedById is an EmployeeProfile id (older seed rows may hold a User id).
     for (const e of await db.employeeProfile.findMany({ where: { OR: [{ id: { in: missing } }, { userId: { in: missing } }] }, select: { id: true, userId: true, user: { select: { name: true } } } })) {
@@ -191,7 +195,10 @@ export async function listSlots(now = new Date()) {
       names.set(e.userId, e.user.name);
     }
   }
-  return { slots: rows.map((r) => ({ ...r, conductedBy: names.get(r.conductedById) ?? "—" })), staff: emps.map((e) => ({ id: e.id, name: e.user.name })) };
+  return {
+    slots: rows.map((r) => ({ ...r, conductedBy: names.get(r.coachId ?? "") ?? names.get(r.conductedById) ?? "—" })),
+    staff: emps.map((e) => ({ id: e.id, name: e.user.name, isCoach: e.user.role === "COACH" })),
+  };
 }
 
 export async function deleteSlot(actorId: string, id: string) {

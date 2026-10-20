@@ -297,7 +297,8 @@ export async function rehomeEmployeeStudents(employeeId: string, actorId: string
 /** Load board (admin Assignments page). */
 export async function loadBoard() {
   const emps = await db.employeeProfile.findMany({
-    where: { user: { status: { in: ["ACTIVE", "INVITED"] }, deletedAt: null }, maxStudents: { gt: 0 } },
+    // Interview coaches never take application assignments (D-140).
+    where: { user: { status: { in: ["ACTIVE", "INVITED"] }, deletedAt: null, role: { not: "COACH" } }, maxStudents: { gt: 0 } },
     select: {
       id: true,
       employeeCode: true,

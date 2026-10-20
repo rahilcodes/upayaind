@@ -26,6 +26,7 @@ enum Role {
   EMPLOYEE
   MANAGER
   ADMIN
+  COACH // interview coach: mock interviews + training only (D-140)
 }
 
 enum UserStatus {
@@ -359,6 +360,8 @@ model StudentProfile {
   consentApplyOnBehalfAt DateTime?
   consentTermsAt         DateTime?
   consentVersion         String?
+  consentAgreementAt     DateTime? // placement agreement accepted at signup (D-138)
+  coachId                String? // interview coach (EmployeeProfile, role COACH) — D-140
   assignmentQueue        AssignmentQueueStatus?
   awaitingSince          DateTime?
   internalNotes          String?
@@ -380,6 +383,7 @@ model StudentProfile {
   threads        MessageThread[]
   studentDays    StudentDay[]
   mockInterviews MockInterview[]
+  coach          EmployeeProfile? @relation("StudentCoach", fields: [coachId], references: [id])
   payments       Payment[]
 }
 
@@ -411,7 +415,7 @@ model EmployeeProfile {
   lastAssignedAt       DateTime?
   joiningDate          DateTime?
   managerId            String?
-  workSchedule         Json // {days:[1..5], startTime:"09:30", hours:9}
+  workSchedule         Json // {days:[1..5], startTime:"09:30", endTime:"18:30", hours:9, timezone?:IANA, enforceWindow?:bool} — D-139
   workspacePrefs       Json? // {source, workMode, employmentType, location} — last-used defaults for the application workspace
 
   user         User             @relation(fields: [userId], references: [id])
@@ -421,6 +425,8 @@ model EmployeeProfile {
   applications JobApplication[]
   threads      MessageThread[]
   days         EmployeeDay[]
+  coachees     StudentProfile[] @relation("StudentCoach")
+  mocksRun     MockInterview[]  @relation("MockCoach")
 }
 
 // ───────────────────────────── Billing ─────────────────────────────
@@ -660,10 +666,14 @@ model MockInterview {
   meetingLink   String?
   scores        Json?
   feedback      String?
+  coachId       String? // EmployeeProfile of the coach (new rows; conductedById kept for legacy data)
+  notes         String? // coach's private prep notes
   createdAt     DateTime       @default(now())
   student       StudentProfile? @relation(fields: [studentId], references: [id])
+  coach         EmployeeProfile? @relation("MockCoach", fields: [coachId], references: [id])
 
   @@index([scheduledAt])
+  @@index([coachId, scheduledAt])
 }
 
 // ───────────────────────────── Messaging ─────────────────────────────

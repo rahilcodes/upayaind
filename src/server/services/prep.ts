@@ -81,7 +81,10 @@ export function rankResources<T extends { tags: string[] }>(list: T[], words: Se
 
 async function ownStudent(user: Actor) {
   if (user.role !== "STUDENT") throw new ForbiddenError();
-  const s = await db.studentProfile.findUnique({ where: { userId: user.id }, select: { id: true, targetTitles: true, user: { select: { timezone: true, name: true } }, market: { select: { code: true } } } });
+  const s = await db.studentProfile.findUnique({
+    where: { userId: user.id },
+    select: { id: true, targetTitles: true, coachId: true, user: { select: { timezone: true, name: true } }, market: { select: { code: true } }, coach: { select: { id: true, user: { select: { name: true, status: true, deletedAt: true } } } } },
+  });
   if (!s) throw new ForbiddenError();
   return s;
 }
@@ -111,20 +114,20 @@ export async function getPrepPage(user: Actor, opts: { view?: "mine" | "all" } =
   }
 
   const [openSlots, mine] = await Promise.all([
-    db.mockInterview.findMany({ where: { status: "OPEN", studentId: null, scheduledAt: { gt: now } }, orderBy: { scheduledAt: "asc" }, take: 20, select: { id: true, scheduledAt: true, durationMin: true, focus: true, conductedById: true } }),
-    db.mockInterview.findMany({ where: { studentId: s.id }, orderBy: { scheduledAt: "desc" }, take: 30, select: { id: true, scheduledAt: true, durationMin: true, focus: true, status: true, meetingLink: true, scores: true, feedback: true, conductedById: true } }),
+    db.mockInterview.findMany({ where: { status: "OPEN", studentId: null, scheduledAt: { gt: now } }, orderBy: { scheduledAt: "asc" }, take: 20, select: { id: true, scheduledAt: true, durationMin: true, focus: true, conductedById: true, coachId: true } }),
+    db.mockInterview.findMany({ where: { studentId: s.id }, orderBy: { scheduledAt: "desc" }, take: 30, select: { id: true, scheduledAt: true, durationMin: true, focus: true, status: true, meetingLink: true, scores: true, feedback: true, conductedById: true, coachId: true } }),
   ]);
-  // conductedById is an EmployeeProfile id (older seed rows may hold a User id).
-  const ids = [...new Set([...openSlots, ...mine].map((m) => m.conductedById))];
-  const people = ids.length ? await db.employeeProfile.findMany({ where: { OR: [{ id: { in: ids } }, { userId: { in: ids } }] }, select: { id: true, userId: true, user: { select: { name: true } } } }) : [];
-  const nameOf = new Map(people.flatMap((p) => [[p.id, firstName(p.user.name)] as const, [p.userId, firstName(p.user.name)] as const]));
-  const withName = <T extends { conductedById: string }>(m: T) => {
-    const { conductedById, ...rest } = m;
-    return { ...rest, with: nameOf.get(conductedById) ?? null };
+  const nameOf = await coachFirstNames([...openSlots, ...mine]);
+  const withName = <T extends { conductedById: string; coachId: string | null }>(m: T) => {
+    const { conductedById, coachId, ...rest } = m;
+    return { ...rest, with: nameOf.get(coachId ?? "") ?? nameOf.get(conductedById) ?? null };
   };
+  const coachActive = s.coach && s.coach.user.status !== "DEACTIVATED" && !s.coach.user.deletedAt;
   return {
     timezone: s.user.timezone,
     targetTitles: s.targetTitles,
+    /** The student's assigned interview coach (D-140), if any. */
+    coach: coachActive && s.coach ? { id: s.coach.id, firstName: firstName(s.coach.user.name) } : null,
     library,
     libraryTotal: resources.length,
     recommended,
@@ -132,6 +135,17 @@ export async function getPrepPage(user: Actor, opts: { view?: "mine" | "all" } =
     upcomingMocks: mine.filter((m) => m.status === "SCHEDULED" && m.scheduledAt >= new Date(now.getTime() - 2 * 3600e3)).map(withName).reverse(),
     pastMocks: mine.filter((m) => m.status !== "SCHEDULED" || m.scheduledAt < new Date(now.getTime() - 2 * 3600e3)).map((m) => ({ ...withName(m), scores: parseScores(m.scores) })),
   };
+}
+
+/**
+ * First names of the people running a set of mocks, keyed by EmployeeProfile id
+ * (coachId, D-140) and by the legacy conductedById (an EmployeeProfile id, or a
+ * User id in older seed rows).
+ */
+async function coachFirstNames(rows: { conductedById: string; coachId: string | null }[]) {
+  const ids = [...new Set(rows.flatMap((m) => [m.coachId, m.conductedById]).filter((x): x is string => Boolean(x)))];
+  const people = ids.length ? await db.employeeProfile.findMany({ where: { OR: [{ id: { in: ids } }, { userId: { in: ids } }] }, select: { id: true, userId: true, user: { select: { name: true } } } }) : [];
+  return new Map(people.flatMap((p) => [[p.id, firstName(p.user.name)] as const, [p.userId, firstName(p.user.name)] as const]));
 }
 
 export function parseScores(v: unknown): MockScores {
@@ -150,15 +164,20 @@ export async function bookMockInterview(user: Actor, slotId: string, now = new D
   if (upcoming >= 2) throw new UserError("You already have 2 mock interviews booked. Finish one before booking another.");
   const r = await db.mockInterview.updateMany({ where: { id: slotId, status: "OPEN", studentId: null, scheduledAt: { gt: now } }, data: { status: "SCHEDULED", studentId: s.id } });
   if (r.count === 0) throw new UserError("Sorry, that slot was just taken. Pick another time.");
-  const slot = await db.mockInterview.findUniqueOrThrow({ where: { id: slotId }, select: { id: true, scheduledAt: true, focus: true, conductedById: true } });
-  const coach = await db.employeeProfile.findFirst({ where: { OR: [{ id: slot.conductedById }, { userId: slot.conductedById }] }, select: { userId: true, user: { select: { name: true, timezone: true } } } });
+  const slot = await db.mockInterview.findUniqueOrThrow({ where: { id: slotId }, select: { id: true, scheduledAt: true, focus: true, conductedById: true, coachId: true } });
+  const coach = await db.employeeProfile.findFirst({
+    where: slot.coachId ? { id: slot.coachId } : { OR: [{ id: slot.conductedById }, { userId: slot.conductedById }] },
+    select: { id: true, userId: true, user: { select: { name: true, timezone: true, role: true } } },
+  });
+  // New bookings always carry the coach's EmployeeProfile id (D-140); legacy slots get it filled in here.
+  if (coach && slot.coachId !== coach.id) await db.mockInterview.update({ where: { id: slot.id }, data: { coachId: coach.id } });
   await audit({ actorId: user.id, action: "prep.mock_booked", entity: "MockInterview", entityId: slot.id });
   const focus = slot.focus ?? "Mock interview";
   await notify(user.id, "mock_interview_booked", { when: `${formatInTz(slot.scheduledAt, s.user.timezone, "EEE d MMM, h:mm a")} (your time)`, focus, with: coach ? firstName(coach.user.name) : "your coach" }).catch(() => undefined);
   if (coach) {
-    await notify(coach.userId, "generic", { title: `Mock interview booked: ${s.user.name}`, body: `${focus} on ${formatInTz(slot.scheduledAt, coach.user.timezone, "EEE d MMM, h:mm a")}.`, link: "/work/interviews" }).catch(() => undefined);
+    await notify(coach.userId, "generic", { title: `Mock interview booked: ${s.user.name}`, body: `${focus} on ${formatInTz(slot.scheduledAt, coach.user.timezone, "EEE d MMM, h:mm a")}.`, link: coach.user.role === "COACH" ? "/coach/sessions" : "/work/interviews" }).catch(() => undefined);
   }
-  return slot;
+  return { ...slot, coachId: coach?.id ?? slot.coachId };
 }
 
 /** Cancel a booked mock (more than 2 hours ahead): the slot reopens for others. */

@@ -47,7 +47,7 @@ export async function assertEmployeeCanAccessStudent(
   if (user.role !== "EMPLOYEE") throw new ForbiddenError();
   const ep = await client.employeeProfile.findUnique({ where: { userId: user.id }, select: { id: true } });
   if (!ep || !(await hasActiveAssignment(ep.id, studentId, client))) {
-    throw new ForbiddenError("This student isn't assigned to you.");
+    throw new ForbiddenError("This applicant isn't assigned to you.");
   }
   return { employeeProfileId: ep.id };
 }

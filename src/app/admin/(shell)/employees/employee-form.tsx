@@ -19,13 +19,23 @@ export type EmployeeFormValue = {
   maxStudents: number;
   managerId: string | null;
   timezone: string;
-  schedule: { days: number[]; startTime: string; hours: number };
-  role: "EMPLOYEE" | "MANAGER";
+  /** Working window (D-139): start → end in the window's own zone; `hours` is derived server-side. */
+  schedule: { days: number[]; startTime: string; endTime: string; timezone: string | null; enforceWindow: boolean };
+  role: "EMPLOYEE" | "MANAGER" | "COACH";
   acceptingNewStudents: boolean;
 };
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 const TIMEZONES = ["Asia/Kolkata", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Berlin", "Asia/Dubai", "Asia/Singapore", "Australia/Sydney", "UTC"];
+const DEFAULT_WINDOW_TZ = "America/New_York";
+
+/** "HH:mm" → minutes; length of a start→end window that may cross midnight. */
+const toMin = (v: string) => Number(v.slice(0, 2)) * 60 + Number(v.slice(3, 5));
+function windowLength(start: string, end: string) {
+  if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return null;
+  const len = toMin(end) > toMin(start) ? toMin(end) - toMin(start) : toMin(end) + 24 * 60 - toMin(start);
+  return Math.round((len / 60) * 10) / 10;
+}
 
 /** Create (no `value`) or edit an employee. */
 export function EmployeeFormDialog({ options, value, canManageManagers }: { options: EmployeeFormOptions; value?: EmployeeFormValue; canManageManagers: boolean }) {
@@ -36,6 +46,9 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
   const editing = Boolean(value);
   const [days, setDays] = React.useState<number[]>(value?.schedule.days ?? [1, 2, 3, 4, 5]);
   const [markets, setMarkets] = React.useState<string[]>(value?.marketIds ?? (options.markets.length === 1 ? [options.markets[0]!.id] : []));
+  const [startTime, setStartTime] = React.useState(value?.schedule.startTime ?? "09:30");
+  const [endTime, setEndTime] = React.useState(value?.schedule.endTime ?? "18:30");
+  const windowHours = windowLength(startTime, endTime);
   const create = useServerAction(createEmployeeAction, { onSuccess: () => setOpen(false) });
   const update = useServerAction(updateEmployeeAction, { onSuccess: () => setOpen(false) });
   const { pending, fieldErrors } = editing ? update : create;
@@ -54,8 +67,14 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
       maxStudents: Number(fd.get("maxStudents") ?? options.defaultMax),
       managerId: String(fd.get("managerId") ?? "") || null,
       timezone: String(fd.get("timezone") ?? "Asia/Kolkata"),
-      schedule: { days, startTime: String(fd.get("startTime") ?? "09:30"), hours: Number(fd.get("hours") ?? 9) },
-      role: (String(fd.get("role") ?? "EMPLOYEE") as "EMPLOYEE" | "MANAGER"),
+      schedule: {
+        days,
+        startTime: String(fd.get("startTime") ?? "09:30"),
+        endTime: String(fd.get("endTime") ?? "18:30"),
+        timezone: String(fd.get("windowTimezone") ?? DEFAULT_WINDOW_TZ),
+        enforceWindow: fd.get("enforceWindow") === "on",
+      },
+      role: (String(fd.get("role") ?? "EMPLOYEE") as "EMPLOYEE" | "MANAGER" | "COACH"),
       acceptingNewStudents: fd.get("accepting") === "on",
     };
     if (value) update.run({ ...payload, employeeId: value.employeeId });
@@ -69,6 +88,8 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
         setOpen(v);
         if (v) {
           setDays(value?.schedule.days ?? [1, 2, 3, 4, 5]);
+          setStartTime(value?.schedule.startTime ?? "09:30");
+          setEndTime(value?.schedule.endTime ?? "18:30");
           setMarkets(value?.marketIds ?? (options.markets.length === 1 ? [options.markets[0]!.id] : []));
         }
       }}
@@ -135,6 +156,7 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
             <Select {...fieldA11y("emp-role", err("role"), !canManageManagers)} name="role" defaultValue={value?.role ?? "EMPLOYEE"} disabled={!canManageManagers}>
               <option value="EMPLOYEE">{t("roleEmployee")}</option>
               {canManageManagers ? <option value="MANAGER">{t("roleManager")}</option> : null}
+              <option value="COACH">{t("roleCoach")}</option>
             </Select>
           </Field>
           <Field id="emp-tz" label={t("timezone")} error={err("timezone")}>
@@ -169,14 +191,30 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
                 {err("days")}
               </p>
             ) : null}
-            <div className="mt-3 grid grid-cols-2 gap-4">
+            <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Field id="emp-start" label={t("startTime")} error={err("startTime")}>
-                <Input {...fieldA11y("emp-start", err("startTime"))} name="startTime" type="time" defaultValue={value?.schedule.startTime ?? "09:30"} />
+                <Input {...fieldA11y("emp-start", err("startTime"))} name="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
               </Field>
-              <Field id="emp-hours" label={t("hours")} error={err("hours")}>
-                <Input {...fieldA11y("emp-hours", err("hours"))} name="hours" type="number" min={1} max={14} step={0.5} defaultValue={value?.schedule.hours ?? 9} className="tabular" />
+              <Field id="emp-end" label={t("endTime")} error={err("endTime")} hint={windowHours ? t("windowHours", { h: windowHours }) : undefined}>
+                <Input {...fieldA11y("emp-end", err("endTime"), Boolean(windowHours))} name="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+              </Field>
+              <Field id="emp-window-tz" label={t("windowTimezone")} error={err("timezone")} hint={t("windowTimezoneHint")}>
+                <Select {...fieldA11y("emp-window-tz", err("timezone"), true)} name="windowTimezone" defaultValue={value?.schedule.timezone ?? DEFAULT_WINDOW_TZ}>
+                  {[...new Set([value?.schedule.timezone ?? DEFAULT_WINDOW_TZ, ...TIMEZONES])].map((z) => (
+                    <option key={z} value={z}>
+                      {z}
+                    </option>
+                  ))}
+                </Select>
               </Field>
             </div>
+            <label className="mt-3 inline-flex min-h-11 items-start gap-2 text-sm">
+              <Checkbox name="enforceWindow" defaultChecked={value?.schedule.enforceWindow ?? false} className="mt-1" />
+              <span>
+                {t("enforceWindow")}
+                <span className="block text-[13px] text-muted-foreground">{t("enforceWindowHint")}</span>
+              </span>
+            </label>
           </fieldset>
           <label className="inline-flex min-h-11 items-center gap-2 text-sm sm:col-span-2">
             <Checkbox name="accepting" defaultChecked={value?.acceptingNewStudents ?? true} />

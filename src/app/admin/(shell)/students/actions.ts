@@ -12,6 +12,7 @@ import { audit } from "@/server/services/audit";
 import { autoAssign, reassign } from "@/server/services/assignment";
 import { pauseSubscription, resumeSubscription } from "@/server/services/billing/pause";
 import { confirmDeletion, dismissDeletionRequest, restoreDeletedStudent, saveInternalNotes } from "@/server/services/admin-students";
+import { assignCoach } from "@/server/services/coach";
 
 const id = z.string().min(1).max(64);
 const reasonSchema = z.string().trim().min(3, "Add a short reason.").max(500);
@@ -35,6 +36,15 @@ export async function autoAssignStudentAction(studentId: string) {
     if (r.status === "AWAITING") throw new UserError(t("stillAwaiting", { reason: r.reason }));
     return r;
   }, t("autoAssigned"));
+}
+
+/** Set or clear the student's interview coach (ADMIN/MANAGER, D-140). */
+export async function assignCoachAction(studentId: string, coachId: string | null) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("coach.assign");
+    return assignCoach(user.id, { studentId: id.parse(studentId), coachId: coachId ? id.parse(coachId) : null });
+  }, t("coachAssigned"));
 }
 
 export async function saveNotesAction(studentId: string, notes: string) {

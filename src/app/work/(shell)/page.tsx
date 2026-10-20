@@ -36,6 +36,7 @@ export default async function TodayPage() {
 
   const [today, dash] = employee ? await Promise.all([getMyToday(user, now), getTodayDashboard(user, now)]) : [null, null];
   const d = today?.day;
+  const w = today?.window ?? null;
   const clock: ClockState = {
     open: Boolean(d?.open),
     onBreak: Boolean(d?.onBreak),
@@ -51,6 +52,17 @@ export default async function TodayPage() {
     firstLoginLabel: d?.firstLoginAt ? formatInTz(d.firstLoginAt, tz, "h:mm a") : null,
     tzLabel: tzAbbrev(tz, now),
     canTrack: Boolean(employee),
+    // Working window (D-139) in its own zone; times for the employee shown in their zone.
+    window: w
+      ? {
+          label: `${today!.ctx.schedule.startTime}–${today!.ctx.schedule.endTime} ${tzAbbrev(w.timezone, now)}`,
+          enforced: w.enforced,
+          inWindow: w.inWindow,
+          opensAt: w.opensAt?.toISOString() ?? null,
+          opensLabel: w.opensAt ? `${formatInTz(w.opensAt, tz, dayKey(w.opensAt, tz) === dayKey(now, tz) ? "h:mm a" : "EEE h:mm a")} ${tzAbbrev(tz, w.opensAt)}` : null,
+          closesLabel: w.closesAt ? `${formatInTz(w.closesAt, tz, "h:mm a")} ${tzAbbrev(tz, w.closesAt)}` : null,
+        }
+      : null,
   };
 
   const header = (

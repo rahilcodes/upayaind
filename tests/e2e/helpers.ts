@@ -8,6 +8,7 @@ export const USERS = {
   employee: "arjun@upayaind.test",
   manager: "manager@upayaind.test",
   admin: "admin@upayaind.test",
+  coach: "coach@upayaind.test",
 } as const;
 
 export async function login(page: Page, email: string) {
@@ -15,12 +16,12 @@ export async function login(page: Page, email: string) {
   await page.fill("#email", email);
   await page.fill("#password", PASSWORD);
   await page.click("form button[type=submit]");
-  await page.waitForURL(/\/(2fa|app|work|admin|pricing)/);
+  await page.waitForURL(/\/(2fa|app|work|admin|coach|pricing)/);
   if (page.url().includes("/2fa")) {
     // Avoid reusing a code from the same 30 s window as a previous test.
     await page.fill("#code", generateSync({ secret: TOTP_SECRET }));
     await page.click("form button[type=submit]");
-    await page.waitForURL(/\/(work|admin)/);
+    await page.waitForURL(/\/(work|admin|coach)/);
   }
 }
 

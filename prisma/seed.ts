@@ -82,30 +82,61 @@ const RESUME_STYLES = [
 
 const MARKETS = [
   { code: "US", name: "United States", currency: "USD", locale: "en-US", minPriceMinor: 4900, defaultTimezone: "America/New_York", style: "US_RESUME", isActive: true, phoneDisplay: "+1 628 628 4743", whatsapp: "16286284743" },
-  { code: "UK", name: "United Kingdom", currency: "GBP", locale: "en-GB", minPriceMinor: 3900, defaultTimezone: "Europe/London", style: "UK_CV", isActive: false, phoneDisplay: null, whatsapp: null },
+  { code: "UK", name: "United Kingdom", currency: "GBP", locale: "en-GB", minPriceMinor: 3900, defaultTimezone: "Europe/London", style: "UK_CV", isActive: true, phoneDisplay: null, whatsapp: null },
   { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA", minPriceMinor: 6500, defaultTimezone: "America/Toronto", style: "CA_RESUME", isActive: false, phoneDisplay: null, whatsapp: null },
   { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU", minPriceMinor: 7500, defaultTimezone: "Australia/Sydney", style: "AU_RESUME", isActive: false, phoneDisplay: null, whatsapp: null },
-  { code: "IN", name: "India", currency: "INR", locale: "en-IN", minPriceMinor: 299900, defaultTimezone: "Asia/Kolkata", style: "IN_RESUME", isActive: false, phoneDisplay: "+91 799 700 1700", whatsapp: "917997001700" },
+  { code: "IN", name: "India", currency: "INR", locale: "en-IN", minPriceMinor: 299900, defaultTimezone: "Asia/Kolkata", style: "IN_RESUME", isActive: true, phoneDisplay: "+91 799 700 1700", whatsapp: "917997001700" },
 ] as const;
 
+// Client's plan sheet (D-137). Prices are US monthly; the "N–M applications/day"
+// bullets map to dailyTarget 25 / 35 / 45.
 const PLANS = [
   {
     code: "basic", name: "Basic", isFeatured: false, sortOrder: 1, dailyTarget: 25, interviewsPromise: null,
     description: "A steady pipeline for focused searches.",
-    features: ["25 tailored applications every weekday", "Resume tailored to every job", "Live tracking dashboard", "Dedicated specialist", "Interview prep library"],
-    demo: { MONTHLY: 19900, QUARTERLY: 53700 },
+    features: [
+      "ATS-optimized resume rewrite",
+      "LinkedIn profile audit",
+      "25 precision-targeted applications/day",
+      "Weekly progress & insights report",
+      "Mock interview guidance & tips",
+      "Interviews guaranteed",
+    ],
+    demo: { MONTHLY: 15900 },
   },
   {
     code: "standard", name: "Standard", isFeatured: true, sortOrder: 2, dailyTarget: 35, interviewsPromise: null,
     description: "More volume for faster results.",
-    features: ["35 tailored applications every weekday", "Resume tailored to every job", "Live tracking dashboard", "Dedicated specialist", "Cover letters where useful", "Mock interviews"],
-    demo: { MONTHLY: 29900, QUARTERLY: 80700 },
+    features: [
+      "Everything in Basic",
+      "30–40 targeted applications/day",
+      "LinkedIn optimization suggestions",
+      "Recruiter outreach on LinkedIn",
+      "Cover letter per application",
+      "WhatsApp daily check-in",
+      "Interviews guaranteed",
+      "Mock interviews",
+      "24hr support",
+    ],
+    demo: { MONTHLY: 25900 },
   },
   {
-    code: "premium", name: "Premium", isFeatured: false, sortOrder: 3, dailyTarget: 50, interviewsPromise: null,
+    code: "premium", name: "Premium", isFeatured: false, sortOrder: 3, dailyTarget: 45, interviewsPromise: null,
     description: "Maximum reach for competitive markets.",
-    features: ["50 tailored applications every weekday", "Resume tailored to every job", "Live tracking dashboard", "Dedicated senior specialist", "Cover letters where useful", "Priority mock interviews"],
-    demo: { MONTHLY: 44900, QUARTERLY: 121200 },
+    features: [
+      "Everything in Standard",
+      "40–50 laser-targeted applications/day",
+      "Personalised LinkedIn optimization for your market",
+      "H1B/visa sponsorship filtering",
+      "We specialize in H1B, residency, citizen, and independent visa opportunities",
+      "1-on-1 personal coaching sessions",
+      "24/7 on-demand mock interviews",
+      "Immigration attorney referral network",
+      "Dedicated account manager",
+      "Interviews guaranteed",
+      "24hr priority support",
+    ],
+    demo: { MONTHLY: 35900 },
   },
 ] as const;
 
@@ -146,7 +177,20 @@ const LEGAL = [
   ["refund", "Refund Policy"],
   ["guarantee", "Our Guarantee"],
   ["cookies", "Cookie Policy"],
+  ["agreement", "Placement Agreement"],
 ] as const;
+
+// Placement Agreement draft (D-138). Accepted at sign-up; the fee terms in [brackets] must be set by UpayaInd before publishing.
+const AGREEMENT_TEMPLATE = [
+  "[DRAFT — review with counsel and set the bracketed terms before publishing.]",
+  "1. Service. UpayaInd applies to jobs on your behalf using the plan you purchased, with resumes tailored from the career details you provide. We do not guarantee any particular employer, role or salary.",
+  "2. Placement fee. If you accept a job offer that resulted from an application made by UpayaInd during your subscription or within [90] days after it ends, you agree to pay UpayaInd a placement fee of [X% of your first-year base salary / a fixed amount of $X], invoiced on your start date and payable within [30] days.",
+  "3. Your duties. Keep your profile and job preferences accurate, respond to interview requests promptly, and tell us within 5 days of accepting any offer that came through our applications.",
+  "4. Authorisation. You authorise UpayaInd to submit applications, create job-portal accounts and communicate with employers in your name, and confirm the information you give us is true.",
+  "5. Fees and cancellation. Subscription fees are charged per the plan and the Refund Policy. The placement fee in section 2 applies even if you cancel the subscription before the offer.",
+  "6. Disputes and law. This agreement is governed by the laws of [State/Country]. Disputes will first be raised with support@upayaind.com and resolved in good faith before any formal proceedings.",
+  "By ticking the box at sign-up you confirm that you have read and accept this Placement Agreement together with the Terms of Service and Privacy Policy.",
+];
 
 function doc(paragraphs: string[]) {
   return {
@@ -168,6 +212,8 @@ async function seedReference() {
     await db.market.upsert({ where: { code: m.code }, update: { ...data, resumeStyleId: style.id }, create: { ...data, resumeStyleId: style.id } });
   }
   const us = await db.market.findUniqueOrThrow({ where: { code: "US" } });
+  // Country homepages (D-141): IN and UK are live markets; their prices stay 0 (placeholder, not purchasable) until set in /admin/plans.
+  const liveMarkets = await db.market.findMany({ where: { code: { in: ["US", "IN", "UK"] } }, select: { id: true, code: true, currency: true } });
   const demoPrices = process.env.SEED_DEMO_PRICES === "1";
   for (const p of PLANS) {
     const plan = await db.plan.upsert({
@@ -175,15 +221,24 @@ async function seedReference() {
       update: { name: p.name, description: p.description, features: [...p.features], isFeatured: p.isFeatured, sortOrder: p.sortOrder },
       create: { code: p.code, name: p.name, description: p.description, features: [...p.features], isFeatured: p.isFeatured, sortOrder: p.sortOrder },
     });
-    for (const interval of ["MONTHLY", "QUARTERLY"] as const) {
+    for (const interval of ["MONTHLY"] as const) {
       // Placeholder prices are 0 (blocked from purchase by the price floor) until the client confirms them (SPEC §16, §20).
       const amountMinor = demoPrices ? p.demo[interval] : 0;
       const existing = await db.planPrice.findUnique({ where: { planId_marketId_interval: { planId: plan.id, marketId: us.id, interval } } });
       if (!existing) {
         await db.planPrice.create({ data: { planId: plan.id, marketId: us.id, interval, amountMinor, currency: "USD", dailyTarget: p.dailyTarget } });
-      } else if (demoPrices && existing.amountMinor === 0) {
-        await db.planPrice.update({ where: { id: existing.id }, data: { amountMinor } });
+      } else {
+        // Targets follow the plan sheet; demo amounts only ever replace the 0 placeholder.
+        await db.planPrice.update({ where: { id: existing.id }, data: { dailyTarget: p.dailyTarget, ...(demoPrices && existing.amountMinor === 0 ? { amountMinor } : {}) } });
       }
+    }
+    // The plan sheet is monthly only; retire quarterly rows from earlier seeds.
+    await db.planPrice.updateMany({ where: { planId: plan.id, interval: "QUARTERLY", isActive: true }, data: { isActive: false } });
+    for (const m of liveMarkets) {
+      if (m.id === us.id) continue;
+      const existing = await db.planPrice.findUnique({ where: { planId_marketId_interval: { planId: plan.id, marketId: m.id, interval: "MONTHLY" } } });
+      if (!existing) await db.planPrice.create({ data: { planId: plan.id, marketId: m.id, interval: "MONTHLY", amountMinor: 0, currency: m.currency, dailyTarget: p.dailyTarget } });
+      else await db.planPrice.update({ where: { id: existing.id }, data: { dailyTarget: p.dailyTarget } });
     }
   }
   for (const lt of LEAVE_TYPES) await db.leaveType.upsert({ where: { name: lt.name }, update: lt, create: lt });
@@ -204,7 +259,7 @@ async function seedReference() {
     await db.cmsEntry.upsert({ where: { kind_slug: { kind: "FAQ", slug } }, update: {}, create: { kind: "FAQ", slug, title: q, excerpt: a, body, bodyHtml, sortOrder: i, isPublished: true, publishedAt: new Date() } });
   }
   for (const [slug, title] of LEGAL) {
-    const { body, bodyHtml } = doc([`[DRAFT — the final ${title} text must be supplied and approved by UpayaInd before launch.]`]);
+    const { body, bodyHtml } = doc(slug === "agreement" ? AGREEMENT_TEMPLATE : [`[DRAFT — the final ${title} text must be supplied and approved by UpayaInd before launch.]`]);
     await db.cmsEntry.upsert({ where: { kind_slug: { kind: "LEGAL", slug } }, update: {}, create: { kind: "LEGAL", slug, title, body, bodyHtml, isPublished: false, seoTitle: title } });
   }
   for (let i = 1; i <= 3; i++) {
@@ -287,16 +342,38 @@ function profileFor(name: string, email: string, phone: string, role: (typeof RO
   };
 }
 
+/** Dev DBs seeded before D-140 have no coach: add Kavya and attach the demo student and mocks to her. Idempotent. */
+async function ensureDemoCoach() {
+  if (await db.user.findUnique({ where: { email: "coach@upayaind.test" }, select: { id: true } })) return;
+  const us = await db.market.findUniqueOrThrow({ where: { code: "US" } });
+  const manager = await db.employeeProfile.findUnique({ where: { employeeCode: "UPY-0001" }, select: { id: true } });
+  const coach = await db.user.create({
+    data: {
+      email: "coach@upayaind.test", name: "Kavya Iyer", role: "COACH", passwordHash: await hash(DEMO_PASSWORD, { memoryCost: 19456, timeCost: 2, parallelism: 1, algorithm: 2 }), timezone: STAFF_TZ, emailVerified: new Date(), totpSecretEnc: seal(DEMO_TOTP_SECRET), totpEnabled: true,
+      employee: { create: { employeeCode: "UPY-0030", title: "Interview Coach", marketIds: [us.id], maxStudents: 0, acceptingNewStudents: false, workSchedule: { days: [1, 2, 3, 4, 5], startTime: "09:30", endTime: "18:30", hours: 9, timezone: STAFF_TZ, enforceWindow: false }, managerId: manager?.id ?? null, joiningDate: new Date("2025-09-01") } },
+    },
+    include: { employee: true },
+  });
+  const coachId = coach.employee!.id;
+  const demo = await db.user.findUnique({ where: { email: "student@upayaind.test" }, select: { student: { select: { id: true } } } });
+  if (demo?.student) await db.studentProfile.update({ where: { id: demo.student.id }, data: { coachId } });
+  await db.mockInterview.updateMany({ where: { coachId: null }, data: { coachId, conductedById: coachId } });
+  console.log("• Added demo coach coach@upayaind.test (existing demo data kept).");
+}
+
 async function seedDemo() {
   if ((await db.studentProfile.count()) > 0) {
     console.log("• Demo data already present — skipping.");
+    await ensureDemoCoach();
     return;
   }
   const passwordHash = await hash(DEMO_PASSWORD, { memoryCost: 19456, timeCost: 2, parallelism: 1, algorithm: 2 });
   const totpSecretEnc = seal(DEMO_TOTP_SECRET);
   const us = await db.market.findUniqueOrThrow({ where: { code: "US" } });
   const prices = await db.planPrice.findMany({ where: { marketId: us.id, interval: "MONTHLY" }, include: { plan: true } });
-  const schedule = { days: [1, 2, 3, 4, 5], startTime: "09:30", hours: 9 };
+  const schedule = { days: [1, 2, 3, 4, 5], startTime: "09:30", endTime: "18:30", hours: 9, timezone: STAFF_TZ, enforceWindow: false };
+  // Arjun works the US client window (D-139): clock-in and application logging only 09:00–18:00 US Eastern.
+  const usWindow = { days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "18:00", hours: 9, timezone: "America/New_York", enforceWindow: true };
 
   const admin = await db.user.create({ data: { email: "admin@upayaind.test", name: "Asha Admin", role: "ADMIN", passwordHash, timezone: STAFF_TZ, emailVerified: new Date(), totpSecretEnc, totpEnabled: true } });
   const manager = await db.user.create({
@@ -308,12 +385,21 @@ async function seedDemo() {
     const u = await db.user.create({
       data: {
         email, name, role: "EMPLOYEE", passwordHash, timezone: STAFF_TZ, emailVerified: new Date(), totpSecretEnc, totpEnabled: true, phone: `+9198${faker.string.numeric(8)}`,
-        employee: { create: { employeeCode: `UPY-${String(12 + i).padStart(4, "0")}`, title: "Job Application Specialist", marketIds: [us.id], maxStudents: 8, workSchedule: schedule, managerId: manager.employee!.id, joiningDate: faker.date.past({ years: 1 }) } },
+        employee: { create: { employeeCode: `UPY-${String(12 + i).padStart(4, "0")}`, title: "Job Application Specialist", marketIds: [us.id], maxStudents: 8, workSchedule: i === 0 ? usWindow : schedule, managerId: manager.employee!.id, joiningDate: faker.date.past({ years: 1 }) } },
       },
       include: { employee: true },
     });
     employees.push(u);
   }
+
+  // Interview coach (role COACH, D-140): runs mock interviews only — never takes application assignments.
+  const coach = await db.user.create({
+    data: {
+      email: "coach@upayaind.test", name: "Kavya Iyer", role: "COACH", passwordHash, timezone: STAFF_TZ, emailVerified: new Date(), totpSecretEnc, totpEnabled: true,
+      employee: { create: { employeeCode: "UPY-0030", title: "Interview Coach", marketIds: [us.id], maxStudents: 0, acceptingNewStudents: false, workSchedule: schedule, managerId: manager.employee!.id, joiningDate: new Date("2025-09-01") } },
+    },
+    include: { employee: true },
+  });
 
   // Students: 2 unpaid, 1 paid awaiting onboarding/assignment, 7 active.
   const students = [];
@@ -496,9 +582,15 @@ async function seedDemo() {
   const casual = await db.leaveType.findUniqueOrThrow({ where: { name: "Casual" } });
   await db.leaveRequest.create({ data: { employeeId: employees[1]!.employee!.id, leaveTypeId: casual.id, fromDate: dateOnly(addDayKey(today, 9)), toDate: dateOnly(addDayKey(today, 10)), days: 2, reason: "Family function", status: "PENDING" } });
   await db.leaveRequest.create({ data: { employeeId: employees[2]!.employee!.id, leaveTypeId: casual.id, fromDate: dateOnly(addDayKey(today, -12)), toDate: dateOnly(addDayKey(today, -12)), days: 1, reason: "Personal errand", status: "APPROVED", decidedById: manager.id, decidedAt: new Date() } });
-  await db.mockInterview.create({ data: { studentId: active[0]!.user.student!.id, conductedById: employees[0]!.id, scheduledAt: faker.date.soon({ days: 5 }), status: "SCHEDULED", focus: "Behavioural round (STAR)", meetingLink: "https://meet.example.com/mock-1" } });
+  // The demo student is coached by Kavya; every seeded mock is hers (coachId + conductedById are both her EmployeeProfile id).
+  const coachId = coach.employee!.id;
+  await db.studentProfile.update({ where: { id: active[0]!.user.student!.id }, data: { coachId } });
+  await db.mockInterview.create({ data: { studentId: active[0]!.user.student!.id, coachId, conductedById: coachId, scheduledAt: faker.date.soon({ days: 5 }), status: "SCHEDULED", focus: "Behavioural round (STAR)", meetingLink: "https://meet.example.com/mock-1" } });
+  await db.mockInterview.create({
+    data: { studentId: active[0]!.user.student!.id, coachId, conductedById: coachId, scheduledAt: faker.date.recent({ days: 10 }), status: "DONE", focus: "Recruiter screen practice", scores: { communication: 4, technical: 3, structure: 4, confidence: 3 }, feedback: "Clear STAR answers. Quantify the results more and slow down on the technical walkthrough.", notes: "Nervous at the start; warm up with an easy question next time." },
+  });
   for (let k = 0; k < 4; k++) {
-    await db.mockInterview.create({ data: { conductedById: employees[k % 3]!.id, scheduledAt: faker.date.soon({ days: 12 }), status: "OPEN", focus: faker.helpers.arrayElement(["SQL live coding", "Behavioural", "System design basics", "Case interview"]) } });
+    await db.mockInterview.create({ data: { coachId, conductedById: coachId, scheduledAt: faker.date.soon({ days: 12 }), status: "OPEN", focus: faker.helpers.arrayElement(["SQL live coding", "Behavioural", "System design basics", "Case interview"]) } });
   }
 
   // Prep resources.
@@ -526,7 +618,7 @@ async function main() {
   console.log("✓ Reference data (markets, styles, plans, leave types, settings, CMS)");
   await seedDemo();
   console.log("✓ Demo data");
-  console.log(`\nDemo logins (password: ${DEMO_PASSWORD})\n  admin@upayaind.test · manager@upayaind.test · arjun@upayaind.test · student@upayaind.test\n  Staff 2FA secret (dev only): ${DEMO_TOTP_SECRET}\n`);
+  console.log(`\nDemo logins (password: ${DEMO_PASSWORD})\n  admin@upayaind.test · manager@upayaind.test · arjun@upayaind.test · coach@upayaind.test · student@upayaind.test\n  Staff 2FA secret (dev only): ${DEMO_TOTP_SECRET}\n`);
 }
 
 main()

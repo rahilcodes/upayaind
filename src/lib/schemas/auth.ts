@@ -32,12 +32,14 @@ export const signupSchema = z.object({
   market: z.string().trim().length(2),
   consentTerms: z.literal("on", { message: "Please accept the Terms and Privacy Policy" }),
   consentApply: z.literal("on", { message: "Please authorise us to apply on your behalf" }),
+  // Placement agreement (D-138): the fee due once the student accepts an offer. Sign-up cannot complete without it.
+  consentAgreement: z.literal("on", { message: "Please accept the Placement Agreement" }),
   plan: z.string().optional(),
   timezone: z.string().max(64).optional(),
   ref: z.string().trim().max(20).optional(),
 });
 
-export const completeProfileSchema = signupSchema.pick({ phone: true, market: true, consentTerms: true, consentApply: true, plan: true, timezone: true, ref: true });
+export const completeProfileSchema = signupSchema.pick({ phone: true, market: true, consentTerms: true, consentApply: true, consentAgreement: true, plan: true, timezone: true, ref: true });
 
 export const loginSchema = z.object({
   email: emailSchema,
@@ -63,4 +65,4 @@ export const backupCodeSchema = z.object({
     .pipe(z.string().length(8, "Enter one of your 8-character backup codes")),
 });
 
-export const CONSENT_VERSION = "2026-10-01";
+export const CONSENT_VERSION = "2026-10-15"; // bumped for the Placement Agreement (D-138)

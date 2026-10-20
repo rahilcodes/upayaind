@@ -110,7 +110,7 @@ export async function googleSignInAction(fd: FormData) {
 }
 
 export async function signupAction(_: FormState, fd: FormData): Promise<FormState> {
-  const values = valuesOf(fd, ["name", "email", "phone", "market", "plan", "consentTerms", "consentApply"]);
+  const values = valuesOf(fd, ["name", "email", "phone", "market", "plan", "consentTerms", "consentApply", "consentAgreement"]);
   const parsed = signupSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors, values };
   const phone = phoneSchema(parsed.data.market).safeParse(parsed.data.phone);
@@ -141,7 +141,7 @@ export async function signupAction(_: FormState, fd: FormData): Promise<FormStat
 export async function completeProfileAction(_: FormState, fd: FormData): Promise<FormState> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const values = valuesOf(fd, ["phone", "market", "plan"]);
+  const values = valuesOf(fd, ["phone", "market", "plan", "consentTerms", "consentApply", "consentAgreement"]);
   const parsed = completeProfileSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors, values };
   const phone = phoneSchema(parsed.data.market).safeParse(parsed.data.phone);

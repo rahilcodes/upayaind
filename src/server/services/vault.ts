@@ -187,11 +187,11 @@ export async function listCredentialsForStaff(user: Actor, studentId: string): P
  */
 export async function revealCredential(user: Actor, credentialId: string, action: RevealAction, ip?: string | null): Promise<{ username?: string; password?: string; notes?: string | null; hideAfterSeconds: number }> {
   if (!REVEAL_ACTIONS.includes(action)) throw new VaultError("Unknown action.");
-  if (user.role !== "EMPLOYEE") throw new ForbiddenError("Only the student's assigned specialist can view saved logins.");
+  if (user.role !== "EMPLOYEE") throw new ForbiddenError("Only the applicant's assigned specialist can view saved logins.");
   const c = await db.credential.findFirst({ where: { id: credentialId, deletedAt: null }, select: { id: true, studentId: true, usernameEnc: true, passwordEnc: true, notesEnc: true } });
   if (!c) throw new VaultError("This login doesn't exist or was deleted.");
   const ep = await db.employeeProfile.findUnique({ where: { userId: user.id }, select: { id: true } });
-  if (!ep || !(await hasActiveAssignment(ep.id, c.studentId))) throw new ForbiddenError("This student isn't assigned to you.");
+  if (!ep || !(await hasActiveAssignment(ep.id, c.studentId))) throw new ForbiddenError("This applicant isn't assigned to you.");
 
   await db.$transaction(async (tx) => {
     await tx.credentialAccessLog.create({ data: { credentialId: c.id, userId: user.id, action, ip: ip ?? null } });

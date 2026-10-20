@@ -48,6 +48,19 @@ function Consents({ state }: { state: FormState }) {
         <span>{t("consentApply")}</span>
       </label>
       {state.fieldErrors?.consentApply ? <p role="alert" className="-mt-1 text-[13px] font-medium text-danger">{state.fieldErrors.consentApply[0]}</p> : null}
+      <label className="flex min-h-11 items-start gap-3 text-sm text-muted-foreground">
+        <Checkbox name="consentAgreement" defaultChecked={state.values?.consentAgreement === "on"} className="mt-0.5" aria-invalid={Boolean(state.fieldErrors?.consentAgreement) || undefined} />
+        <span>
+          {t.rich("consentAgreement", {
+            agreement: (c) => (
+              <Link href="/legal/agreement" target="_blank" className="font-semibold text-primary underline-offset-2 hover:underline">
+                {c}
+              </Link>
+            ),
+          })}
+        </span>
+      </label>
+      {state.fieldErrors?.consentAgreement ? <p role="alert" className="-mt-1 text-[13px] font-medium text-danger">{state.fieldErrors.consentAgreement[0]}</p> : null}
     </fieldset>
   );
 }

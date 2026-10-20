@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { BookOpen, CalendarPlus, FileQuestion, FileText, Link2, PlayCircle, Sparkles, Star } from "lucide-react";
+import { BookOpen, CalendarPlus, FileQuestion, FileText, Link2, PlayCircle, Sparkles, Star, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/portal/portal-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,6 +107,15 @@ export default async function PrepPage({ searchParams }: { searchParams: Promise
               <CardTitle>{t("mocksTitle")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
+              {d.coach ? (
+                <p className="flex items-start gap-2 rounded-[12px] bg-accent px-3 py-2.5 text-sm text-accent-foreground">
+                  <UserRound className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    <span className="font-semibold">{t("yourCoach", { name: d.coach.firstName })}</span>
+                    <span className="block text-[13px] opacity-80">{t("yourCoachHint", { name: d.coach.firstName })}</span>
+                  </span>
+                </p>
+              ) : null}
               {d.upcomingMocks.length ? (
                 <div>
                   <p className="mb-2 text-sm font-semibold">{t("yourBookings")}</p>

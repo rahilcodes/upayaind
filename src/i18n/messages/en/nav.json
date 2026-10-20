@@ -12,7 +12,7 @@
     "billing": "Billing",
     "settings": "Settings",
     "today": "Today",
-    "students": "My students",
+    "students": "My applicants",
     "timesheet": "Timesheet",
     "leave": "Leave",
     "overview": "Overview",
@@ -46,6 +46,9 @@
       "system": "System"
     },
     "referrals": "Refer a friend",
-    "weeklyReports": "Weekly reports"
+    "weeklyReports": "Weekly reports",
+    "sessions": "Sessions",
+    "applicants": "Applicants",
+    "coachPortal": "Coach portal"
   }
 }

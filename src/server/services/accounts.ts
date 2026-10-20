@@ -75,6 +75,7 @@ export async function registerStudent(input: {
           marketId: market.id,
           consentTermsAt: now,
           consentApplyOnBehalfAt: now,
+          consentAgreementAt: now,
           consentVersion: CONSENT_VERSION,
         },
       },
@@ -102,8 +103,8 @@ export async function completeStudentProfile(userId: string, input: { phone: str
       timezone: safeTimezone(input.timezone, market.defaultTimezone),
       student: {
         upsert: {
-          create: { marketId: market.id, consentTermsAt: now, consentApplyOnBehalfAt: now, consentVersion: CONSENT_VERSION },
-          update: { marketId: market.id, consentTermsAt: now, consentApplyOnBehalfAt: now, consentVersion: CONSENT_VERSION },
+          create: { marketId: market.id, consentTermsAt: now, consentApplyOnBehalfAt: now, consentAgreementAt: now, consentVersion: CONSENT_VERSION },
+          update: { marketId: market.id, consentTermsAt: now, consentApplyOnBehalfAt: now, consentAgreementAt: now, consentVersion: CONSENT_VERSION },
         },
       },
     },

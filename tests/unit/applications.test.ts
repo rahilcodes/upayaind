@@ -301,6 +301,58 @@ describe("markApplied (F4 logging)", () => {
   });
 });
 
+describe("enforced working window (D-139)", () => {
+  // Only Date is faked so Prisma/pg timers keep working.
+  const at = (iso: string) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(iso));
+  };
+  afterEach(() => vi.useRealTimers());
+  // 09:00–18:00 New York = 13:00Z–22:00Z on 12 Oct 2026 (Monday, EDT).
+  const WINDOW = { days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "18:00", timezone: "America/New_York", enforceWindow: true };
+
+  async function windowed(enforceWindow = true) {
+    const c = await setup();
+    await db.employeeProfile.update({ where: { id: c.emp.employee.id }, data: { workSchedule: { ...WINDOW, enforceWindow } } });
+    // The faked clock sits before the real "now" the assignment was created at; backdate it so it counts as active.
+    await db.assignment.updateMany({ where: { studentId: c.studentId }, data: { startsAt: new Date("2026-10-01T00:00:00Z") } });
+    return c;
+  }
+
+  it("refuses quick log outside the window and when not clocked in", async () => {
+    const c = await windowed();
+    at("2026-10-12T12:00:00Z"); // 08:00 New York
+    await expect(quickLog(c.actor, job(c))).rejects.toMatchObject({ code: "outside_window", message: "You can only log applications while clocked in during your working window (09:00–18:00 America/New_York)." });
+    at("2026-10-12T15:00:00Z"); // inside, but not clocked in
+    await expect(quickLog(c.actor, job(c))).rejects.toMatchObject({ code: "outside_window" });
+    expect(await db.jobApplication.count()).toBe(0);
+    // CSV import goes through the same gate.
+    await expect(commitCsvImport(c.actor, c.studentId, "job_url,company,title\nhttps://jobs.example.com/1,Acme,Analyst")).rejects.toMatchObject({ code: "outside_window" });
+  });
+
+  it("allows logging while clocked in inside the window; managers and admins are exempt", async () => {
+    const c = await windowed();
+    at("2026-10-12T15:00:00Z");
+    await db.workSession.create({ data: { employeeId: c.emp.employee.id, startedAt: new Date("2026-10-12T13:05:00Z") } });
+    await expect(quickLog(c.actor, job(c))).resolves.toHaveProperty("applicationId");
+    at("2026-10-12T23:00:00Z"); // window closed; the session is still open
+    await expect(quickLog(c.actor, { ...job(c), jobUrl: "https://jobs.example.com/late" })).rejects.toMatchObject({ code: "outside_window" });
+    // Different employers so the similar-application rule stays out of the way.
+    await expect(quickLog(c.admin, { ...job(c), jobUrl: "https://jobs.example.com/admin", companyName: "Acme Robotics" })).resolves.toHaveProperty("applicationId");
+    const mgr = await db.user.create({ data: { email: `mgr${Date.now()}@t.test`, name: "Meena", role: "MANAGER", employee: { create: { employeeCode: `UPY-M${Date.now()}`, marketIds: [c.market.id], workSchedule: WINDOW } } } });
+    await expect(quickLog({ id: mgr.id, role: "MANAGER", timezone: "UTC" }, { ...job(c), jobUrl: "https://jobs.example.com/mgr", companyName: "Globex Finance" })).resolves.toHaveProperty("applicationId");
+    // Status updates are never gated.
+    const r = await db.jobApplication.findFirstOrThrow({ where: { employeeId: c.emp.employee.id } });
+    await expect(updateStatus(c.actor, { applicationId: r.id, to: "VIEWED" })).resolves.toMatchObject({ status: "VIEWED" });
+  });
+
+  it("ignores the window when it isn't enforced", async () => {
+    const c = await windowed(false);
+    at("2026-10-12T12:00:00Z");
+    await expect(quickLog(c.actor, job(c))).resolves.toHaveProperty("applicationId");
+  });
+});
+
 describe("CSV bulk import", () => {
   it("previews per-row errors and applies the duplicate rules, then imports valid rows", async () => {
     const c = await setup();

@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Log in", robots: { index: false } };
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const t = await getTranslations("auth");
-  const team = sp.team === "1" || sp.next?.startsWith("/work") || sp.next?.startsWith("/admin");
+  const team = sp.team === "1" || sp.next?.startsWith("/work") || sp.next?.startsWith("/admin") || sp.next?.startsWith("/coach");
   return (
     <AuthShell variant={team ? "team" : "student"}>
       <AuthHeading title={team ? t("teamLoginTitle") : t("loginTitle")} subtitle={team ? t("teamLoginSubtitle") : t("loginSubtitle")} />

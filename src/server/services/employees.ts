@@ -12,6 +12,7 @@ import { issueToken } from "./auth-tokens";
 import { sendEmail } from "./email";
 import { getSetting } from "./settings";
 import { readSchedule, todayTargets } from "./admin-metrics";
+import { windowHours } from "./work-window";
 
 /**
  * Employee administration (SPEC §11 Employees, F2 re-homing on deactivation).
@@ -51,12 +52,6 @@ export async function nextEmployeeCode(tx: Tx | typeof db = db): Promise<string>
   throw new EmployeeAdminError("Couldn't allocate an employee code. Please try again.");
 }
 
-const scheduleSchema = z.object({
-  days: z.array(z.coerce.number().int().min(1).max(7)).min(1, "Pick at least one working day.").max(7),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:mm, e.g. 09:30."),
-  hours: z.coerce.number().min(1, "At least 1 hour.").max(14, "At most 14 hours."),
-});
-
 const tzSchema = z
   .string()
   .trim()
@@ -71,6 +66,25 @@ const tzSchema = z
     }
   }, "Unknown time zone.");
 
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:mm, e.g. 09:30.");
+
+/**
+ * Working window (D-139): clock-in → clock-out in the window's own zone.
+ * `hours` is derived (windows may cross midnight); `enforceWindow` gates
+ * clock-in and application logging.
+ */
+const scheduleSchema = z
+  .object({
+    days: z.array(z.coerce.number().int().min(1).max(7)).min(1, "Pick at least one working day.").max(7),
+    startTime: hhmm,
+    endTime: hhmm,
+    timezone: tzSchema.default("America/New_York"),
+    enforceWindow: z.boolean().default(false),
+  })
+  .transform((s) => ({ ...s, hours: windowHours(s.startTime, s.endTime) }))
+  .refine((s) => s.hours >= 1, { message: "The window must be at least 1 hour.", path: ["endTime"] })
+  .refine((s) => s.hours <= 14, { message: "The window can be at most 14 hours.", path: ["endTime"] });
+
 export const employeeInputSchema = z.object({
   name: z.string().trim().min(2, "Enter the full name.").max(120),
   email: emailSchema,
@@ -81,7 +95,7 @@ export const employeeInputSchema = z.object({
   managerId: z.string().min(1).nullable().optional(),
   timezone: tzSchema.default("Asia/Kolkata"),
   schedule: scheduleSchema,
-  role: z.enum(["EMPLOYEE", "MANAGER"]).default("EMPLOYEE"),
+  role: z.enum(["EMPLOYEE", "MANAGER", "COACH"]).default("EMPLOYEE"),
   acceptingNewStudents: z.boolean().default(true),
 });
 export type EmployeeInput = z.input<typeof employeeInputSchema>;
@@ -126,7 +140,10 @@ export async function createEmployee(actor: Actor, raw: EmployeeInput) {
   await validateRefs(input);
   const exists = await db.user.findUnique({ where: { email: input.email }, select: { id: true } });
   if (exists) throw new EmployeeAdminError("An account with this email already exists.", "email");
-  const maxStudents = input.maxStudents ?? (await getSetting("defaultMaxStudents"));
+  // Interview coaches never take application load (D-140).
+  const coach = input.role === "COACH";
+  const maxStudents = coach ? 0 : (input.maxStudents ?? (await getSetting("defaultMaxStudents")));
+  const acceptingNewStudents = coach ? false : input.acceptingNewStudents;
 
   const created = await db.$transaction(async (tx) => {
     const employeeCode = await nextEmployeeCode(tx);
@@ -144,7 +161,7 @@ export async function createEmployee(actor: Actor, raw: EmployeeInput) {
             title: input.title || null,
             marketIds: input.marketIds,
             maxStudents,
-            acceptingNewStudents: input.acceptingNewStudents,
+            acceptingNewStudents,
             managerId: input.managerId ?? null,
             workSchedule: input.schedule,
             joiningDate: new Date(),
@@ -153,7 +170,7 @@ export async function createEmployee(actor: Actor, raw: EmployeeInput) {
       },
       select: { id: true, employee: { select: { id: true, employeeCode: true } } },
     });
-    await audit({ actorId: actor.id, action: "employee.create", entity: "EmployeeProfile", entityId: user.employee!.id, after: { email: input.email, name: input.name, role: input.role, employeeCode, marketIds: input.marketIds, maxStudents } }, tx);
+    await audit({ actorId: actor.id, action: "employee.create", entity: "EmployeeProfile", entityId: user.employee!.id, after: { email: input.email, name: input.name, role: input.role, employeeCode, marketIds: input.marketIds, maxStudents, workSchedule: input.schedule } }, tx);
     return { userId: user.id, employeeId: user.employee!.id, employeeCode };
   });
   await sendInviteEmail(created.userId);
@@ -181,13 +198,15 @@ export async function updateEmployee(actor: Actor, raw: z.input<typeof employeeU
   if (before.user.role === "ADMIN") throw new EmployeeAdminError("Admin accounts can't be edited here.");
   if (actor.role !== "ADMIN" && (before.user.role === "MANAGER" || input.role === "MANAGER")) throw new EmployeeAdminError("Only an admin can edit managers or change roles to manager.", "role");
   await validateRefs({ ...input, email: "x@x.x" } as z.infer<typeof employeeInputSchema>, input.employeeId);
-  const maxStudents = input.maxStudents ?? before.maxStudents;
+  const coach = input.role === "COACH";
+  const maxStudents = coach ? 0 : (input.maxStudents ?? before.maxStudents);
+  const acceptingNewStudents = coach ? false : input.acceptingNewStudents;
 
   await db.$transaction(async (tx) => {
     await tx.user.update({ where: { id: before.userId }, data: { name: input.name, phone: input.phone ?? null, role: input.role, timezone: input.timezone } });
     await tx.employeeProfile.update({
       where: { id: input.employeeId },
-      data: { title: input.title || null, marketIds: input.marketIds, maxStudents, managerId: input.managerId ?? null, workSchedule: input.schedule, acceptingNewStudents: input.acceptingNewStudents },
+      data: { title: input.title || null, marketIds: input.marketIds, maxStudents, managerId: input.managerId ?? null, workSchedule: input.schedule, acceptingNewStudents },
     });
     await audit(
       {
@@ -196,7 +215,7 @@ export async function updateEmployee(actor: Actor, raw: z.input<typeof employeeU
         entity: "EmployeeProfile",
         entityId: input.employeeId,
         before: { name: before.user.name, phone: before.user.phone, role: before.user.role, timezone: before.user.timezone, title: before.title, marketIds: before.marketIds, maxStudents: before.maxStudents, managerId: before.managerId, workSchedule: before.workSchedule, acceptingNewStudents: before.acceptingNewStudents },
-        after: { name: input.name, phone: input.phone ?? null, role: input.role, timezone: input.timezone, title: input.title || null, marketIds: input.marketIds, maxStudents, managerId: input.managerId ?? null, workSchedule: input.schedule, acceptingNewStudents: input.acceptingNewStudents },
+        after: { name: input.name, phone: input.phone ?? null, role: input.role, timezone: input.timezone, title: input.title || null, marketIds: input.marketIds, maxStudents, managerId: input.managerId ?? null, workSchedule: input.schedule, acceptingNewStudents },
       },
       tx,
     );
@@ -246,7 +265,7 @@ export async function listEmployees(opts: { q?: string; status?: string; now?: D
     where: {
       user: {
         deletedAt: null,
-        role: { in: ["EMPLOYEE", "MANAGER"] },
+        role: { in: ["EMPLOYEE", "MANAGER", "COACH"] },
         ...(statusFilter ? { status: { in: statusFilter } } : {}),
         ...(opts.q ? { OR: [{ name: { contains: opts.q, mode: "insensitive" } }, { email: { contains: opts.q, mode: "insensitive" } }] } : {}),
       },
@@ -453,7 +472,7 @@ export async function getEmployeeDetail(employeeId: string, now = new Date()) {
     joiningDate: e.joiningDate,
     managerId: e.managerId,
     managerName: manager?.user.name ?? null,
-    schedule: readSchedule(e.workSchedule),
+    schedule: readSchedule(e.workSchedule, e.user.timezone),
     markets,
     marketIds: e.marketIds,
     user: e.user,

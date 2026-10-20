@@ -1,4 +1,5 @@
 import { db } from "@/server/db";
+import type { Prisma } from "@/generated/prisma/client";
 
 /** Wipe every table in the test database (fast, keeps the schema). */
 export async function resetDb() {
@@ -18,7 +19,10 @@ export async function makeMarket(code = "US") {
   return db.market.upsert({ where: { code }, update: {}, create: { code, name: code, currency: "USD", minPriceMinor: 4900, defaultTimezone: "America/New_York", resumeStyleId: style.id } });
 }
 
-export async function makeEmployee(marketId: string, opts: { maxStudents?: number; accepting?: boolean; status?: "ACTIVE" | "DEACTIVATED"; name?: string } = {}) {
+/** Default schedule (D-139 shape): Mon–Fri 09:30–18:30 IST, window not enforced. */
+export const TEST_SCHEDULE = { days: [1, 2, 3, 4, 5], startTime: "09:30", endTime: "18:30", hours: 9, timezone: "Asia/Kolkata", enforceWindow: false };
+
+export async function makeEmployee(marketId: string, opts: { maxStudents?: number; accepting?: boolean; status?: "ACTIVE" | "DEACTIVATED"; name?: string; schedule?: Prisma.InputJsonObject } = {}) {
   const u = await db.user.create({
     data: {
       email: `${uid("e")}@t.test`,
@@ -26,11 +30,27 @@ export async function makeEmployee(marketId: string, opts: { maxStudents?: numbe
       role: "EMPLOYEE",
       status: opts.status ?? "ACTIVE",
       timezone: "Asia/Kolkata",
-      employee: { create: { employeeCode: uid("UPY-"), marketIds: [marketId], maxStudents: opts.maxStudents ?? 8, acceptingNewStudents: opts.accepting ?? true, workSchedule: { days: [1, 2, 3, 4, 5], startTime: "09:30", hours: 9 } } },
+      employee: { create: { employeeCode: uid("UPY-"), marketIds: [marketId], maxStudents: opts.maxStudents ?? 8, acceptingNewStudents: opts.accepting ?? true, workSchedule: opts.schedule ?? TEST_SCHEDULE } },
     },
     include: { employee: true },
   });
   return { user: u, employee: u.employee! };
+}
+
+/** An interview coach (role COACH, D-140): has an EmployeeProfile but never takes application assignments. */
+export async function makeCoach(marketId: string, opts: { name?: string; status?: "ACTIVE" | "DEACTIVATED" } = {}) {
+  const u = await db.user.create({
+    data: {
+      email: `${uid("c")}@t.test`,
+      name: opts.name ?? "Kavya Iyer",
+      role: "COACH",
+      status: opts.status ?? "ACTIVE",
+      timezone: "Asia/Kolkata",
+      employee: { create: { employeeCode: uid("UPY-"), title: "Interview Coach", marketIds: [marketId], maxStudents: 0, acceptingNewStudents: false, workSchedule: { days: [1, 2, 3, 4, 5], startTime: "09:30", hours: 9 } } },
+    },
+    include: { employee: true },
+  });
+  return { user: u, employee: u.employee!, actor: { id: u.id, role: "COACH" as const } };
 }
 
 export async function makeStudent(marketId: string, name = "Stu") {

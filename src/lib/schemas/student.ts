@@ -135,6 +135,9 @@ export const STUDENT_EMAIL_PREFS = [
   "assigned_student",
   "reassigned_student",
   "mock_interview_booked",
+  "mock_session_scheduled",
+  "mock_session_cancelled",
+  "coach_assigned",
   "testimonial_request",
 ] as const;
 export const STUDENT_MANDATORY_EMAILS = ["payment_succeeded", "payment_failed", "renewal_reminder", "credential_access_digest"] as const;

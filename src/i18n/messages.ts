@@ -3,7 +3,7 @@
  * and merged here, so features can own their copy without editing one huge file.
  * Each file's top-level keys are namespaces; files must not share namespaces.
  */
-const FILES = ["core", "auth", "nav", "marketing", "billing", "workspace", "resume", "student", "work", "admin", "messaging", "cms", "emails", "system"] as const;
+const FILES = ["core", "auth", "nav", "marketing", "billing", "workspace", "resume", "student", "work", "coach", "admin", "messaging", "cms", "emails", "system"] as const;
 
 export async function loadMessages(locale: string) {
   const merged: Record<string, unknown> = {};

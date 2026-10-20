@@ -202,6 +202,25 @@ export const TEMPLATES = {
     body: (p) => `${s(p.focus)} with ${s(p.with)}.`,
     link: () => "/app/prep",
   },
+  mock_session_scheduled: {
+    whatsapp: true,
+    title: () => "Mock interview scheduled",
+    body: (p) => `${s(p.coach)} scheduled ${s(p.focus) || "a mock interview"} with you on ${s(p.when)}.${p.meetingLink ? ` Join: ${s(p.meetingLink)}` : ""}`,
+    link: () => "/app/prep",
+    cta: () => "See the details",
+  },
+  mock_session_cancelled: {
+    title: () => "Mock interview cancelled",
+    body: (p) => `${s(p.coach)} cancelled ${s(p.focus) || "your mock interview"} on ${s(p.when)}.${p.reason ? ` ${s(p.reason)}` : ""} Book another slot from your Prep page.`,
+    link: () => "/app/prep",
+    cta: () => "Open interview prep",
+  },
+  coach_assigned: {
+    title: (p) => `Your interview coach is ${s(p.coachFirstName)}`,
+    body: (p) => `${s(p.coachFirstName)} will run your mock interviews and training sessions. Book a slot or wait for ${s(p.coachFirstName)} to schedule one.`,
+    link: () => "/app/prep",
+    cta: () => "Open interview prep",
+  },
   referral_joined: {
     title: (p) => `${s(p.friendName)} joined UpayaInd with your link`,
     body: (p) => `You’ll get ${s(p.credit)} credit as soon as ${s(p.friendName)} makes their first payment.`,

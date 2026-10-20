@@ -230,11 +230,17 @@
         "roleHint": "Only an admin can create managers.",
         "roleEmployee": "Specialist (employee)",
         "roleManager": "Manager",
+        "roleCoach": "Interview coach (mock interviews only)",
         "timezone": "Time zone",
         "schedule": "Work schedule",
         "workingDays": "Working days",
-        "startTime": "Start time",
-        "hours": "Hours per day",
+        "startTime": "Clock-in time",
+        "endTime": "Clock-out time",
+        "windowHours": "{h} h window",
+        "windowTimezone": "Window time zone",
+        "windowTimezoneHint": "The window is fixed in this zone, whatever zone the employee picks for themselves.",
+        "enforceWindow": "Enforce window",
+        "enforceWindowHint": "The employee can only clock in and log applications inside it. Open sessions are closed automatically when it ends.",
         "accepting": "Accepting new students"
       },
       "reset2fa": "Reset 2FA",
@@ -277,7 +283,9 @@
       "markets": "Markets",
       "manager": "Manager",
       "schedule": "Schedule",
-      "scheduleValue": "{days} · from {start} · {hours} h",
+      "scheduleValue": "{days} · {start}–{end} {tz} · {hours} h",
+      "scheduleEnforced": "Window enforced: clock-in and application logging only inside it.",
+      "scheduleNotEnforced": "Window not enforced (informational).",
       "timezone": "Time zone",
       "joined": "Joined",
       "leaveTitle": "Leave balance (this year)",
@@ -464,7 +472,7 @@
       "slotsTitle": "Add mock interview slots",
       "slotsDescription": "Open slots appear on students’ Prep page for booking. Times are in your time zone ({tz}).",
       "conductedBy": "Run by",
-      "pickStaff": "Choose a specialist or trainer",
+      "pickStaff": "Choose an interview coach or specialist",
       "focus": "Focus",
       "focusPlaceholder": "e.g. SQL live coding, behavioural (STAR)",
       "firstSlot": "First slot starts",
@@ -506,7 +514,8 @@
       "pastTitle": "Past 30 days",
       "pastDescription": "Completed, missed and cancelled sessions.",
       "pastEmpty": "Nothing yet.",
-      "cancelSlot": "Cancel"
+      "cancelSlot": "Cancel",
+      "coachOption": "{name} · Interview coach"
     },
     "reports": {
       "title": "Reports",
@@ -658,7 +667,8 @@
       "resumed": "Subscription resumed and the period extended.",
       "twoFactorReset": "Two-step verification reset. The employee has been emailed.",
       "webhooksSaved": "Webhook alerts saved",
-      "testAlertSent": "Test alert delivered"
+      "testAlertSent": "Test alert delivered",
+      "coachAssigned": "Interview coach updated"
     },
     "reassign": {
       "assign": "Assign",
@@ -877,7 +887,25 @@
         "PENDING": "Pending first payment",
         "CREDITED": "Credited"
       },
-      "noReferrals": "No referrals yet."
+      "noReferrals": "No referrals yet.",
+      "agreement": "Placement agreement",
+      "agreementAt": "Accepted {date}",
+      "coach": {
+        "title": "Interview coach",
+        "description": "Runs this student's mock interviews and training sessions. Separate from the application specialist.",
+        "current": "Current coach",
+        "none": "No interview coach assigned",
+        "pick": "Interview coach",
+        "pickNone": "— No coach —",
+        "load": "{count, plural, =0 {no applicants} one {# applicant} other {# applicants}}",
+        "assign": "Assign",
+        "change": "Change coach",
+        "unassign": "Unassign",
+        "unassignTitle": "Remove the interview coach?",
+        "unassignBody": "{name} will no longer see this student. Existing sessions stay on record.",
+        "noCoaches": "No active interview coaches yet. Create one under Employees with the role “Interview coach”.",
+        "sessions": "{count, plural, =0 {No sessions yet} one {# session} other {# sessions}}"
+      }
     },
     "viewAs": {
       "button": "View as student",

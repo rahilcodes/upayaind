@@ -22,7 +22,7 @@ function input(marketId: string, over: Record<string, unknown> = {}) {
     marketIds: [marketId],
     managerId: null,
     timezone: "Asia/Kolkata",
-    schedule: { days: [1, 2, 3, 4, 5], startTime: "09:30", hours: 9 },
+    schedule: { days: [1, 2, 3, 4, 5], startTime: "09:30", endTime: "18:30", timezone: "Asia/Kolkata", enforceWindow: false },
     role: "EMPLOYEE" as const,
     ...over,
   };
@@ -56,6 +56,8 @@ describe("createEmployee", () => {
     expect(u.role).toBe("EMPLOYEE");
     expect(u.passwordHash).toBeNull();
     expect(u.employee!.maxStudents).toBe(11);
+    // D-139: hours are derived server-side from the clock-in/out window.
+    expect(u.employee!.workSchedule).toEqual({ days: [1, 2, 3, 4, 5], startTime: "09:30", endTime: "18:30", timezone: "Asia/Kolkata", enforceWindow: false, hours: 9 });
     expect(await db.authToken.count({ where: { userId: r.userId, type: "INVITE", consumedAt: null } })).toBe(1);
     expect(devOutbox.at(-1)?.text).toMatch(/\/invite\?token=/);
     expect(await db.auditLog.count({ where: { action: "employee.create", entityId: r.employeeId } })).toBe(1);
@@ -76,7 +78,20 @@ describe("createEmployee", () => {
     const i = input(m.id);
     await createEmployee(manager, i);
     await expect(createEmployee(manager, { ...i })).rejects.toThrow(/already exists/);
-    await expect(createEmployee(manager, input(m.id, { schedule: { days: [], startTime: "9", hours: 30 } }))).rejects.toThrow();
+    await expect(createEmployee(manager, input(m.id, { schedule: { days: [], startTime: "9", endTime: "18:00" } }))).rejects.toThrow();
+    await expect(createEmployee(manager, input(m.id, { schedule: { days: [1], startTime: "09:00", endTime: "09:30", timezone: "Asia/Kolkata" } }))).rejects.toThrow(/at least 1 hour/);
+    await expect(createEmployee(manager, input(m.id, { schedule: { days: [1], startTime: "09:00", endTime: "18:00", timezone: "Mars/Olympus" } }))).rejects.toThrow(/time zone/);
+  });
+
+  it("stores an overnight enforced window with derived hours and audits the schedule", async () => {
+    const m = await makeMarket();
+    const r = await createEmployee(admin, input(m.id, { schedule: { days: [1, 2, 3, 4, 5], startTime: "18:30", endTime: "03:30", timezone: "America/New_York", enforceWindow: true } }));
+    const ep = await db.employeeProfile.findUniqueOrThrow({ where: { id: r.employeeId }, select: { workSchedule: true } });
+    expect(ep.workSchedule).toMatchObject({ startTime: "18:30", endTime: "03:30", hours: 9, timezone: "America/New_York", enforceWindow: true });
+    await updateEmployee(admin, { ...input(m.id), employeeId: r.employeeId, schedule: { days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "17:00", timezone: "America/New_York", enforceWindow: false } });
+    const log = await db.auditLog.findFirstOrThrow({ where: { action: "employee.update", entityId: r.employeeId } });
+    expect((log.before as { workSchedule: { enforceWindow: boolean } }).workSchedule.enforceWindow).toBe(true);
+    expect((log.after as { workSchedule: { hours: number; enforceWindow: boolean } }).workSchedule).toMatchObject({ hours: 8, enforceWindow: false });
   });
 
   it("managers can't promote to manager on edit", async () => {

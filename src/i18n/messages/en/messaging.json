@@ -3,7 +3,7 @@
     "list": {
       "aria": "Conversations",
       "search": "Search conversations",
-      "empty": "No conversations yet. Threads start automatically when a student is assigned to you.",
+      "empty": "No conversations yet. Threads start automatically when an applicant is assigned to you.",
       "emptyStudent": "No conversations yet.",
       "you": "You",
       "attachment": "Attachment",
@@ -20,14 +20,14 @@
       "back": "Back to conversations",
       "yourSpecialist": "Your specialist",
       "previousSpecialist": "Previous specialist · read-only",
-      "student": "Student",
+      "student": "Applicant",
       "observer": "Read-only view",
-      "viewStudent": "View student",
+      "viewStudent": "View applicant",
       "empty": "No messages yet. Say hello!",
       "emptyStudent": "No messages yet. Ask {name} anything about your job search.",
       "readOnlyObserver": "You're viewing this conversation for quality control. Only the student and their specialist can reply.",
       "readOnlyClosed": "This conversation is closed because you have a new specialist. You can still read it.",
-      "broadcast": "Message to all students",
+      "broadcast": "Message to all applicants",
       "read": "Read",
       "sent": "Sent"
     },
@@ -58,19 +58,19 @@
       "older": "Showing the latest 100 messages."
     },
     "broadcast": {
-      "open": "Message all students",
-      "title": "Message all my students",
-      "description": "Each of your {count, plural, one {# student} other {# students}} gets this as an individual message in their own conversation.",
+      "open": "Message all applicants",
+      "title": "Message all my applicants",
+      "description": "Each of your {count, plural, one {# applicant} other {# applicants}} gets this as an individual message in their own conversation.",
       "label": "Message",
       "hint": "For notices such as holidays or schedule changes. Markdown-lite is supported.",
       "cancel": "Cancel",
-      "send": "Send to {count, plural, one {# student} other {# students}}",
-      "sent": "Message sent to all your students"
+      "send": "Send to {count, plural, one {# applicant} other {# applicants}}",
+      "sent": "Message sent to all your applicants"
     },
     "work": {
       "metaTitle": "Messages",
       "title": "Messages",
-      "description": "Conversations with your assigned students. New messages appear automatically.",
+      "description": "Conversations with your assigned applicants. New messages appear automatically.",
       "descriptionAll": "Every conversation, read-only for quality control. Viewing doesn't mark messages as read.",
       "viewNav": "Conversation view",
       "mine": "My threads",

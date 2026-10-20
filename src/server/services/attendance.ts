@@ -5,7 +5,9 @@ import type { AttendanceStatus, Role } from "@/generated/prisma/enums";
 import { db, Prisma } from "@/server/db";
 import { addDayKey, dateOnly, dayKey, eachDayKey, keyFromDateOnly, startOfDayInTz, weekdayOfKey } from "@/lib/dates";
 import { formatInTz } from "@/lib/format";
+import { tzLabel } from "@/components/work/tz";
 import { audit } from "./audit";
+import { DEFAULT_SCHEDULE, parseSchedule, windowStatus, type WindowStatus, type WorkSchedule } from "./work-window";
 
 /**
  * Attendance & time tracking (SPEC F8).
@@ -15,6 +17,9 @@ import { audit } from "./audit";
  * - Heartbeats (POST /api/heartbeat) upsert one ActivityMinute per minute.
  * - Day figures are computed live for today and rolled up nightly into EmployeeDay.
  * - Forgotten sessions are auto-closed at the last activity ping + 5 min (autoClosed=true).
+ * - Working window (D-139): admins set start/end/timezone per employee; when
+ *   `enforceWindow` is on, clock-in is refused outside it and open sessions are
+ *   auto-closed at the window end. Clock-out is always allowed.
  *
  * Holiday region (D-070): staff whose timezone is in India (Asia/Kolkata) use
  * region "IN"; everyone else uses the codes of the markets they serve.
@@ -31,15 +36,23 @@ type Actor = { id: string; role: Role };
 
 // ───────────────────────────── Schedule ─────────────────────────────
 
-export type WorkSchedule = { days: number[]; startTime: string; hours: number };
-export const DEFAULT_SCHEDULE: WorkSchedule = { days: [1, 2, 3, 4, 5], startTime: "09:30", hours: 9 };
+// Shape + parsing live in ./work-window (pure); re-exported so existing imports keep working.
+export { DEFAULT_SCHEDULE, parseSchedule, windowStatus, type WindowStatus, type WorkSchedule };
 
-export function parseSchedule(raw: unknown): WorkSchedule {
-  const r = (raw ?? {}) as Partial<WorkSchedule>;
-  const days = Array.isArray(r.days) ? r.days.filter((d) => Number.isInteger(d) && d >= 1 && d <= 7) : DEFAULT_SCHEDULE.days;
-  const startTime = typeof r.startTime === "string" && /^\d{1,2}:\d{2}$/.test(r.startTime) ? r.startTime : DEFAULT_SCHEDULE.startTime;
-  const hours = typeof r.hours === "number" && r.hours > 0 && r.hours <= 24 ? r.hours : DEFAULT_SCHEDULE.hours;
-  return { days, startTime, hours };
+/** The zone a window is evaluated in: its own, falling back to the employee's zone for legacy rows. */
+export function windowTimezone(schedule: WorkSchedule, userTimezone: string) {
+  return schedule.timezone ?? userTimezone;
+}
+
+/** Window status for an employee at `now` (D-139). Never uses `User.timezone` when the window has its own zone. */
+export function employeeWindow(ctx: Pick<EmployeeCtx, "schedule" | "timezone">, now = new Date()): WindowStatus {
+  return windowStatus(ctx.schedule, windowTimezone(ctx.schedule, ctx.timezone), now);
+}
+
+/** "6:30 PM IST" / "Mon 6:30 PM IST" in the employee's own zone. */
+function localTimeLabel(at: Date, now: Date, userTimezone: string) {
+  const pattern = dayKey(at, userTimezone) === dayKey(now, userTimezone) ? "h:mm a" : "EEE h:mm a";
+  return `${formatInTz(at, userTimezone, pattern)} ${tzLabel(userTimezone, at)}`;
 }
 
 const INDIA_TZ = new Set(["Asia/Kolkata", "Asia/Calcutta"]);
@@ -72,7 +85,7 @@ export async function employeeContext(employeeId: string): Promise<EmployeeCtx> 
     userId: e.userId,
     name: e.user.name,
     timezone: e.user.timezone,
-    schedule: parseSchedule(e.workSchedule),
+    schedule: parseSchedule(e.workSchedule, e.user.timezone),
     regions: holidayRegions(e.user.timezone, markets.map((m) => m.code)),
     managerId: e.managerId,
   };
@@ -153,6 +166,12 @@ async function openSession(employeeId: string) {
 
 export async function clockIn(user: Actor, now = new Date()) {
   const employeeId = await myEmployeeId(user);
+  const ctx = await employeeContext(employeeId);
+  const w = employeeWindow(ctx, now);
+  if (w.enforced && !w.inWindow) {
+    const from = w.opensAt ? ` You can clock in from ${localTimeLabel(w.opensAt, now, ctx.timezone)}.` : " No working days are set — ask your manager.";
+    throw new AttendanceError(`Your working window is ${w.label}.${from}`);
+  }
   try {
     const s = await db.workSession.create({ data: { employeeId, startedAt: now }, select: { id: true, startedAt: true } });
     return s;
@@ -295,7 +314,7 @@ export async function getMyToday(user: Actor, now = new Date()) {
   const employeeId = await myEmployeeId(user);
   const ctx = await employeeContext(employeeId);
   const key = dayKey(now, ctx.timezone);
-  return { ctx, day: await computeDay(ctx, key, now) };
+  return { ctx, day: await computeDay(ctx, key, now), window: employeeWindow(ctx, now) };
 }
 
 const OVERRIDE_ACTION = "attendance.day_override";
@@ -334,26 +353,38 @@ export async function rollupDay(employeeId: string, key: string, now = new Date(
  * Close sessions left open from a previous local day at the last activity
  * ping + 5 min (or the clock-in time when there was no activity), flag
  * autoClosed, and close any open break at the same instant.
+ *
+ * Enforced working windows (D-139): a session still open after its window
+ * has closed is closed at the window end instead (even on the same day).
  */
 export async function autoCloseSessions(now = new Date()) {
   const open = await db.workSession.findMany({
     where: { endedAt: null },
-    select: { id: true, startedAt: true, employeeId: true, employee: { select: { userId: true, user: { select: { timezone: true } } } } },
+    select: { id: true, startedAt: true, employeeId: true, employee: { select: { userId: true, workSchedule: true, user: { select: { timezone: true } } } } },
   });
   const closed: { id: string; employeeId: string; endedAt: Date }[] = [];
   for (const s of open) {
     const tz = s.employee.user.timezone;
-    const today = dayKey(now, tz);
-    const startedKey = dayKey(s.startedAt, tz);
-    if (startedKey >= today) continue; // still the same local day
-    const dayEnd = startOfDayInTz(addDayKey(startedKey, 1), tz);
-    const last = await db.activityMinute.findFirst({
-      where: { userId: s.employee.userId, minute: { gte: s.startedAt, lt: dayEnd } },
-      orderBy: { minute: "desc" },
-      select: { minute: true },
-    });
-    const base = last ? last.minute.getTime() + 60_000 : s.startedAt.getTime();
-    const endedAt = new Date(Math.min(Math.max(base + 5 * 60_000, s.startedAt.getTime()), dayEnd.getTime(), now.getTime()));
+    const schedule = parseSchedule(s.employee.workSchedule, tz);
+    let endedAt: Date | null = null;
+    if (schedule.enforceWindow) {
+      const w = employeeWindow({ schedule, timezone: tz }, now);
+      if (w.inWindow) continue; // the (possibly overnight) window is still open
+      if (w.lastClosedAt && w.lastClosedAt > s.startedAt) endedAt = w.lastClosedAt;
+    }
+    if (!endedAt) {
+      const today = dayKey(now, tz);
+      const startedKey = dayKey(s.startedAt, tz);
+      if (startedKey >= today) continue; // still the same local day
+      const dayEnd = startOfDayInTz(addDayKey(startedKey, 1), tz);
+      const last = await db.activityMinute.findFirst({
+        where: { userId: s.employee.userId, minute: { gte: s.startedAt, lt: dayEnd } },
+        orderBy: { minute: "desc" },
+        select: { minute: true },
+      });
+      const base = last ? last.minute.getTime() + 60_000 : s.startedAt.getTime();
+      endedAt = new Date(Math.min(Math.max(base + 5 * 60_000, s.startedAt.getTime()), dayEnd.getTime(), now.getTime()));
+    }
     const r = await db.workSession.updateMany({ where: { id: s.id, endedAt: null }, data: { endedAt, autoClosed: true } });
     if (r.count) {
       await db.breakPeriod.updateMany({ where: { sessionId: s.id, endedAt: null }, data: { endedAt } });

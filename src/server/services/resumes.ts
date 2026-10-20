@@ -126,7 +126,7 @@ export async function getStudentResumeContext(studentId: string): Promise<Studen
       market: { select: { code: true, name: true, resumeStyle: { select: STYLE_SELECT } } },
     },
   });
-  if (!s) throw new ResumeError("Student not found.");
+  if (!s) throw new ResumeError("Applicant not found.");
   const st = s.market.resumeStyle;
   const { master, issues } = parseMaster(s.masterProfile);
   return {
@@ -319,7 +319,7 @@ export function stableStringify(v: unknown): string {
 /** Latest BASE version matching the current master profile (created if the master changed). */
 export async function getOrCreateBaseVersion(user: Actor, studentId: string) {
   const ctx = await getStudentResumeContext(studentId);
-  if (!ctx.master) throw new ResumeError("This student's master profile isn't ready yet. Ask them to finish onboarding (resume upload).");
+  if (!ctx.master) throw new ResumeError("This applicant's master profile isn't ready yet. Ask them to finish onboarding (resume upload).");
   const latest = await db.resumeVersion.findFirst({ where: { studentId, kind: "BASE" }, orderBy: { createdAt: "desc" }, select: { id: true, content: true } });
   if (latest && stableStringify(latest.content) === stableStringify(ctx.master)) return { id: latest.id, created: false };
   const v = await db.resumeVersion.create({
@@ -407,7 +407,7 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
   if (jd.length < JD_MIN) throw new ResumeError(`Paste the full job description (at least ${JD_MIN} characters).`, "jd");
   if (jd.length > JD_MAX) throw new ResumeError(`The job description is too long (max ${JD_MAX.toLocaleString("en-US")} characters).`, "jd");
   const ctx = await getStudentResumeContext(input.studentId);
-  if (!ctx.master) throw new ResumeError("This student's master profile isn't ready yet, so there's nothing to tailor from.");
+  if (!ctx.master) throw new ResumeError("This applicant's master profile isn't ready yet, so there's nothing to tailor from.");
   const master = ctx.master;
   const ai = aiConfigured();
   if (ai) await enforceAiLimits(user, input.studentId);

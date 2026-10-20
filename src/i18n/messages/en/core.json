@@ -149,7 +149,8 @@
     "STUDENT": "Student",
     "EMPLOYEE": "Specialist",
     "MANAGER": "Manager",
-    "ADMIN": "Admin"
+    "ADMIN": "Admin",
+    "COACH": "Interview coach"
   },
   "rag": {
     "green": "On track",

@@ -352,7 +352,7 @@ export async function sendMessage(user: Actor, raw: z.input<typeof SendInput>, a
   await enforceRateLimit("message", user.id);
   if (input.applicationId) {
     const app = await db.jobApplication.findUnique({ where: { id: input.applicationId }, select: { studentId: true } });
-    if (!app || app.studentId !== access.thread.studentId) throw new MessagingError("That application doesn't belong to this student.", "applicationId");
+    if (!app || app.studentId !== access.thread.studentId) throw new MessagingError("That application doesn't belong to this applicant.", "applicationId");
   }
   const stored: string[] = [];
   try {
@@ -384,11 +384,11 @@ export async function sendMessage(user: Actor, raw: z.input<typeof SendInput>, a
 export async function broadcast(user: Actor, rawBody: string, now = new Date()) {
   const body = z.string().trim().min(1, "Write the message first.").max(MAX_BODY).parse(rawBody);
   const ep = await db.employeeProfile.findUnique({ where: { userId: user.id }, select: { id: true } });
-  if (!ep) throw new MessagingError("Only specialists with assigned students can broadcast.");
+  if (!ep) throw new MessagingError("Only specialists with assigned applicants can broadcast.");
   await enforceRateLimit("message", `${user.id}:broadcast`, { tokens: 10 });
   const assigned = await db.assignment.findMany({ where: { employeeId: ep.id, isActive: true, type: "PRIMARY" }, select: { studentId: true } });
   const threads = await db.messageThread.findMany({ where: { employeeId: ep.id, isActive: true, studentId: { in: assigned.map((a) => a.studentId) } }, select: { id: true } });
-  if (!threads.length) throw new MessagingError("You don't have any assigned students to message.");
+  if (!threads.length) throw new MessagingError("You don't have any assigned applicants to message.");
   await db.message.createMany({ data: threads.map((t) => ({ threadId: t.id, senderId: user.id, body, attachmentKeys: [], isBroadcast: true, createdAt: now })) });
   await audit({ actorId: user.id, action: "message.broadcast", entity: "EmployeeProfile", entityId: ep.id, after: { recipients: threads.length } });
   return { count: threads.length };

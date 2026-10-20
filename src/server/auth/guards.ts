@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import type { Role } from "@/generated/prisma/enums";
 import { db } from "@/server/db";
 import { auth } from "./index";
-import { can, isStaff, type Action } from "./rbac";
+import { can, isStaff, ROLES, type Action } from "./rbac";
 import { getViewAs, isServerActionRequest, type ViewAsContext } from "./view-as";
 
 import { ForbiddenError } from "./access";
@@ -69,7 +69,7 @@ export async function requireRole(roles: readonly Role[]): Promise<SessionUser> 
 }
 
 export async function requireAction(action: Action): Promise<SessionUser> {
-  const user = await requireRole(["STUDENT", "EMPLOYEE", "MANAGER", "ADMIN"]);
+  const user = await requireRole(ROLES);
   if (!can(user.role, action)) throw new ForbiddenError();
   return user;
 }
@@ -85,7 +85,7 @@ export async function requireStudent() {
   return { user, student };
 }
 
-/** The signed-in staff member's employee profile (managers/admins may not have one). */
+/** The signed-in staff member's employee profile (managers/admins may not have one). Interview coaches are excluded by default (D-140). */
 export async function requireStaff(roles: readonly Role[] = ["EMPLOYEE", "MANAGER", "ADMIN"]) {
   const user = await requireRole(roles);
   const employee = await db.employeeProfile.findUnique({

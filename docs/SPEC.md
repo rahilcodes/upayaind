@@ -42,6 +42,7 @@ We are building the **whole platform from scratch**. Nothing from the current up
 | **Student** | The paying customer (job seeker). Also called "candidate" in some UI copy. |
 | **Employee** | UpayaInd staff member who applies to jobs for students. Also called "specialist" in UI copy. |
 | **Manager** | Admin-lite role: manages employees, assignments, leave and attendance, but not pricing or settings. |
+| **Interview coach** | Staff member (role `COACH`) who only schedules and runs mock interviews / training with students. No job applications, vault or assignments (D-140). |
 | **Admin** | Full access (super admin). |
 | **Market** | A country UpayaInd sells in (US at launch). It drives currency, plans, resume style, time zone defaults and payment gateway. |
 | **Plan** | A subscription product (e.g. Basic / Standard / Premium) with a price per market and billing interval, and a **daily application target**. |
@@ -53,6 +54,7 @@ We are building the **whole platform from scratch**. Nothing from the current up
 | **Credential vault** | Encrypted storage of the student's job-portal and email logins, used by the assigned employee to apply. |
 | **Daily target** | The number of applications per working day the plan promises (e.g. 25). |
 | **Work session** | One clock-in → clock-out period of an employee. |
+| **Working window** | Admin-set clock-in/clock-out times and timezone per employee; when enforced, clock-in and application logging are only allowed inside it (D-139). |
 
 ---
 
@@ -81,6 +83,8 @@ Enforce all rules **on the server** in every server action and route handler. Ne
 | CMS (pages, blog, stories, FAQ) | — | ❌ | ❌ | ✅ |
 | Resume styles & templates | — | ❌ | ❌ | ✅ |
 | Settings, audit log | — | ❌ | view audit | ✅ |
+
+**Interview coach (`COACH`, D-140):** staff login (password + 2FA) limited to the `/coach` portal: own mock-interview sessions and scorecards, students assigned via `StudentProfile.coachId` or a booked session. No access to applications, resumes, vault or messages.
 
 **Row-level rule:** an employee may read or write data for a student **only** while an active assignment exists between them. Implement it once as a helper, `assertEmployeeCanAccessStudent(employeeId, studentId)`, and call it everywhere.
 

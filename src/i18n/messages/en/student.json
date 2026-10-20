@@ -601,7 +601,9 @@
       "back": "Interview prep",
       "openResource": "Open resource",
       "downloadFile": "Download",
-      "coach": "your UpayaInd coach"
+      "coach": "your UpayaInd coach",
+      "yourCoach": "Your interview coach: {name}",
+      "yourCoachHint": "{name} runs your mock interviews and can schedule sessions for you."
     },
     "profile": {
       "title": "Profile",
@@ -675,6 +677,18 @@
         "mock_interview_booked": {
           "label": "Mock interview bookings",
           "hint": "Confirmation when you book a mock interview."
+        },
+        "mock_session_scheduled": {
+          "label": "Sessions scheduled by your coach",
+          "hint": "When your interview coach books a mock interview or training session for you."
+        },
+        "mock_session_cancelled": {
+          "label": "Session cancellations",
+          "hint": "If your interview coach cancels a session."
+        },
+        "coach_assigned": {
+          "label": "Interview coach assigned",
+          "hint": "When we assign your interview coach."
         },
         "testimonial_request": {
           "label": "Success story requests",

@@ -8,8 +8,11 @@
  */
 import type { Role } from "@/generated/prisma/enums";
 
-export const ROLES = ["STUDENT", "EMPLOYEE", "MANAGER", "ADMIN"] as const satisfies readonly Role[];
-export const STAFF_ROLES = ["EMPLOYEE", "MANAGER", "ADMIN"] as const satisfies readonly Role[];
+export const ROLES = ["STUDENT", "EMPLOYEE", "MANAGER", "ADMIN", "COACH"] as const satisfies readonly Role[];
+/** Roles that sign in with password + TOTP and get the 12h staff session (COACH included — D-140). */
+export const STAFF_ROLES = ["EMPLOYEE", "MANAGER", "ADMIN", "COACH"] as const satisfies readonly Role[];
+/** Staff who work job applications (the /work portal). Interview coaches are not among them. */
+export const APPLICATION_STAFF_ROLES = ["EMPLOYEE", "MANAGER", "ADMIN"] as const satisfies readonly Role[];
 
 export type Action =
   | "signup.self"
@@ -42,7 +45,9 @@ export type Action =
   | "reports.view"
   | "attendance.manage"
   | "leads.manage"
-  | "prep.manage";
+  | "prep.manage"
+  | "coach.sessions" // interview coach: own slots, sessions, scorecards
+  | "coach.assign"; // assign an interview coach to a student
 
 const MATRIX: Record<Action, readonly Role[]> = {
   "signup.self": ["STUDENT"],
@@ -76,6 +81,8 @@ const MATRIX: Record<Action, readonly Role[]> = {
   "attendance.manage": ["MANAGER", "ADMIN"],
   "leads.manage": ["MANAGER", "ADMIN"],
   "prep.manage": ["ADMIN"],
+  "coach.sessions": ["COACH", "ADMIN"],
+  "coach.assign": ["ADMIN", "MANAGER"],
 };
 
 export function can(role: Role | null | undefined, action: Action): boolean {
@@ -84,19 +91,21 @@ export function can(role: Role | null | undefined, action: Action): boolean {
 }
 
 export function isStaff(role: Role | null | undefined): boolean {
-  return role === "EMPLOYEE" || role === "MANAGER" || role === "ADMIN";
+  return role === "EMPLOYEE" || role === "MANAGER" || role === "ADMIN" || role === "COACH";
 }
 
 /** Which portal prefix each role may open (SPEC §5 middleware). */
-export function portalForRole(role: Role): "/app" | "/work" | "/admin" {
+export function portalForRole(role: Role): "/app" | "/work" | "/admin" | "/coach" {
   if (role === "STUDENT") return "/app";
   if (role === "EMPLOYEE") return "/work";
+  if (role === "COACH") return "/coach";
   return "/admin";
 }
 
 export function canOpenPortal(role: Role, pathname: string): boolean {
   if (pathname === "/app" || pathname.startsWith("/app/")) return role === "STUDENT";
-  if (pathname === "/work" || pathname.startsWith("/work/")) return isStaff(role);
+  if (pathname === "/work" || pathname.startsWith("/work/")) return role === "EMPLOYEE" || role === "MANAGER" || role === "ADMIN";
+  if (pathname === "/coach" || pathname.startsWith("/coach/")) return role === "COACH" || role === "ADMIN";
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     if (role === "ADMIN") return true;
     if (role !== "MANAGER") return false;

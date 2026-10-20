@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/server/db";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   attendanceStatus,
   autoCloseSessions,
@@ -149,6 +150,61 @@ describe("auto-close forgotten sessions", () => {
     expect(r.closed).toBe(1);
     const day = await db.employeeDay.findUniqueOrThrow({ where: { employeeId_date: { employeeId: e.employee.id, date: dateOnly("2026-10-13") } } });
     expect(day.clockedMinutes).toBe(0 + 5); // no activity → closed at clock-in + 5 min
+  });
+});
+
+describe("enforced working window (D-139)", () => {
+  // 09:00–18:00 New York (EDT in October: 13:00Z–22:00Z), enforced; the employee's own zone stays IST.
+  const NY_WINDOW = { days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "18:00", timezone: "America/New_York", enforceWindow: true };
+  const Z = (iso: string) => new Date(iso);
+
+  async function windowedEmployee(schedule: Prisma.InputJsonObject = NY_WINDOW) {
+    const m = await makeMarket();
+    const e = await makeEmployee(m.id, { name: "Arjun Rao", schedule });
+    return { ...e, actor: { id: e.user.id, role: "EMPLOYEE" as const } };
+  }
+
+  it("refuses clock-in before the window with the window and the local opening time", async () => {
+    const e = await windowedEmployee();
+    await expect(clockIn(e.actor, Z("2026-10-12T12:30:00Z"))).rejects.toThrow(/Your working window is 09:00–18:00 America\/New_York\. You can clock in from 6:30 PM IST\./);
+    expect(await db.workSession.count()).toBe(0);
+    // Sunday evening IST: next opening is Monday, so the day is named.
+    await expect(clockIn(e.actor, Z("2026-10-11T12:30:00Z"))).rejects.toThrow(/from Mon 6:30 PM/);
+  });
+
+  it("allows clock-in inside the window and clock-out at any time", async () => {
+    const e = await windowedEmployee();
+    await clockIn(e.actor, Z("2026-10-12T13:00:00Z"));
+    await expect(clockIn(e.actor, Z("2026-10-12T13:01:00Z"))).rejects.toThrow(/already clocked in/);
+    expect((await getMyToday(e.actor, Z("2026-10-12T15:00:00Z"))).window).toMatchObject({ enforced: true, inWindow: true });
+    await clockOut(e.actor, Z("2026-10-12T22:30:00Z")); // after the window: still fine
+    expect((await db.workSession.findFirstOrThrow()).autoClosed).toBe(false);
+  });
+
+  it("auto-closes an open session at the window end, same local day, and leaves overnight windows alone", async () => {
+    const e = await windowedEmployee();
+    await clockIn(e.actor, Z("2026-10-12T20:00:00Z"));
+    await recordHeartbeat(e.user.id, Z("2026-10-12T21:50:00Z"));
+    expect(await autoCloseSessions(Z("2026-10-12T21:59:00Z"))).toHaveLength(0);
+    const closed = await autoCloseSessions(Z("2026-10-12T22:05:00Z"));
+    expect(closed).toHaveLength(1);
+    const s = await db.workSession.findFirstOrThrow({ where: { employeeId: e.employee.id } });
+    expect(s.autoClosed).toBe(true);
+    expect(s.endedAt?.toISOString()).toBe("2026-10-12T22:00:00.000Z");
+
+    // Overnight 18:30–03:30 IST: a session at 01:00 IST Tuesday is inside Monday's window, not a forgotten one.
+    const n = await windowedEmployee({ days: [1, 2, 3, 4, 5], startTime: "18:30", endTime: "03:30", timezone: "Asia/Kolkata", enforceWindow: true });
+    await clockIn(n.actor, IST("19:00"));
+    expect(await autoCloseSessions(IST("01:00", "2026-10-13"))).toHaveLength(0);
+    const c2 = await autoCloseSessions(IST("03:40", "2026-10-13"));
+    expect(c2).toHaveLength(1);
+    expect(c2[0]!.endedAt.toISOString()).toBe(IST("03:30", "2026-10-13").toISOString());
+  });
+
+  it("does nothing when the window isn't enforced", async () => {
+    const e = await windowedEmployee({ ...NY_WINDOW, enforceWindow: false });
+    await clockIn(e.actor, Z("2026-10-12T12:30:00Z"));
+    expect((await getMyToday(e.actor, Z("2026-10-12T12:30:00Z"))).window).toMatchObject({ enforced: false, inWindow: false });
   });
 });
 

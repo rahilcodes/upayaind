@@ -19,7 +19,10 @@ import { getThreadForAdmin } from "@/server/services/messaging";
 import { listReferralsForAdmin } from "@/server/services/referrals";
 import { formatDate, formatInTz, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { DeletionControls, NotesEditor, PauseControls, StudentReassign } from "./student-actions";
+import { CoachAssign, DeletionControls, NotesEditor, PauseControls, StudentReassign } from "./student-actions";
+import { listCoachOptions } from "@/server/services/coach";
+import { can } from "@/server/auth/rbac";
+import type { Role } from "@/generated/prisma/enums";
 import { AuditDiff } from "@/components/admin/audit-diff";
 
 export const metadata: Metadata = { title: "Student" };
@@ -117,6 +120,7 @@ export default async function Student360Page({ params, searchParams }: { params:
                   { label: t("lastLogin"), value: s.user.lastLoginAt ? formatInTz(s.user.lastLoginAt, tz) : tc("never") },
                   { label: t("emailVerified"), value: s.user.emailVerified ? tc("yes") : tc("no") },
                   { label: t("consent"), value: s.consentApplyOnBehalfAt ? t("consentAt", { date: formatDate(s.consentApplyOnBehalfAt, tz), version: s.consentVersion ?? "—" }) : tc("notSet") },
+                  { label: t("agreement"), value: s.consentAgreementAt ? t("agreementAt", { date: formatDate(s.consentAgreementAt, tz) }) : tc("notSet") },
                   {
                     label: t("links"),
                     value: (
@@ -220,6 +224,11 @@ export default async function Student360Page({ params, searchParams }: { params:
             <Section id="notes" title={t("notesTitle")} description={t("notesDescription")}>
               <NotesEditor studentId={s.id} initial={s.internalNotes ?? ""} />
             </Section>
+            {can(user.role, "coach.assign") ? (
+              <Section id="coach" title={t("coach.title")} description={t("coach.description")}>
+                <CoachAssign studentId={s.id} currentCoachId={s.coach?.id ?? null} currentCoachName={s.coach ? `${s.coach.user.name} · ${s.coach.employeeCode}` : null} options={(await listCoachOptions()).map((c) => ({ id: c.id, name: c.name, code: c.code, coachees: c.coachees }))} />
+              </Section>
+            ) : null}
             <Section id="mocks" title={t("mocksTitle")}>
               {s.mocks.length ? (
                 <ul className="divide-y divide-border">
@@ -551,7 +560,7 @@ async function ApplicationsTab({ studentId, cursor, tz }: { studentId: string; c
   );
 }
 
-async function MessagesTab({ threads, selected, studentId, user }: { threads: { id: string; isActive: boolean; employeeName: string; count: number }[]; selected?: string; studentId: string; user: { id: string; role: "ADMIN" | "MANAGER" | "EMPLOYEE" | "STUDENT"; timezone: string } }) {
+async function MessagesTab({ threads, selected, studentId, user }: { threads: { id: string; isActive: boolean; employeeName: string; count: number }[]; selected?: string; studentId: string; user: { id: string; role: Role; timezone: string } }) {
   const t = await getTranslations("admin.student360");
   if (!threads.length) return <EmptyState title={t("messagesEmpty")} className="bg-surface" />;
   const active = threads.find((x) => x.id === selected) ?? threads.find((x) => x.isActive) ?? threads[0]!;

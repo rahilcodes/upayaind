@@ -121,7 +121,7 @@ export async function studentFilterOptions() {
   const [markets, plans, employees] = await Promise.all([
     db.market.findMany({ orderBy: { name: "asc" }, select: { code: true, name: true } }),
     db.plan.findMany({ where: { deletedAt: null }, orderBy: { sortOrder: "asc" }, select: { code: true, name: true } }),
-    db.employeeProfile.findMany({ where: { user: { deletedAt: null, status: { not: "DEACTIVATED" } } }, orderBy: { user: { name: "asc" } }, select: { id: true, user: { select: { name: true } } } }),
+    db.employeeProfile.findMany({ where: { user: { deletedAt: null, status: { not: "DEACTIVATED" }, role: { not: "COACH" } } }, orderBy: { user: { name: "asc" } }, select: { id: true, user: { select: { name: true } } } }),
   ]);
   return { markets, plans, employees: employees.map((e) => ({ id: e.id, name: e.user.name })) };
 }
@@ -167,7 +167,10 @@ export async function getStudent360(studentId: string) {
       targetCompanies: true,
       consentApplyOnBehalfAt: true,
       consentTermsAt: true,
+      consentAgreementAt: true,
       consentVersion: true,
+      coachId: true,
+      coach: { select: { id: true, employeeCode: true, user: { select: { name: true, status: true } } } },
       assignmentQueue: true,
       awaitingSince: true,
       internalNotes: true,
@@ -310,7 +313,7 @@ export async function reassignOptions(studentId: string) {
   const s = await db.studentProfile.findUnique({ where: { id: studentId }, select: { marketId: true } });
   if (!s) return [];
   const emps = await db.employeeProfile.findMany({
-    where: { user: { status: "ACTIVE", deletedAt: null } },
+    where: { user: { status: "ACTIVE", deletedAt: null, role: { not: "COACH" } } }, // coaches don't work applications (D-140)
     orderBy: { user: { name: "asc" } },
     select: { id: true, employeeCode: true, maxStudents: true, marketIds: true, acceptingNewStudents: true, user: { select: { name: true } }, _count: { select: { assignments: { where: { isActive: true, type: "PRIMARY" } } } } },
   });

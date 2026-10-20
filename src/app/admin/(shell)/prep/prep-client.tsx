@@ -191,7 +191,7 @@ export function DeletePrepButton({ id, title }: { id: string; title: string }) {
   );
 }
 
-export function SlotDialog({ staff, timezone }: { staff: { id: string; name: string }[]; timezone: string }) {
+export function SlotDialog({ staff, timezone }: { staff: { id: string; name: string; isCoach?: boolean }[]; timezone: string }) {
   const t = useTranslations("admin.prep");
   const tc = useTranslations("admin.common");
   const [open, setOpen] = React.useState(false);
@@ -229,7 +229,7 @@ export function SlotDialog({ staff, timezone }: { staff: { id: string; name: str
               </option>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name}
+                  {s.isCoach ? t("coachOption", { name: s.name }) : s.name}
                 </option>
               ))}
             </Select>

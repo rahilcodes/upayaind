@@ -58,8 +58,8 @@ export function toSlug(input: string) {
     .replace(/-+$/g, "");
 }
 
-/** Legal pages are fixed (privacy, terms, refund, guarantee, cookies) — the signup and footer link to them. */
-export const LEGAL_SLUGS = ["privacy", "terms", "refund", "guarantee", "cookies"] as const;
+/** Legal pages are fixed (privacy, terms, refund, guarantee, cookies, agreement) — the signup and footer link to them. */
+export const LEGAL_SLUGS = ["privacy", "terms", "refund", "guarantee", "cookies", "agreement"] as const;
 
 // ───────────────────────────── Rich text allow-list ─────────────────────────────
 

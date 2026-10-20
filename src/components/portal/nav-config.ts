@@ -34,6 +34,14 @@ export const WORK_NAV: NavItem[] = [
   { href: "/work/profile", label: "profile", icon: "user" },
 ];
 
+/** Interview coach portal (D-140): sessions and applicants only — no applications, vault or messages. */
+export const COACH_NAV: NavItem[] = [
+  { href: "/coach", label: "today", icon: "sun" },
+  { href: "/coach/sessions", label: "sessions", icon: "calendar" },
+  { href: "/coach/applicants", label: "applicants", icon: "users" },
+  { href: "/coach/profile", label: "profile", icon: "user" },
+];
+
 const ADMIN_NAV_ALL: NavItem[] = [
   { href: "/admin", label: "overview", icon: "chart", group: "work" },
   { href: "/admin/students", label: "allStudents", icon: "graduation", group: "people" },

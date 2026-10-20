@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { addDayKey, dayKey, dayRangeInTz, hhmmToMinutes, isoWeekday, minutesIntoDay, startOfDayInTz } from "@/lib/dates";
 import { clamp } from "@/lib/utils";
 import { INTERVAL_MONTHS } from "./catalog";
+import { parseSchedule, type WorkSchedule } from "./work-window";
 
 /**
  * Admin metrics (SPEC §11 overview, F10 targets, M10). Pure helpers are
@@ -60,14 +61,9 @@ export function ragFor(applied: number, target: number, expected: number): Rag {
 
 export const isBehind = (r: Rag) => r === "amber" || r === "red";
 
-type Schedule = { days?: number[]; startTime?: string; hours?: number };
-export function readSchedule(json: unknown): { days: number[]; startTime: string; hours: number } {
-  const s = (json ?? {}) as Schedule;
-  return {
-    days: Array.isArray(s.days) && s.days.length ? s.days.filter((d) => Number.isInteger(d) && d >= 1 && d <= 7) : [1, 2, 3, 4, 5],
-    startTime: typeof s.startTime === "string" && /^\d{2}:\d{2}$/.test(s.startTime) ? s.startTime : "09:00",
-    hours: typeof s.hours === "number" && s.hours > 0 ? s.hours : 9,
-  };
+/** Full schedule (days, start/end, hours, window zone, enforceWindow) from the stored JSON; see work-window.ts. */
+export function readSchedule(json: unknown, fallbackTimezone?: string): WorkSchedule {
+  return parseSchedule(json, fallbackTimezone);
 }
 
 // ─────────────────────────── Today's targets (F10) ───────────────────────────
@@ -115,7 +111,7 @@ export async function todayTargets(now = new Date(), opts: { studentIds?: string
   const rows = students.map((s) => {
     const emp = s.assignments[0]?.employee ?? null;
     const tz = emp?.user.timezone ?? s.market.defaultTimezone;
-    const sched = readSchedule(emp?.workSchedule);
+    const sched = readSchedule(emp?.workSchedule, tz);
     const working = s.market.workingDays.includes(isoWeekday(now, tz));
     const target = working ? (s.subscriptions[0]?.planPrice.dailyTarget ?? 0) : 0;
     const expected = proratedExpected(target, minutesIntoDay(now, tz), hhmmToMinutes(sched.startTime), sched.hours);

@@ -14,6 +14,7 @@ import { notify, notifyManagers } from "./notify";
 import { sendAlert } from "./alerts";
 import { getSetting } from "./settings";
 import { getOrCreateBaseVersion, type StoredValidation } from "./resumes";
+import { parseSchedule, windowStatus } from "./work-window";
 import { log } from "@/server/log";
 
 /**
@@ -88,8 +89,12 @@ export type JobFieldsInput = z.input<typeof JobFields>;
 
 // ─────────────────────────── Access helpers ───────────────────────────
 
-/** Staff acting on a student: checks the assignment and resolves the EmployeeProfile to credit. */
-async function staffContext(user: Actor, studentId: string, client: Tx | typeof db = db) {
+/**
+ * Staff acting on a student: checks the assignment and resolves the EmployeeProfile to credit.
+ * Employees with an enforced working window (D-139) must be clocked in and inside
+ * the window to log applications; managers and admins are exempt.
+ */
+async function staffContext(user: Actor, studentId: string, client: Tx | typeof db = db, now = new Date()) {
   const { employeeProfileId } = await assertEmployeeCanAccessStudent(user, studentId, client);
   let employeeId = employeeProfileId;
   if (!employeeId) {
@@ -97,8 +102,22 @@ async function staffContext(user: Actor, studentId: string, client: Tx | typeof 
     const a = await client.assignment.findFirst({ where: { studentId, isActive: true, type: "PRIMARY" }, select: { employeeId: true }, orderBy: { startsAt: "desc" } });
     employeeId = a?.employeeId ?? null;
   }
-  if (!employeeId) throw new ApplicationError("No employee profile to credit this application to. Assign the student to an employee first.");
+  if (!employeeId) throw new ApplicationError("No employee profile to credit this application to. Assign the applicant to an employee first.");
+  if (user.role === "EMPLOYEE") await assertInsideWorkWindow(employeeId, client, now);
   return { employeeId };
+}
+
+async function assertInsideWorkWindow(employeeId: string, client: Tx | typeof db, now: Date) {
+  const e = await client.employeeProfile.findUnique({ where: { id: employeeId }, select: { workSchedule: true, user: { select: { timezone: true } } } });
+  if (!e) return;
+  const schedule = parseSchedule(e.workSchedule, e.user.timezone);
+  if (!schedule.enforceWindow) return;
+  // The window's own zone, never the employee's editable User.timezone.
+  const w = windowStatus(schedule, schedule.timezone ?? e.user.timezone, now);
+  const clockedIn = w.inWindow ? await client.workSession.findFirst({ where: { employeeId, endedAt: null }, select: { id: true } }) : null;
+  if (!w.inWindow || !clockedIn) {
+    throw new ApplicationError(`You can only log applications while clocked in during your working window (${w.label}).`, undefined, "outside_window");
+  }
 }
 
 async function studentProfileIdFor(user: Actor) {
@@ -132,7 +151,7 @@ export async function getSubscriptionState(studentId: string) {
 
 async function assertSubscriptionActive(studentId: string) {
   const s = await getSubscriptionState(studentId);
-  if (!s.active) throw new ApplicationError("This student's subscription isn't active, so applications can't be logged.", undefined, "inactive_subscription");
+  if (!s.active) throw new ApplicationError("This applicant's subscription isn't active, so applications can't be logged.", undefined, "inactive_subscription");
   return s;
 }
 
@@ -279,7 +298,7 @@ async function createApplication(
   await assertSubscriptionActive(input.studentId);
 
   const version = await db.resumeVersion.findUnique({ where: { id: input.resumeVersionId }, select: { id: true, studentId: true, kind: true, validation: true, lockedAt: true, coverLetter: true } });
-  if (!version || version.studentId !== input.studentId) throw new ApplicationError("That resume doesn't belong to this student.", "resumeVersionId");
+  if (!version || version.studentId !== input.studentId) throw new ApplicationError("That resume doesn't belong to this applicant.", "resumeVersionId");
   if (version.kind === "MASTER_UPLOAD") throw new ApplicationError("Use the base or a tailored resume, not the original upload.", "resumeVersionId");
   const validation = version.validation as StoredValidation | null;
   if (opts.requireValid && validation && validation.ok === false) {
@@ -336,7 +355,7 @@ async function createApplication(
   } catch (e) {
     if (proofKey) await deleteObject(proofKey).catch(() => undefined);
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      throw new ApplicationError("This job URL was just logged for this student by someone else.", "jobUrl", "same_url");
+      throw new ApplicationError("This job URL was just logged for this applicant by someone else.", "jobUrl", "same_url");
     }
     throw e;
   }
@@ -899,7 +918,7 @@ export async function getWorkspaceData(user: Actor, studentId: string) {
       market: { select: { code: true, name: true, resumeStyle: { select: { code: true, name: true, documentTitle: true, pageSize: true, summaryLabel: true, maxPages: true, spelling: true } } } },
     },
   });
-  if (!s) throw new ApplicationError("Student not found.");
+  if (!s) throw new ApplicationError("Applicant not found.");
   const [sub, today, companies, recent] = await Promise.all([
     getSubscriptionState(studentId),
     getTodayCounter(studentId, tz),

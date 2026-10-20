@@ -48,7 +48,7 @@ test.describe("employee", () => {
     test.skip(!id, "Set E2E_UNASSIGNED_STUDENT_ID to a student not assigned to arjun");
     for (const p of [`/work/students/${id}`, `/work/students/${id}/apply`]) {
       await page.goto(p);
-      await expect(page.locator("main")).toContainText(/isn.t assigned to you|can.t open this student/i);
+      await expect(page.locator("main")).toContainText(/isn.t assigned to you|can.t open this applicant/i);
       await expect(page.locator("main")).not.toContainText(/Mark as applied|Logins|Job preferences/);
     }
   });

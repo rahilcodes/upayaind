@@ -1,9 +1,9 @@
 {
   "workspace": {
     "metaTitle": "Application workspace",
-    "noAccessTitle": "This student isn't assigned to you",
-    "noAccessBody": "You can only work on students who are actively assigned to you. Ask your manager if you think this is a mistake.",
-    "backToStudents": "Back to my students",
+    "noAccessTitle": "This applicant isn't assigned to you",
+    "noAccessBody": "You can only work on applicants who are actively assigned to you. Ask your manager if you think this is a mistake.",
+    "backToStudents": "Back to my applicants",
     "backToStudent": "{name}",
     "title": "New application for {name}",
     "header": {
@@ -19,7 +19,7 @@
     "bulkImport": "Bulk import CSV",
     "inactive": {
       "short": "The subscription isn't active, so applications can't be logged.",
-      "title": "Applications are paused for this student",
+      "title": "Applications are paused for this applicant",
       "body": "{name}'s subscription is {status}. You can look around, but generating resumes and logging applications are disabled until it's active again.",
       "none": "not set up"
     },
@@ -114,7 +114,7 @@
       "removeSkill": "Remove {skill}",
       "addSkill": "Add a skill from the profile",
       "addSkillFromProfile": "+ Add from profile",
-      "skillsHint": "Only skills from the student's profile can be added.",
+      "skillsHint": "Only skills from the applicant's profile can be added.",
       "factsLocked": "Company, title and dates come from the master profile and can't be changed",
       "removeRole": "Remove {role}",
       "bulletLabel": "Bullet {n} for {role}",
@@ -161,10 +161,10 @@
       "required": "required",
       "nice": "nice to have",
       "none": "None yet.",
-      "inProfile": "This is in the student's profile — consider surfacing it.",
-      "notInProfile": "Not in the student's profile. Don't add it.",
+      "inProfile": "This is in the applicant's profile — consider surfacing it.",
+      "notInProfile": "Not in the applicant's profile. Don't add it.",
       "inProfileShort": "in profile",
-      "missingHint": "Never add skills the student doesn't have. If a missing keyword is genuinely in their experience, rephrase a bullet to mention it."
+      "missingHint": "Never add skills the applicant doesn't have. If a missing keyword is genuinely in their experience, rephrase a bullet to mention it."
     },
     "cover": {
       "emptyTitle": "No cover letter yet",
@@ -204,7 +204,7 @@
       "tailored": "Tailored resume",
       "base": "Base resume",
       "emptyTitle": "No resume to preview",
-      "emptyBody": "The student's master profile is missing.",
+      "emptyBody": "The applicant's master profile is missing.",
       "pages": "{n, plural, one {# page} other {# pages}} · max {max}",
       "pageAlt": "Resume preview, page {n}",
       "loading": "Rendering preview…"
@@ -232,7 +232,7 @@
         "length": "Within the page limit",
         "contact": "Contact details present"
       },
-      "disclaimer": "A guide for you, not a promise to the student.",
+      "disclaimer": "A guide for you, not a promise to the applicant.",
       "aria": "ATS score: base {base}, tailored {tailored}. Show breakdown",
       "base": "Base",
       "tailored": "Tailored"

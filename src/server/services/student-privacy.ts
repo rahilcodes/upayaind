@@ -107,6 +107,7 @@ export async function buildStudentExport(user: Actor) {
         masterProfile: true,
         consentApplyOnBehalfAt: true,
         consentTermsAt: true,
+        consentAgreementAt: true,
         consentVersion: true,
         createdAt: true,
       },
