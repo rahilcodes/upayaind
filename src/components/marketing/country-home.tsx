@@ -5,7 +5,7 @@ import type { HomeMarket } from "@/lib/market";
 import { cn } from "@/lib/utils";
 import { DashboardDemo, type DemoApp } from "./dashboard-demo";
 import { HeroDashboardMock, PILL } from "./dashboard-mock";
-import { formatCount, getLandings, getMarketPricing, getMarketPricingFallback, getPublicStats, getStories, hasPurchasablePlan, hiredAt, targetRange, type MarketPricing } from "./data";
+import { formatCount, getLandings, getMarketPricing, getMarketPricingFallback, getPublicSite, getStories, hasPurchasablePlan, hiredAt, targetRange, type MarketPricing } from "./data";
 import { JsonLd, faqLd } from "./json-ld";
 import { MarketPin } from "./market";
 import { PlanCards } from "./pricing";
@@ -25,16 +25,17 @@ import { getPublished } from "@/server/services/cms";
  */
 export async function CountryHome({ market }: { market: HomeMarket }) {
   const [t, tc, ts, pricing] = await Promise.all([getTranslations("marketing"), getTranslations(`marketing.country.${market}`), getTranslations("status"), getMarketPricing(market)]);
-  const [stats, stories, landings, guarantee] = await Promise.all([getPublicStats(), getStories(), getLandings(), getPublished("LEGAL", "guarantee")]);
+  const [site, stories, landings, guarantee] = await Promise.all([getPublicSite(), getStories(), getLandings(), getPublished("LEGAL", "guarantee")]);
   const p: MarketPricing = pricing ?? getMarketPricingFallback(market);
   const range = targetRange(p);
   const fill = (s: string) => s.replace("{min}", String(range.min)).replace("{max}", String(range.max));
   const companies = hiredAt(stories);
+  // Headline results are set by the admin (Settings -> Public website), not computed (D-142).
   const counters = [
-    { n: stats.students, label: t("proof.students") },
-    { n: stats.applications, label: t("proof.applications") },
-    { n: stats.interviews, label: t("proof.interviews") },
-  ].filter((c) => c.n > 0);
+    { n: site.stats.placed, label: t("proof.placed") },
+    { n: site.stats.interviews, label: t("proof.interviews") },
+    { n: site.stats.applications, label: t("proof.applications") },
+  ].filter((c) => c.n.trim().length > 0);
   const who = tc.raw("who.items") as { title: string; body: string }[];
   const eligibility = tc.raw("eligibility.items") as { title: string; body: string }[];
   const compareRows = tc.raw("compare.rows") as { label: string; diy: string; us: string }[];
@@ -101,7 +102,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
         </div>
       </section>
 
-      {/* 2. Proof strip — only real, computed numbers */}
+      {/* 2. Proof strip — headline results from settings */}
       {counters.length || companies.length ? (
         <section aria-label={t("proof.label")} className="brand-deep px-4 py-10 text-white sm:px-6">
           <div className="mx-auto grid max-w-[1200px] items-center gap-7 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
@@ -110,7 +111,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
                 {counters.map((c) => (
                   <div key={c.label} className="flex flex-col-reverse">
                     <dt className="text-sm text-[#E3ECFF]">{c.label}</dt>
-                    <dd className="font-display text-[40px] font-semibold leading-tight tabular">{formatCount(c.n)}</dd>
+                    <dd className="font-display text-[40px] font-semibold leading-tight tabular">{c.n}</dd>
                   </div>
                 ))}
               </dl>

@@ -5,7 +5,7 @@ import { useServerAction } from "@/components/portal/action-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Textarea, fieldA11y } from "@/components/ui/input";
-import { saveBusinessAction, saveGeneralAction, saveReferralAction, saveTemplateAction } from "./actions";
+import { saveBusinessAction, saveGeneralAction, savePublicSiteAction, saveReferralAction, saveTemplateAction } from "./actions";
 
 type General = { autoAssignEnabled: boolean; defaultMaxStudents: number; noResponseDays: number; belowTargetAlertTime: string; aiLimits: { employeePerHour: number; studentPerDay: number } };
 
@@ -142,6 +142,49 @@ export function TemplateEditor({ tpl, override }: { tpl: { type: string; title: 
 }
 
 /** Referral programme amounts (D-113): friend % off + referrer credit per market currency (major units in the UI). */
+export function PublicSiteForm({ value }: { value: { contactEmail: string; address: string; stats: { placed: string; interviews: string; applications: string } } }) {
+  const t = useTranslations("admin.settings");
+  const { run, pending, fieldErrors } = useServerAction(savePublicSiteAction);
+  const err = (k: string) => fieldErrors[k];
+  return (
+    <form
+      noValidate
+      className="grid gap-5 sm:grid-cols-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        run({
+          contactEmail: String(fd.get("contactEmail") ?? ""),
+          address: String(fd.get("address") ?? ""),
+          stats: { placed: String(fd.get("placed") ?? ""), interviews: String(fd.get("interviews") ?? ""), applications: String(fd.get("applications") ?? "") },
+        });
+      }}
+    >
+      <Field id="ps-email" label={t("contactEmail")} hint={t("contactEmailHint")} error={err("contactEmail")}>
+        <Input {...fieldA11y("ps-email", err("contactEmail"), true)} name="contactEmail" type="email" defaultValue={value.contactEmail} />
+      </Field>
+      <Field id="ps-address" label={t("siteAddress")} hint={t("siteAddressHint")} error={err("address")}>
+        <Input {...fieldA11y("ps-address", err("address"), false)} name="address" defaultValue={value.address} />
+      </Field>
+      <p className="text-[13px] text-muted-foreground sm:col-span-2">{t("statsHint")}</p>
+      <Field id="ps-placed" label={t("statPlaced")} error={err("stats.placed")}>
+        <Input {...fieldA11y("ps-placed", err("stats.placed"), false)} name="placed" defaultValue={value.stats.placed} className="tabular" />
+      </Field>
+      <Field id="ps-interviews" label={t("statInterviews")} error={err("stats.interviews")}>
+        <Input {...fieldA11y("ps-interviews", err("stats.interviews"), false)} name="interviews" defaultValue={value.stats.interviews} className="tabular" />
+      </Field>
+      <Field id="ps-applications" label={t("statApplications")} error={err("stats.applications")}>
+        <Input {...fieldA11y("ps-applications", err("stats.applications"), false)} name="applications" defaultValue={value.stats.applications} className="tabular" />
+      </Field>
+      <div className="sm:col-span-2">
+        <Button type="submit" loading={pending}>
+          {t("savePublicSite")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function ReferralForm({ value, currencies }: { value: { friendPercentOff: number; referrerCreditMinor: Record<string, number> }; currencies: string[] }) {
   const t = useTranslations("admin.settings");
   const { run, pending, fieldErrors } = useServerAction(saveReferralAction);

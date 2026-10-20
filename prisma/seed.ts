@@ -81,7 +81,7 @@ const RESUME_STYLES = [
 ] as const;
 
 const MARKETS = [
-  { code: "US", name: "United States", currency: "USD", locale: "en-US", minPriceMinor: 4900, defaultTimezone: "America/New_York", style: "US_RESUME", isActive: true, phoneDisplay: "+1 628 628 4743", whatsapp: "16286284743" },
+  { code: "US", name: "United States", currency: "USD", locale: "en-US", minPriceMinor: 4900, defaultTimezone: "America/New_York", style: "US_RESUME", isActive: true, phoneDisplay: "+1 (724) 584-1786", whatsapp: "17245841786" },
   { code: "UK", name: "United Kingdom", currency: "GBP", locale: "en-GB", minPriceMinor: 3900, defaultTimezone: "Europe/London", style: "UK_CV", isActive: true, phoneDisplay: null, whatsapp: null },
   { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA", minPriceMinor: 6500, defaultTimezone: "America/Toronto", style: "CA_RESUME", isActive: false, phoneDisplay: null, whatsapp: null },
   { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU", minPriceMinor: 7500, defaultTimezone: "Australia/Sydney", style: "AU_RESUME", isActive: false, phoneDisplay: null, whatsapp: null },
@@ -155,7 +155,7 @@ const SETTINGS: Record<string, Prisma.InputJsonValue> = {
   belowTargetAlertTime: "15:00",
   aiLimits: { employeePerHour: 60, studentPerDay: 300 },
   business: {
-    US: { legalName: "[Legal entity name]", address: "[Business address]", taxId: "" },
+    US: { legalName: "[Legal entity name]", address: "502 W 7th St, Ste 100, Erie, PA 16052", taxId: "" },
     IN: { legalName: "[Legal entity name]", address: "[Business address]", taxId: "" },
   },
 };
@@ -188,7 +188,7 @@ const AGREEMENT_TEMPLATE = [
   "3. Your duties. Keep your profile and job preferences accurate, respond to interview requests promptly, and tell us within 5 days of accepting any offer that came through our applications.",
   "4. Authorisation. You authorise UpayaInd to submit applications, create job-portal accounts and communicate with employers in your name, and confirm the information you give us is true.",
   "5. Fees and cancellation. Subscription fees are charged per the plan and the Refund Policy. The placement fee in section 2 applies even if you cancel the subscription before the offer.",
-  "6. Disputes and law. This agreement is governed by the laws of [State/Country]. Disputes will first be raised with support@upayaind.com and resolved in good faith before any formal proceedings.",
+  "6. Disputes and law. This agreement is governed by the laws of [State/Country]. Disputes will first be raised with contact@upayaind.com and resolved in good faith before any formal proceedings.",
   "By ticking the box at sign-up you confirm that you have read and accept this Placement Agreement together with the Terms of Service and Privacy Policy.",
 ];
 
@@ -260,7 +260,10 @@ async function seedReference() {
   }
   for (const [slug, title] of LEGAL) {
     const { body, bodyHtml } = doc(slug === "agreement" ? AGREEMENT_TEMPLATE : [`[DRAFT — the final ${title} text must be supplied and approved by UpayaInd before launch.]`]);
-    await db.cmsEntry.upsert({ where: { kind_slug: { kind: "LEGAL", slug } }, update: {}, create: { kind: "LEGAL", slug, title, body, bodyHtml, isPublished: false, seoTitle: title } });
+    // Drafts (unpublished) of the agreement follow the template; anything published is never touched.
+    const existing = await db.cmsEntry.findUnique({ where: { kind_slug: { kind: "LEGAL", slug } }, select: { isPublished: true } });
+    const update = slug === "agreement" && existing && !existing.isPublished ? { body, bodyHtml } : {};
+    await db.cmsEntry.upsert({ where: { kind_slug: { kind: "LEGAL", slug } }, update, create: { kind: "LEGAL", slug, title, body, bodyHtml, isPublished: false, seoTitle: title } });
   }
   for (let i = 1; i <= 3; i++) {
     const slug = `sample-story-${i}`;

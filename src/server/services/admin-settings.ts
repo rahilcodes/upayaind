@@ -1,4 +1,5 @@
 import "server-only";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { UserError } from "@/server/errors";
@@ -25,6 +26,27 @@ export const generalSettingsSchema = z.object({
   }),
 });
 export type GeneralSettings = z.infer<typeof generalSettingsSchema>;
+
+/** Public site contact details + proof-strip figures (D-142). Stats are short display strings like "60+". */
+export const publicSiteSchema = z.object({
+  contactEmail: z.string().trim().email("Enter a valid email.").max(120),
+  address: z.string().trim().max(200),
+  stats: z.object({
+    placed: z.string().trim().max(12),
+    interviews: z.string().trim().max(12),
+    applications: z.string().trim().max(12),
+  }),
+});
+export type PublicSiteSettings = z.infer<typeof publicSiteSchema>;
+
+export async function savePublicSiteSettings(actorId: string, input: z.input<typeof publicSiteSchema>) {
+  const value = publicSiteSchema.parse(input);
+  await setSetting("publicSite", value);
+  await audit({ actorId, action: "settings.update", entity: "Setting", entityId: "publicSite", after: value });
+  // Marketing pages are static (D-034): rebuild them so the new details show without waiting for ISR.
+  revalidatePath("/", "layout");
+  return value;
+}
 
 export const businessEntrySchema = z.object({
   legalName: z.string().trim().max(200),

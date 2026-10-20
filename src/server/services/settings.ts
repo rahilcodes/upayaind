@@ -15,6 +15,8 @@ export type Settings = {
   referral: { friendPercentOff: number; referrerCreditMinor: Record<string, number> };
   /** Outgoing Slack/Teams-compatible webhooks (D-122). */
   alertWebhooks?: { id: string; url: string; label: string; events: string[]; enabled: boolean }[];
+  /** Public website: contact details and the headline results on the homepage proof strip (D-142). */
+  publicSite: { contactEmail: string; address: string; stats: { placed: string; interviews: string; applications: string } };
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +29,11 @@ export const DEFAULT_SETTINGS: Settings = {
   notificationTemplates: {},
   referral: { friendPercentOff: 10, referrerCreditMinor: { USD: 2500, CAD: 3000, GBP: 2000, AUD: 3500, INR: 150000 } },
   alertWebhooks: [],
+  publicSite: {
+    contactEmail: "contact@upayaind.com",
+    address: "502 W 7th St, Ste 100, Erie, PA 16052",
+    stats: { placed: "60+", interviews: "800+", applications: "7000+" },
+  },
 };
 
 export async function getSettings(): Promise<Settings> {

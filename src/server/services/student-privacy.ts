@@ -196,7 +196,7 @@ export async function buildStudentExportZip(user: Actor, ip?: string | null) {
       skipped.push(f.filename ?? f.id);
     }
   }
-  if (skipped.length) entries.push({ name: "files/README.txt", data: Buffer.from(`Some files could not be included (missing or too large): ${skipped.join(", ")}.\nAsk support@upayaind.com if you need them.\n`) });
+  if (skipped.length) entries.push({ name: "files/README.txt", data: Buffer.from(`Some files could not be included (missing or too large): ${skipped.join(", ")}.\nAsk contact@upayaind.com if you need them.\n`) });
   await audit({ actorId: user.id, action: "privacy.data_export", entity: "User", entityId: user.id, after: { files: entries.length - 1 }, ip });
   return buildZip(entries);
 }

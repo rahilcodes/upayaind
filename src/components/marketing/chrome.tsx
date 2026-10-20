@@ -92,7 +92,7 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
   );
 }
 
-export async function SiteFooter({ markets, legal }: { markets: MarketInfo[]; legal: Set<string> }) {
+export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo[]; legal: Set<string>; site?: { contactEmail: string; address: string } }) {
   const t = await getTranslations("marketing");
   const linkCls = "inline-flex min-h-11 items-center text-[#3E4A6E] no-underline hover:text-royal sm:min-h-9";
   const legalLinks = (["privacy", "terms", "refund", "guarantee", "cookies", "agreement"] as const)
@@ -141,6 +141,22 @@ export async function SiteFooter({ markets, legal }: { markets: MarketInfo[]; le
             currentLabel={t("market.current")}
             items={markets.map((m) => ({ code: m.code, label: t("market.short", { country: m.name, currency: m.currency }) }))}
           />
+          {site?.contactEmail || site?.address ? (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-semibold">{t("footer.contact")}</span>
+              {site.contactEmail ? (
+                <a href={`mailto:${site.contactEmail}`} className="inline-flex min-h-11 items-center text-[#3E4A6E] hover:text-royal sm:min-h-0">
+                  {site.contactEmail}
+                </a>
+              ) : null}
+              {site.address ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{site.address}</span>
+                </>
+              ) : null}
+            </p>
+          ) : null}
           <PerMarket items={markets} as="span">
             {(m) => (
               <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">

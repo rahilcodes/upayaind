@@ -1,4 +1,5 @@
 import "server-only";
+import { getSettings } from "@/server/services/settings";
 import { unstable_cache } from "next/cache";
 import { db } from "@/server/db";
 import { getPricing, type PricingPlan } from "@/server/services/catalog";
@@ -109,6 +110,11 @@ export function targetRange(pricing: MarketPricing | undefined) {
   const targets = (pricing?.plans ?? []).flatMap((p) => p.prices.map((x) => x.dailyTarget)).filter((n) => n > 0);
   if (!targets.length) return { min: 25, max: 50 };
   return { min: Math.min(...targets), max: Math.max(...targets) };
+}
+
+/** Public contact details + headline results from admin settings (D-142). */
+export async function getPublicSite() {
+  return (await getSettings()).publicSite;
 }
 
 /** Proof-strip counters: computed from the DB, cached for a day (SPEC §6.2). */

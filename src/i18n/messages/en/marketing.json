@@ -59,6 +59,7 @@
       "whatsapp": "WhatsApp",
       "cookieSettings": "Cookie settings",
       "copyright": "© UpayaInd",
+      "contact": "Contact",
       "footerNav": "Footer",
       "legalLinks": {
         "privacy": "Privacy",
@@ -255,10 +256,11 @@
     },
     "proof": {
       "label": "Results",
+      "placed": "Candidates placed",
       "students": "Students served",
       "applications": "Applications sent for students",
-      "interviews": "Interviews landed",
-      "note": "Live counts from our platform, updated daily.",
+      "interviews": "Interviews scheduled",
+      "note": "Results across all our markets.",
       "hiredAt": "Students have been hired at {companies}"
     },
     "compare": {
@@ -660,6 +662,8 @@
       "whatsappButton": "Chat on WhatsApp",
       "whatsappText": "Hi UpayaInd, I’d like to know more about your service.",
       "callTitle": "Call us",
+      "emailTitle": "Email us",
+      "locationTitle": "Our office",
       "replyTime": "We usually reply within one working day."
     },
     "legal": {

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { env } from "@/env";
 import { Analytics } from "@/components/marketing/analytics";
 import { SiteFooter, SiteHeader } from "@/components/marketing/chrome";
-import { getActiveMarkets } from "@/components/marketing/data";
+import { getActiveMarkets, getPublicSite } from "@/components/marketing/data";
 import { JsonLd, organizationLd } from "@/components/marketing/json-ld";
 import { MarketScript, MarketStyle } from "@/components/marketing/market";
 import { listPublished } from "@/server/services/cms";
@@ -18,7 +18,7 @@ import "@/components/marketing/prose.css";
 export const revalidate = 3600;
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
-  const [t, markets, legal] = await Promise.all([getTranslations("marketing"), getActiveMarkets(), listPublished("LEGAL")]);
+  const [t, markets, legal, site] = await Promise.all([getTranslations("marketing"), getActiveMarkets(), listPublished("LEGAL"), getPublicSite()]);
   const messages = pickMessages(await getMessages(), [...CORE_NAMESPACES, "marketing"]);
   const codes = markets.map((m) => m.code);
   const legalSlugs = new Set(legal.map((l) => l.slug));
@@ -34,8 +34,8 @@ export default async function MarketingLayout({ children }: { children: React.Re
       <main id="main" className="flex-1">
         {children}
       </main>
-      <SiteFooter markets={markets} legal={legalSlugs} />
-      <JsonLd data={organizationLd({ phones: markets.flatMap((m) => (m.phoneDisplay ? [{ phone: m.phoneDisplay, country: m.code }] : [])) })} />
+      <SiteFooter markets={markets} legal={legalSlugs} site={site} />
+      <JsonLd data={organizationLd({ phones: markets.flatMap((m) => (m.phoneDisplay ? [{ phone: m.phoneDisplay, country: m.code }] : [])), email: site.contactEmail, address: site.address })} />
       <Analytics
         gaId={env.NEXT_PUBLIC_GA_ID}
         clarityId={env.NEXT_PUBLIC_CLARITY_ID}

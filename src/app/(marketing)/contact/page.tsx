@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { env } from "@/env";
 import { whatsappHref } from "@/components/marketing/chrome";
-import { getActiveMarkets } from "@/components/marketing/data";
+import { getActiveMarkets, getPublicSite } from "@/components/marketing/data";
 import { PerMarket } from "@/components/marketing/market";
 import { pageMetadata } from "@/components/marketing/seo";
 import { trackAttrs } from "@/components/marketing/track";
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactPage() {
-  const [t, markets, signupMarkets, privacy] = await Promise.all([getTranslations("marketing.contact"), getActiveMarkets(), listSignupMarkets(), getPublished("LEGAL", "privacy")]);
+  const [t, markets, signupMarkets, privacy, site] = await Promise.all([getTranslations("marketing.contact"), getActiveMarkets(), listSignupMarkets(), getPublished("LEGAL", "privacy"), getPublicSite()]);
   const keys = ["name", "email", "phone", "phoneHint", "phoneCountry", "market", "message", "messageHint", "send", "sending", "sentTitle", "sentBody", "sendAnother", "honeypot"] as const;
   const copy = Object.fromEntries(keys.map((k) => [k, t(k)])) as Record<(typeof keys)[number], string>;
   const consent = privacy
@@ -64,6 +64,15 @@ export default async function ContactPage() {
                 <p className="relative text-[#EEF4FF]">{t("bookUnavailable")}</p>
               )}
             </div>
+            {site.contactEmail ? (
+              <div className="rounded-[22px] border border-sand bg-white p-6 sm:p-8">
+                <h2 className="mb-2 text-xl font-bold">{t("emailTitle")}</h2>
+                <a href={`mailto:${site.contactEmail}`} className="inline-flex min-h-11 items-center break-all text-lg font-semibold text-royal hover:underline">
+                  {site.contactEmail}
+                </a>
+                <p className="text-sm text-[#5A6585]">{t("replyTime")}</p>
+              </div>
+            ) : null}
             {withContact.length ? (
               <PerMarket items={withContact}>
                 {(m) => (
@@ -98,6 +107,12 @@ export default async function ContactPage() {
                   </div>
                 )}
               </PerMarket>
+            ) : null}
+            {site.address ? (
+              <div className="rounded-[22px] border border-sand bg-white p-6 sm:p-8">
+                <h2 className="mb-2 text-xl font-bold">{t("locationTitle")}</h2>
+                <address className="text-[15px] not-italic text-[#3E4A6E]">{site.address}</address>
+              </div>
             ) : null}
           </div>
         </div>

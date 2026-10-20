@@ -6,7 +6,7 @@ import { requireAction } from "@/server/auth/guards";
 import { db } from "@/server/db";
 import { templateDefaults } from "@/server/services/admin-settings";
 import { getSettings } from "@/server/services/settings";
-import { BusinessForm, GeneralForm, ReferralForm, TemplateEditor } from "./settings-forms";
+import { BusinessForm, GeneralForm, PublicSiteForm, ReferralForm, TemplateEditor } from "./settings-forms";
 import { WebhooksForm } from "./webhooks-form";
 import type { AlertWebhook } from "@/server/services/alerts";
 
@@ -25,6 +25,9 @@ export default async function SettingsPage() {
       <div className="grid gap-6">
         <Section id="general" title={t("generalTitle")} description={t("generalDescription")}>
           <GeneralForm value={{ autoAssignEnabled: s.autoAssignEnabled, defaultMaxStudents: s.defaultMaxStudents, noResponseDays: s.noResponseDays, belowTargetAlertTime: s.belowTargetAlertTime, aiLimits: s.aiLimits }} />
+        </Section>
+        <Section id="public-site" title={t("publicSiteTitle")} description={t("publicSiteDescription")}>
+          <PublicSiteForm value={s.publicSite} />
         </Section>
         <Section id="business" title={t("businessTitle")} description={t("businessDescription")}>
           {markets.length ? (
