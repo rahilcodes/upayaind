@@ -76,7 +76,8 @@ export default auth(async (req) => {
 
   // Market detection (pure helper in src/lib/market.ts): ?market= override → cookie → geo header → US.
   const current = req.cookies.get("market")?.value;
-  const market = resolveMarket({ override: nextUrl.searchParams.get("market"), cookie: current, geo: req.headers.get("x-vercel-ip-country") });
+  const market = resolveMarket({ override: nextUrl.searchParams.get("market"), cookie: current, // Vercel sets x-vercel-ip-country; behind Cloudflare (e.g. the VPS test site) it is cf-ipcountry.
+  geo: req.headers.get("x-vercel-ip-country") ?? req.headers.get("cf-ipcountry") });
   const home = pathname === "/" ? homePathForMarket(market) : "/";
   const res = home !== "/" ? NextResponse.rewrite(new URL(home + nextUrl.search, nextUrl)) : NextResponse.next();
 
