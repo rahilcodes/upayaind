@@ -45,7 +45,7 @@
     },
     "market": {
       "button": "Market: {country}",
-      "short": "{code} · {currency}",
+      "short": "{country} · {currency}",
       "title": "Choose your country",
       "current": "Current"
     },
@@ -65,7 +65,8 @@
         "terms": "Terms",
         "refund": "Refund",
         "guarantee": "Guarantee",
-        "cookies": "Cookies"
+        "cookies": "Cookies",
+        "agreement": "Placement Agreement"
       }
     },
     "hero": {
@@ -672,6 +673,546 @@
       "accept": "Accept all",
       "reject": "Reject non-essential",
       "label": "Cookie consent"
+    },
+    "country": {
+      "shared": {
+        "planLine": "{plan} · {n} applications every weekday",
+        "talk": "Talk to us",
+        "book": "Book a free call",
+        "pricingLink": "See every plan in detail",
+        "portalsLabel": "Job portals we apply on",
+        "formatLabel": "What your {doc} looks like",
+        "faqSeeAll": "See all questions",
+        "eligibilityDisclaimer": "We apply where your status fits."
+      },
+      "US": {
+        "meta": {
+          "title": "UpayaInd — You’ll never apply to a job again",
+          "description": "Our specialists apply to 25–50 US jobs for you every weekday — OPT, H-1B, green card or citizen — each with an ATS-ready resume tailored to the job. Track every one live."
+        },
+        "hero": {
+          "eyebrow": "Done-for-you job applications in the United States",
+          "titleLead": "You’ll never apply to a job",
+          "titleAccent": "again.",
+          "sub": "Our specialists apply to {min}–{max} US jobs for you every weekday, each with an ATS-ready resume tailored to the job. OPT, H-1B, green card or citizen — track every application live.",
+          "ctaPrimary": "Get started",
+          "ctaSecondary": "See how it works",
+          "point1": "ATS resume in US format, tailored to every job",
+          "point2": "Sponsorship-aware targeting",
+          "point3": "Live tracking dashboard"
+        },
+        "who": {
+          "eyebrow": "Who it’s for",
+          "title": "Built for the people actually applying in the US market",
+          "sub": "Three situations we see every day. If yours is different, tell us on a free call.",
+          "items": [
+            {
+              "title": "OPT and CPT students",
+              "body": "F-1 students on OPT or STEM-OPT, with the 90-day unemployment clock running. We apply fast, to employers who hire international graduates, and keep the pipeline full until you sign."
+            },
+            {
+              "title": "H-1B professionals changing jobs",
+              "body": "Already in the US and moving between employers? We target companies that file H-1B transfers and state your status clearly on every application, so you never waste a day of your grace period."
+            },
+            {
+              "title": "Experienced US professionals",
+              "body": "Citizens, green-card holders and anyone with open work authorization. No sponsorship filter — just volume and precision: the right title, the right level, the right cities."
+            }
+          ]
+        },
+        "eligibility": {
+          "eyebrow": "Work authorization",
+          "title": "We filter for employers that sponsor — when you need it",
+          "sub": "During onboarding you tell us your status. Your specialist uses it on every search, so applications go where they can turn into offers.",
+          "items": [
+            {
+              "title": "OPT / STEM-OPT",
+              "body": "We prioritise employers who have hired on OPT before and E-Verify companies for STEM extensions, and answer the work-authorization questions on every form exactly as you told us."
+            },
+            {
+              "title": "H-1B transfer",
+              "body": "We target companies with a track record of H-1B filings and state your transfer status upfront. No cap lottery, no surprises in the second round."
+            },
+            {
+              "title": "Green card and citizens",
+              "body": "No sponsorship filter at all. We cover the full market, including government contractors and roles that require existing US work authorization."
+            },
+            {
+              "title": "Work-authorization questions",
+              "body": "Every application form asks. We answer them accurately from your profile, every time, and never misstate your status."
+            }
+          ],
+          "note": "We’re not an immigration service and don’t give visa advice."
+        },
+        "compare": {
+          "eyebrow": "Why UpayaInd",
+          "title": "Job hunting is a second full-time job. Hand it to us.",
+          "diy": "Doing it yourself",
+          "us": "With UpayaInd",
+          "rows": [
+            {
+              "label": "Time spent each week",
+              "diy": "Evenings and weekends",
+              "us": "Interviews and prep only"
+            },
+            {
+              "label": "Applications a month",
+              "diy": "As many as you can fit in",
+              "us": "{min}–{max}+"
+            },
+            {
+              "label": "Resume",
+              "diy": "One generic version",
+              "us": "Tailored to every job, ATS-checked"
+            },
+            {
+              "label": "Sponsorship",
+              "diy": "Found out at the final round",
+              "us": "Filtered before we apply"
+            }
+          ]
+        },
+        "steps": {
+          "eyebrow": "How it works",
+          "title": "From sign-up to interviews in four steps",
+          "items": [
+            {
+              "when": "Day 1",
+              "title": "Sign up and onboard",
+              "body": "Pick a plan, upload your resume, tell us your work authorization, target titles, cities and salary, and meet your specialist."
+            },
+            {
+              "when": "Day 2",
+              "title": "Master resume ready",
+              "body": "We build a structured profile and a US-format, ATS-ready base resume you review and approve."
+            },
+            {
+              "when": "Every weekday",
+              "title": "Tailored applications",
+              "body": "Your specialist applies to {min}–{max} jobs a day on LinkedIn, Indeed, Dice, Glassdoor, ZipRecruiter, Handshake and company sites, each with its own tailored resume."
+            },
+            {
+              "when": "Ongoing",
+              "title": "You interview, we keep going",
+              "body": "Track everything live, prep with us, and keep the pipeline full until you accept an offer."
+            }
+          ]
+        },
+        "portals": {
+          "eyebrow": "Where we apply",
+          "title": "Every major US job board, plus company career pages",
+          "sub": "Your specialist searches daily and applies wherever the role is posted — Easy Apply and full application forms alike.",
+          "items": [
+            "LinkedIn",
+            "Indeed",
+            "Dice",
+            "Glassdoor",
+            "ZipRecruiter",
+            "Handshake",
+            "Company career sites"
+          ],
+          "formatTitle": "US resume format, built for ATS",
+          "formatPoints": [
+            "One page under 10 years’ experience, two at most",
+            "No photo, no date of birth, no marital status",
+            "Measurable bullet points in US English",
+            "Keywords from the job description — only where they’re true"
+          ]
+        },
+        "pricing": {
+          "title": "Simple monthly plans",
+          "sub": "Prices in USD for the United States. Cancel any time.",
+          "finalisingTitle": "Plans for the United States are being finalised",
+          "finalisingBody": "Talk to us and we’ll tell you the price the day it’s set, and reserve your specialist."
+        },
+        "faq": {
+          "title": "Questions from US job seekers",
+          "items": [
+            {
+              "q": "Do you work with students on OPT or STEM-OPT?",
+              "a": "Yes — it’s most of what we do. Tell us your OPT start date and we prioritise employers who hire international graduates. The 90-day unemployment limit is exactly why volume matters."
+            },
+            {
+              "q": "Can you target only employers that sponsor H-1B?",
+              "a": "Yes. If you need sponsorship now or later, we filter for companies with a record of H-1B filings and skip adverts that say “no sponsorship”. If you don’t need it, we don’t filter."
+            },
+            {
+              "q": "Which job boards do you use?",
+              "a": "LinkedIn, Indeed, Dice, Glassdoor, ZipRecruiter, Handshake and company career pages. You can add or exclude any portal from your dashboard."
+            },
+            {
+              "q": "Is my resume ATS-friendly?",
+              "a": "Every resume is a clean, single-column US format checked against the job description before it’s sent. We never add skills, titles or dates you don’t have."
+            },
+            {
+              "q": "Will you apply to companies I want to avoid?",
+              "a": "No. Your exclusion list — current employer, past employers, anyone else you name — is applied to every search."
+            },
+            {
+              "q": "Do you charge a fee after I’m hired?",
+              "a": "The fee terms are written in the Placement Agreement you accept at sign-up and linked in the footer. The monthly plan is shown above; there are no hidden charges."
+            }
+          ]
+        },
+        "cta": {
+          "title": "Spend your time on interviews, not applications.",
+          "sub": "Your specialist can start applying within a day of sign-up."
+        }
+      },
+      "IN": {
+        "meta": {
+          "title": "UpayaInd India — We apply to jobs for you, every weekday",
+          "description": "Our specialists apply to 25–50 jobs for you every weekday on Naukri, LinkedIn, Indeed and company sites, each with a resume tailored to the role. Freshers and experienced."
+        },
+        "hero": {
+          "eyebrow": "Done-for-you job applications in India",
+          "titleLead": "Stop applying. Start",
+          "titleAccent": "interviewing.",
+          "sub": "Our specialists apply to {min}–{max} jobs for you every weekday on Naukri, LinkedIn, Indeed and company career pages, each with a resume tailored to the role. Freshers to 15 years’ experience, in every metro.",
+          "ctaPrimary": "Get started",
+          "ctaSecondary": "See how it works",
+          "point1": "Resume tailored to every job",
+          "point2": "Daily WhatsApp check-in on Standard",
+          "point3": "Live tracking dashboard"
+        },
+        "who": {
+          "eyebrow": "Who it’s for",
+          "title": "Built for how hiring actually works in India",
+          "sub": "Three situations we see every day. If yours is different, message us on WhatsApp.",
+          "items": [
+            {
+              "title": "Freshers and campus-to-corporate",
+              "body": "Final-year students and recent graduates without an offer in hand. We apply to fresher openings, off-campus drives and graduate programmes every day, with a resume that reads like a professional’s, not a project list."
+            },
+            {
+              "title": "Experienced professionals switching jobs",
+              "body": "2 to 15 years, serving notice or planning the switch. We lead with your expected CTC, notice period and current role, so recruiters shortlist you instead of asking twice."
+            },
+            {
+              "title": "Immediate joiners and career returners",
+              "body": "Laid off, between contracts or back after a break? “Immediate joiner” is a filter recruiters search on. We make sure you show up in it and keep the pipeline full until the offer letter."
+            }
+          ]
+        },
+        "eligibility": {
+          "eyebrow": "Fit and filters",
+          "title": "Recruiters search by CTC, notice period and city. So do we.",
+          "sub": "Indian portals are built around filters. We set yours during onboarding and apply only where you match, so you get calls instead of silence.",
+          "items": [
+            {
+              "title": "Current and expected CTC",
+              "body": "We state your current and expected CTC the way recruiters want it — once, clearly — and skip roles below your floor."
+            },
+            {
+              "title": "Notice period",
+              "body": "Serving 30, 60 or 90 days, negotiable, or immediate: your notice period goes on every application, so nobody is surprised at the offer stage."
+            },
+            {
+              "title": "Cities and work mode",
+              "body": "Bengaluru, Hyderabad, Pune, Mumbai, Chennai, Delhi-NCR or remote — we apply only where you would actually join."
+            },
+            {
+              "title": "Companies you tell us to avoid",
+              "body": "Your current employer, past employers, specific consultancies: we never apply to anyone on your exclusion list."
+            }
+          ],
+          "note": "Product companies, GCCs, startups or IT services — you choose the mix, and you can change it any week."
+        },
+        "compare": {
+          "eyebrow": "Why UpayaInd",
+          "title": "Job hunting on top of a 9-to-6 is a second job. Hand it to us.",
+          "diy": "Doing it yourself",
+          "us": "With UpayaInd",
+          "rows": [
+            {
+              "label": "Time spent each week",
+              "diy": "Nights and weekends on Naukri",
+              "us": "Interviews and prep only"
+            },
+            {
+              "label": "Applications a month",
+              "diy": "As many as you can fit in",
+              "us": "{min}–{max}+"
+            },
+            {
+              "label": "Resume",
+              "diy": "One file for every job",
+              "us": "Tailored to every job"
+            },
+            {
+              "label": "Recruiter follow-ups",
+              "diy": "Whenever you remember",
+              "us": "Logged and chased daily"
+            }
+          ]
+        },
+        "steps": {
+          "eyebrow": "How it works",
+          "title": "From sign-up to interviews in four steps",
+          "items": [
+            {
+              "when": "Day 1",
+              "title": "Sign up and onboard",
+              "body": "Pick a plan, upload your resume, set your CTC, notice period, cities and target roles, and meet your specialist."
+            },
+            {
+              "when": "Day 2",
+              "title": "Master resume ready",
+              "body": "We build a structured profile and a clean Indian-format base resume you review and approve."
+            },
+            {
+              "when": "Every weekday",
+              "title": "Tailored applications",
+              "body": "Your specialist applies to {min}–{max} jobs a day on Naukri, LinkedIn, Indeed, Instahyre, Foundit and company career pages, each with its own tailored resume."
+            },
+            {
+              "when": "Ongoing",
+              "title": "You interview, we keep going",
+              "body": "Track everything live, get a daily WhatsApp update on the Standard plan, prep with us and keep going until the offer letter is signed."
+            }
+          ]
+        },
+        "portals": {
+          "eyebrow": "Where we apply",
+          "title": "Naukri to company career pages — wherever the role is posted",
+          "sub": "Your specialist searches daily and applies on every portal you use, plus the ones you don’t have time for.",
+          "items": [
+            "Naukri",
+            "LinkedIn",
+            "Indeed India",
+            "Instahyre",
+            "Foundit",
+            "Company career pages"
+          ],
+          "formatTitle": "An Indian resume format recruiters can skim in 10 seconds",
+          "formatPoints": [
+            "Headline with role, experience and key skills at the top",
+            "Current CTC, expected CTC and notice period where recruiters look for them",
+            "Two pages maximum, no photo unless the employer asks",
+            "Keywords from the JD — only where they’re true"
+          ]
+        },
+        "pricing": {
+          "title": "Simple monthly plans",
+          "sub": "Prices in INR for India. Cancel any time.",
+          "finalisingTitle": "Plans for India are being finalised",
+          "finalisingBody": "Talk to us on WhatsApp or book a call — we’ll confirm the price in rupees before you pay anything, and reserve a specialist for you."
+        },
+        "faq": {
+          "title": "Questions from job seekers in India",
+          "items": [
+            {
+              "q": "I’m serving a 90-day notice period. Is it too early to start?",
+              "a": "No — it’s the best time. Most companies hiring experienced people expect 30–90 days. We put your notice period on every application, and if you can negotiate or buy it out, we say so."
+            },
+            {
+              "q": "Do you apply to consultancies or only product companies?",
+              "a": "Whatever mix you choose. Tell us during onboarding — product companies, GCCs, startups, IT services or staffing consultancies — and change it any week from your dashboard."
+            },
+            {
+              "q": "Will you apply to my current employer?",
+              "a": "Never. Your current employer, past employers and any company you name go on an exclusion list that every search respects."
+            },
+            {
+              "q": "Do you charge anything after I join?",
+              "a": "Only what the Placement Agreement you accept at sign-up says — it’s linked in the footer. The monthly plan is shown above, there are no hidden charges, and your specialist never collects money from you directly."
+            },
+            {
+              "q": "Which portals do you use?",
+              "a": "Naukri, LinkedIn, Indeed India, Instahyre, Foundit and company career pages. You can add or remove any of them from your dashboard."
+            },
+            {
+              "q": "Is interview prep in English?",
+              "a": "Yes — mock interviews and question banks are in English, because that’s how most Indian interviews run. Our team speaks Hindi and several regional languages, so check-ins can be in whichever you prefer."
+            },
+            {
+              "q": "What does the daily WhatsApp check-in include?",
+              "a": "On the Standard plan, a message every working day with what was applied, what moved and anything we need from you. Reply any time."
+            }
+          ]
+        },
+        "cta": {
+          "title": "Your next offer letter starts with the applications you don’t have to send.",
+          "sub": "Your specialist can start applying within a day of sign-up."
+        }
+      },
+      "UK": {
+        "meta": {
+          "title": "UpayaInd UK — We apply for jobs on your behalf",
+          "description": "Our specialists apply to 25–50 UK jobs for you every weekday — licensed sponsors only when you need a Skilled Worker visa — each with a two-page UK CV tailored to the role."
+        },
+        "hero": {
+          "eyebrow": "Done-for-you job applications in the UK",
+          "titleLead": "You’ll never fill in another",
+          "titleAccent": "application form.",
+          "sub": "Our specialists apply to {min}–{max} UK roles for you every weekday on LinkedIn, Indeed, Reed, Totaljobs, CV-Library and company sites, each with a CV tailored to the job. Sponsorship filtered when you need it.",
+          "ctaPrimary": "Get started",
+          "ctaSecondary": "See how it works",
+          "point1": "CV tailored to every role",
+          "point2": "Licensed sponsors only, when you need one",
+          "point3": "Live tracking dashboard"
+        },
+        "who": {
+          "eyebrow": "Who it’s for",
+          "title": "Built for the UK market, visa or no visa",
+          "sub": "Three situations we see every day. If yours is different, tell us on a free call.",
+          "items": [
+            {
+              "title": "Graduate visa holders",
+              "body": "Two years (three for PhDs) to turn a UK degree into a sponsored role. We target licensed sponsors from day one, so you’re not starting the search when the clock is nearly out."
+            },
+            {
+              "title": "Skilled Worker visa professionals",
+              "body": "Changing employer means a new Certificate of Sponsorship. We apply only to organisations on the register of licensed sponsors with a record of hiring in your field, and state your status plainly."
+            },
+            {
+              "title": "Settled status and British citizens",
+              "body": "No sponsorship filter — just the whole market: London, Manchester, Birmingham, Edinburgh or fully remote, at the right level and salary band."
+            }
+          ]
+        },
+        "eligibility": {
+          "eyebrow": "Right to work",
+          "title": "Licensed sponsors only — when you need one",
+          "sub": "You tell us your right-to-work status during onboarding. Your specialist checks it against every role before applying.",
+          "items": [
+            {
+              "title": "Skilled Worker sponsorship",
+              "body": "We apply to employers on the Home Office register of licensed sponsors and skip adverts that say “no sponsorship”. The salary threshold for your occupation is checked too."
+            },
+            {
+              "title": "Graduate visa",
+              "body": "Full right to work now, sponsorship needed later. We weight the search towards sponsors so your next move doesn’t turn into a visa scramble."
+            },
+            {
+              "title": "Settled, pre-settled and citizens",
+              "body": "No filter. We cover every employer, including roles that require an existing right to work."
+            },
+            {
+              "title": "Right-to-work questions",
+              "body": "Every application form asks. We answer them from your profile, accurately, every time, and never misstate your status."
+            }
+          ],
+          "note": "We’re not immigration advisers and don’t give visa advice."
+        },
+        "compare": {
+          "eyebrow": "Why UpayaInd",
+          "title": "Job hunting is a second full-time job. Hand it to us.",
+          "diy": "Doing it yourself",
+          "us": "With UpayaInd",
+          "rows": [
+            {
+              "label": "Time spent each week",
+              "diy": "Evenings and weekends",
+              "us": "Interviews and prep only"
+            },
+            {
+              "label": "Applications a month",
+              "diy": "As many as you can fit in",
+              "us": "{min}–{max}+"
+            },
+            {
+              "label": "CV",
+              "diy": "One generic version",
+              "us": "Tailored to every role"
+            },
+            {
+              "label": "Sponsorship",
+              "diy": "Discovered at offer stage",
+              "us": "Checked before we apply"
+            }
+          ]
+        },
+        "steps": {
+          "eyebrow": "How it works",
+          "title": "From sign-up to interviews in four steps",
+          "items": [
+            {
+              "when": "Day 1",
+              "title": "Sign up and onboard",
+              "body": "Pick a plan, upload your CV, tell us your right to work, target roles, locations and salary, and meet your specialist."
+            },
+            {
+              "when": "Day 2",
+              "title": "Master CV ready",
+              "body": "We build a structured profile and a two-page UK CV you review and approve."
+            },
+            {
+              "when": "Every weekday",
+              "title": "Tailored applications",
+              "body": "Your specialist applies to {min}–{max} roles a day on LinkedIn, Indeed, Reed, Totaljobs, CV-Library and company sites, each with its own tailored CV."
+            },
+            {
+              "when": "Ongoing",
+              "title": "You interview, we keep going",
+              "body": "Track everything live, prep with us, and keep the pipeline full until you accept an offer."
+            }
+          ]
+        },
+        "portals": {
+          "eyebrow": "Where we apply",
+          "title": "Every major UK job board, plus company careers pages",
+          "sub": "Your specialist searches daily and applies wherever the role is posted — quick-apply and full application forms alike.",
+          "items": [
+            "LinkedIn",
+            "Indeed UK",
+            "Reed",
+            "Totaljobs",
+            "CV-Library",
+            "Company careers pages"
+          ],
+          "formatTitle": "UK CV format, the way recruiters expect it",
+          "formatPoints": [
+            "Two pages, no photo, no date of birth, no marital status",
+            "Personal profile, then experience, then education",
+            "Achievements with numbers, in British English",
+            "References available on request — supplied only when you say so"
+          ]
+        },
+        "pricing": {
+          "title": "Simple monthly plans",
+          "sub": "Prices in GBP for the United Kingdom. Cancel any time.",
+          "finalisingTitle": "Plans for the United Kingdom are being finalised",
+          "finalisingBody": "Talk to us or book a call — we’ll confirm the price in pounds before you pay anything, and reserve your specialist."
+        },
+        "faq": {
+          "title": "Questions from UK job seekers",
+          "items": [
+            {
+              "q": "Can you apply only to employers that sponsor Skilled Worker visas?",
+              "a": "Yes. If you need sponsorship, we apply only to organisations on the Home Office register of licensed sponsors and skip adverts that rule it out. If you don’t need it, we don’t filter."
+            },
+            {
+              "q": "I’m on a Graduate visa. Should I start now?",
+              "a": "Yes. The visa is two years, and sponsored roles take longer to land than unsponsored ones. The earlier the pipeline fills, the more choice you have."
+            },
+            {
+              "q": "Do you handle contracting or IR35 roles?",
+              "a": "No. We apply for permanent and fixed-term employed roles only. Day-rate contracting, umbrella companies and IR35 assessments are out of scope."
+            },
+            {
+              "q": "What about references?",
+              "a": "Your CV says “references available on request”. When an employer asks, we tell you and you provide them — we never share referee details without you."
+            },
+            {
+              "q": "Which job boards do you use?",
+              "a": "LinkedIn, Indeed UK, Reed, Totaljobs, CV-Library and company careers pages. You can add or exclude any of them from your dashboard."
+            },
+            {
+              "q": "Will you apply to my current employer?",
+              "a": "Never. Your exclusion list — current and past employers, anyone you name — is applied to every search."
+            },
+            {
+              "q": "Do you charge a fee after I’m hired?",
+              "a": "The fee terms are written in the Placement Agreement you accept at sign-up and linked in the footer. The monthly plan is shown above; there are no hidden charges."
+            }
+          ]
+        },
+        "cta": {
+          "title": "Spend your evenings on interview prep, not application forms.",
+          "sub": "Your specialist can start applying within a day of sign-up."
+        }
+      }
     },
     "common": {
       "demo": "Demo",

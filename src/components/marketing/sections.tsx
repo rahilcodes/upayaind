@@ -95,14 +95,15 @@ export function faqItems(entries: PublicEntry[]) {
   return entries.map((e) => ({ q: e.title, html: e.bodyHtml || `<p>${(e.excerpt ?? "").replace(/</g, "&lt;")}</p>` }));
 }
 
-export async function FinalCta({ calcom }: { calcom: boolean }) {
+/** Closing CTA band. `title`/`sub` override the default copy (country homepages, D-141). */
+export async function FinalCta({ calcom, title, sub }: { calcom: boolean; title?: string; sub?: string }) {
   const t = await getTranslations("marketing.cta");
   return (
     <section className="bg-paper px-4 py-6 sm:px-6">
       <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[28px] brand-deep px-6 py-16 text-center text-white sm:px-10 sm:py-[72px]">
         <RisingArrow className="pointer-events-none absolute -bottom-10 -right-16 w-[340px] opacity-35 sm:w-[520px]" />
-        <h2 className={cn(h2Class, "relative mx-auto max-w-[820px] lg:text-[52px]")}>{t("title")}</h2>
-        <p className="relative mx-auto mb-8 mt-4 max-w-[560px] text-lg text-[#EEF4FF]">{t("sub")}</p>
+        <h2 className={cn(h2Class, "relative mx-auto max-w-[820px] lg:text-[52px]")}>{title ?? t("title")}</h2>
+        <p className="relative mx-auto mb-8 mt-4 max-w-[560px] text-lg text-[#EEF4FF]">{sub ?? t("sub")}</p>
         <div className="relative flex flex-wrap justify-center gap-3">
           <Link href="/pricing" className={cta.white} {...trackAttrs("cta_get_started", { location: "final_cta" })}>
             {t("getStarted")}

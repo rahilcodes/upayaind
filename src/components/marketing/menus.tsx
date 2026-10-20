@@ -2,6 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isCountryHomePath } from "@/lib/market";
 
 /**
  * The only interactive bits of the header: the mobile menu sheet and the
@@ -121,6 +122,8 @@ export function MarketMenu({
   React.useEffect(() => {
     if (open) setCurrent(document.getElementById("mk-root")?.getAttribute("data-market") ?? null);
   }, [open]);
+  // On a country homepage switching lands on that country's home (`/` is rewritten by the middleware, D-141).
+  const base = isCountryHomePath(pathname) ? "/" : pathname;
 
   return (
     <div className="relative">
@@ -149,7 +152,7 @@ export function MarketMenu({
           {items.map((m) => (
             <li key={m.code}>
               <a
-                href={`${pathname}?market=${m.code}`}
+                href={`${base}?market=${m.code}`}
                 hrefLang="en"
                 aria-current={current === m.code ? "true" : undefined}
                 className="flex min-h-11 items-center justify-between rounded-[10px] px-3 text-[15px] font-medium text-ink hover:bg-[#F1F4FB]"

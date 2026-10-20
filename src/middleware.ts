@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import { authConfig } from "@/server/auth/config.edge";
 import { canOpenPortal, isStaff, portalForRole } from "@/server/auth/rbac";
 import { verifyViewAs, VIEW_AS_COOKIE } from "@/server/auth/view-as.edge";
+import { homePathForMarket, resolveMarket } from "@/lib/market";
 
 const { auth } = NextAuth(authConfig);
 
-const PORTALS = ["/app", "/work", "/admin"];
+const PORTALS = ["/app", "/work", "/admin", "/coach"];
 const AUTH_PAGES = ["/login", "/signup"];
-const SUPPORTED_MARKETS = ["US", "UK", "CA", "AU", "IN"];
 
 function isUnder(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
@@ -16,11 +16,13 @@ function isUnder(pathname: string, prefix: string) {
 
 /**
  * Route protection (SPEC §5):
- * - /app, /work, /admin require a session; otherwise /login?next=…
+ * - /app, /work, /admin, /coach require a session; otherwise /login?next=…
  * - staff must complete TOTP 2FA (/2fa) before any portal
  * - wrong role → /403
  * - students without a profile → /signup/complete; not onboarded → /app/onboarding
- * Also sets the `market` cookie from the visitor's country (SPEC §6.1).
+ * Also sets the `market` cookie from the visitor's country (SPEC §6.1) and
+ * serves the visitor's country homepage at `/` (D-141): IN → /in, UK → /uk,
+ * everyone else the US page. The URL stays `/`; /in and /uk also work directly.
  */
 export default auth(async (req) => {
   const { nextUrl } = req;
@@ -72,7 +74,11 @@ export default auth(async (req) => {
     }
   }
 
-  const res = NextResponse.next();
+  // Market detection (pure helper in src/lib/market.ts): ?market= override → cookie → geo header → US.
+  const current = req.cookies.get("market")?.value;
+  const market = resolveMarket({ override: nextUrl.searchParams.get("market"), cookie: current, geo: req.headers.get("x-vercel-ip-country") });
+  const home = pathname === "/" ? homePathForMarket(market) : "/";
+  const res = home !== "/" ? NextResponse.rewrite(new URL(home + nextUrl.search, nextUrl)) : NextResponse.next();
 
   // Referral attribution (D-113): remember ?ref=CODE for 30 days so a later signup is still credited.
   const ref = nextUrl.searchParams.get("ref");
@@ -80,12 +86,6 @@ export default auth(async (req) => {
     res.cookies.set("ref", ref.toUpperCase(), { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" });
   }
 
-  // Market detection: ?market= override → cookie → geo header → US.
-  const override = nextUrl.searchParams.get("market")?.toUpperCase();
-  const current = req.cookies.get("market")?.value;
-  const geo = req.headers.get("x-vercel-ip-country")?.toUpperCase();
-  const pick = (c?: string | null) => (c && SUPPORTED_MARKETS.includes(c === "GB" ? "UK" : c) ? (c === "GB" ? "UK" : c) : null);
-  const market = pick(override) ?? pick(current) ?? pick(geo) ?? "US";
   if (market !== current) {
     res.cookies.set("market", market, { path: "/", maxAge: 60 * 60 * 24 * 180, sameSite: "lax" });
   }

@@ -10,7 +10,7 @@ async function scan(page: Page, where: string) {
 }
 
 const PAGES = {
-  public: ["/", "/pricing", "/how-it-works", "/faq", "/contact", "/login", "/signup"],
+  public: ["/", "/in", "/uk", "/pricing", "/how-it-works", "/faq", "/contact", "/login", "/signup"],
   student: ["/app", "/app/applications", "/app/interviews", "/app/vault", "/app/messages", "/app/billing"],
   employee: ["/work", "/work/students", "/work/timesheet", "/work/leave", "/work/messages"],
   admin: ["/admin", "/admin/students", "/admin/assignments", "/admin/reports", "/admin/employees"],

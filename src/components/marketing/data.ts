@@ -63,6 +63,47 @@ export async function getAllPricing(markets: MarketInfo[]): Promise<MarketPricin
   );
 }
 
+/**
+ * One market's info + plans for a country homepage (D-141). Works for a
+ * market that is not active yet (no plans → "being finalised" state) and
+ * never falls back to another market's prices.
+ */
+export async function getMarketPricing(code: string): Promise<MarketPricing | null> {
+  const m = await db.market.findUnique({
+    where: { code },
+    select: { code: true, name: true, currency: true, locale: true, phoneDisplay: true, whatsapp: true, isActive: true, resumeStyle: { select: { documentTitle: true } } },
+  });
+  if (!m) return null;
+  const market: MarketInfo = {
+    code: m.code,
+    name: m.name,
+    currency: m.currency,
+    locale: m.locale,
+    phoneDisplay: m.phoneDisplay,
+    whatsapp: m.whatsapp,
+    docWord: /^resume$/i.test(m.resumeStyle.documentTitle) ? "resume" : m.resumeStyle.documentTitle,
+  };
+  if (!m.isActive) return { market, plans: [], intervals: [] };
+  const [p] = await getAllPricing([market]);
+  return p ?? { market, plans: [], intervals: [] };
+}
+
+/** Placeholder market info when the Market row is missing (fresh DB): copy still renders, no plans. */
+export function getMarketPricingFallback(code: string): MarketPricing {
+  const known: Record<string, Pick<MarketInfo, "name" | "currency" | "locale" | "docWord">> = {
+    US: { name: "United States", currency: "USD", locale: "en-US", docWord: "resume" },
+    IN: { name: "India", currency: "INR", locale: "en-IN", docWord: "resume" },
+    UK: { name: "United Kingdom", currency: "GBP", locale: "en-GB", docWord: "CV" },
+  };
+  const k = known[code] ?? known.US!;
+  return { market: { code, ...k, phoneDisplay: null, whatsapp: null }, plans: [], intervals: [] };
+}
+
+/** True when at least one price in the market can be bought (placeholders are 0 and blocked by the floor). */
+export function hasPurchasablePlan(pricing: MarketPricing | null | undefined) {
+  return Boolean(pricing?.plans.some((p) => p.prices.some((x) => x.purchasable)));
+}
+
 /** Daily application targets offered in a market (for "25–50 jobs a day" copy). Falls back to the spec's 25–50. */
 export function targetRange(pricing: MarketPricing | undefined) {
   const targets = (pricing?.plans ?? []).flatMap((p) => p.prices.map((x) => x.dailyTarget)).filter((n) => n > 0);

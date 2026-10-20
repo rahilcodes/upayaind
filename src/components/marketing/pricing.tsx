@@ -120,8 +120,8 @@ export async function ComparisonTable({ pricing }: { pricing: MarketPricing }) {
   const plans = pricing.plans;
   if (plans.length < 2) return null;
   const features: string[] = [];
-  // The daily target has its own row; skip "N … applications every weekday" features that restate it.
-  const restatesTarget = (f: string) => /^\d+\b.*applications? every (week)?day/i.test(f);
+  // The daily target has its own row; skip "N … applications every weekday" / "N–M … applications/day" features that restate it.
+  const restatesTarget = (f: string) => /^\d+\b.*applications?\s*(every (week)?day|\/\s*day|per day|a day)/i.test(f);
   for (const p of plans) for (const f of p.features) if (!features.includes(f) && !restatesTarget(f)) features.push(f);
   const monthly = (p: PricingPlan) => p.prices.find((x) => x.interval === "MONTHLY") ?? p.prices[0];
   return (

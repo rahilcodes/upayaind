@@ -27,6 +27,10 @@ export function pageMetadata(opts: {
   modifiedTime?: string;
   /** Skip the "· UpayaInd" template (homepage). */
   absoluteTitle?: boolean;
+  /** hreflang map (`en-IN` → "/in", `x-default` → "/"); paths are made absolute. */
+  alternates?: Record<string, string>;
+  /** Open Graph locale, e.g. `en_GB` (default `en_US`). */
+  ogLocale?: string;
 }): Metadata {
   const suffix = " · UpayaInd";
   const hasBrand = /upayaind/i.test(opts.title);
@@ -36,15 +40,16 @@ export function pageMetadata(opts: {
   const description = clip(opts.description, 155);
   const canonical = opts.canonical ? (opts.canonical.startsWith("/") ? absoluteUrl(opts.canonical) : opts.canonical) : absoluteUrl(opts.path);
   const images = opts.ogImageId ? [{ url: absoluteUrl(mediaUrl(opts.ogImageId)), alt: title }] : undefined;
+  const languages = opts.alternates ? Object.fromEntries(Object.entries(opts.alternates).map(([k, v]) => [k, v.startsWith("/") ? absoluteUrl(v) : v])) : undefined;
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
-    alternates: { canonical },
+    alternates: { canonical, ...(languages ? { languages } : {}) },
     robots: opts.noindex ? { index: false, follow: true } : undefined,
     openGraph: {
       type: opts.type ?? "website",
       siteName: "UpayaInd",
-      locale: "en_US",
+      locale: opts.ogLocale ?? "en_US",
       url: canonical,
       title: fullTitle,
       description,

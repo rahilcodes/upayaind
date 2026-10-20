@@ -53,3 +53,13 @@ export function PerMarket<T extends { code: string }>({ items, as, children }: {
     </>
   );
 }
+
+/**
+ * Pin the chrome (header switcher, footer phone) to one market on a country
+ * homepage (D-141), regardless of the visitor's cookie. Runs before paint,
+ * after MarketScript, so /uk always shows the UK phone and "Current" marker.
+ */
+export function MarketPin({ code }: { code: string }) {
+  const js = `(function(){try{document.getElementById("mk-root").setAttribute("data-market","${attr(code)}")}catch(e){}})()`;
+  return <script dangerouslySetInnerHTML={{ __html: js }} />;
+}

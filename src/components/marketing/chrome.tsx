@@ -30,7 +30,7 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
       {(m) => (
         <span>
           <span className="sr-only">{t("market.button", { country: m.name })} </span>
-          <span aria-hidden="true">{t("market.short", { code: m.code, currency: m.currency })}</span>
+          <span aria-hidden="true">{t("market.short", { country: m.name, currency: m.currency })}</span>
         </span>
       )}
     </PerMarket>
@@ -40,7 +40,7 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
       button={marketButton}
       title={t("market.title")}
       currentLabel={t("market.current")}
-      items={markets.map((m) => ({ code: m.code, label: `${m.name} · ${m.currency}` }))}
+      items={markets.map((m) => ({ code: m.code, label: t("market.short", { country: m.name, currency: m.currency }) }))}
     />
   );
 
@@ -95,7 +95,7 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
 export async function SiteFooter({ markets, legal }: { markets: MarketInfo[]; legal: Set<string> }) {
   const t = await getTranslations("marketing");
   const linkCls = "inline-flex min-h-11 items-center text-[#3E4A6E] no-underline hover:text-royal sm:min-h-9";
-  const legalLinks = (["privacy", "terms", "refund", "guarantee", "cookies"] as const)
+  const legalLinks = (["privacy", "terms", "refund", "guarantee", "cookies", "agreement"] as const)
     .map((slug) => ({ slug, label: t(`footer.legalLinks.${slug}`) }))
     .filter((l) => legal.has(l.slug));
   return (
@@ -139,7 +139,7 @@ export async function SiteFooter({ markets, legal }: { markets: MarketInfo[]; le
             button={<span>{t("market.title")}</span>}
             title={t("market.title")}
             currentLabel={t("market.current")}
-            items={markets.map((m) => ({ code: m.code, label: `${m.name} · ${m.currency}` }))}
+            items={markets.map((m) => ({ code: m.code, label: t("market.short", { country: m.name, currency: m.currency }) }))}
           />
           <PerMarket items={markets} as="span">
             {(m) => (

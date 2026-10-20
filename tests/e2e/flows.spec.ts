@@ -19,6 +19,7 @@ test("F1: a visitor signs up, pays and lands in onboarding", async ({ page }) =>
   await page.fill("#phone", "+1 415 555 0142");
   await page.check("input[name=consentTerms]");
   await page.check("input[name=consentApply]");
+  await page.check("input[name=consentAgreement]");
   await page.click("form button[type=submit]");
 
   await expect(page).toHaveURL(/\/app\/checkout\?plan=/, { timeout: 60_000 });
@@ -31,7 +32,7 @@ test("F1: a visitor signs up, pays and lands in onboarding", async ({ page }) =>
 });
 
 test("public pages render with one H1 and a description", async ({ page }) => {
-  for (const p of ["/", "/pricing", "/how-it-works", "/faq", "/contact", "/success-stories", "/blog", "/about"]) {
+  for (const p of ["/", "/in", "/uk", "/pricing", "/how-it-works", "/faq", "/contact", "/success-stories", "/blog", "/about"]) {
     await page.goto(p);
     await expect(page.locator("h1"), p).toHaveCount(1);
     const desc = await page.locator('meta[name="description"]').getAttribute("content");
