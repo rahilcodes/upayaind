@@ -5,6 +5,9 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const isDev = process.env.NODE_ENV !== "production";
+// HTTPS-only directives are tied to the public origin, so a production build served over plain
+// http (e.g. a VPS test box before its certificate exists) still loads its own assets and forms.
+const httpsOrigin = (process.env.NEXT_PUBLIC_APP_URL ?? "https://").startsWith("https://");
 
 /**
  * Content Security Policy (SPEC §10). Third parties: Stripe (checkout redirect +
@@ -24,12 +27,12 @@ const csp = [
   "form-action 'self' https://checkout.stripe.com https://accounts.google.com",
   "base-uri 'self'",
   "object-src 'none'",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  ...(isDev || !httpsOrigin ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  ...(httpsOrigin ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }] : []),
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
