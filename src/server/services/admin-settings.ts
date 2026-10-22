@@ -30,7 +30,7 @@ export type GeneralSettings = z.infer<typeof generalSettingsSchema>;
 /** Public site contact details + proof-strip figures (D-142). Stats are short display strings like "60+". */
 export const publicSiteSchema = z.object({
   contactEmail: z.string().trim().email("Enter a valid email.").max(120),
-  address: z.string().trim().max(200),
+  offices: z.record(z.string().length(2).toUpperCase(), z.string().trim().max(200)),
   stats: z.object({
     placed: z.string().trim().max(12),
     interviews: z.string().trim().max(12),

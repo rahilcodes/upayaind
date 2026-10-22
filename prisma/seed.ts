@@ -156,7 +156,7 @@ const SETTINGS: Record<string, Prisma.InputJsonValue> = {
   aiLimits: { employeePerHour: 60, studentPerDay: 300 },
   business: {
     US: { legalName: "[Legal entity name]", address: "502 W 7th St, Ste 100, Erie, PA 16052", taxId: "" },
-    IN: { legalName: "[Legal entity name]", address: "[Business address]", taxId: "" },
+    IN: { legalName: "[Legal entity name]", address: "B 609, B-Block, Asian Sun City, Kothaguda X Road, Kondapur, Hyderabad, Telangana 500084, India", taxId: "" },
   },
 };
 

@@ -11,7 +11,7 @@ export function JsonLd({ data }: { data: Record<string, unknown> | Record<string
 
 export const ORG_ID = absoluteUrl("/#organization");
 
-export function organizationLd(opts: { phones: { phone: string; country: string }[]; email?: string; address?: string }) {
+export function organizationLd(opts: { phones: { phone: string; country: string }[]; email?: string; addresses?: string[] }) {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -21,7 +21,7 @@ export function organizationLd(opts: { phones: { phone: string; country: string 
     logo: absoluteUrl("/icon"),
     description: "Done-for-you job applications, with a resume tailored to every role.",
     ...(opts.email ? { email: opts.email } : {}),
-    ...(opts.address ? { address: opts.address } : {}),
+    ...(opts.addresses?.length ? { address: opts.addresses.length === 1 ? opts.addresses[0] : opts.addresses } : {}),
     ...(opts.phones.length
       ? {
           contactPoint: opts.phones.map((p) => ({

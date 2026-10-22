@@ -79,9 +79,22 @@ export const TEMPLATES = {
     link: () => "/work/students",
   },
   cover_employee: {
-    title: (p) => `You’re covering ${s(p.studentName)}`,
-    body: (p) => `From ${s(p.from)} to ${s(p.to)} while ${s(p.primaryName)} is on leave.`,
-    link: (p) => `/work/students/${s(p.studentId)}`,
+    title: (p) => `You’re covering ${s(p.count)} applicant${Number(p.count) === 1 ? "" : "s"} for ${s(p.primaryName)}, ${s(p.dates)}`,
+    body: (p) => `${s(p.names)}. They show on your Today page for the leave dates only.`,
+    link: () => "/work",
+    cta: () => "Open Today",
+  },
+  leave_cover_set: {
+    title: (p) => `Cover set for your leave (${s(p.dates)})`,
+    body: (p) => s(p.summary),
+    link: () => "/work/leave",
+  },
+  cover_student: {
+    whatsapp: true,
+    title: (p) => `${s(p.coverFirstName)} is covering while ${s(p.primaryFirstName)} is away`,
+    body: (p) => `While ${s(p.primaryFirstName)} is away (${s(p.dates)}), ${s(p.coverFirstName)} will handle your applications and messages.`,
+    link: () => "/app/messages",
+    cta: () => "Open messages",
   },
   awaiting_assignment: {
     title: (p) => `Student waiting for a specialist: ${s(p.studentName)}`,

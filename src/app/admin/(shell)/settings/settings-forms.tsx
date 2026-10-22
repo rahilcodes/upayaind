@@ -142,7 +142,7 @@ export function TemplateEditor({ tpl, override }: { tpl: { type: string; title: 
 }
 
 /** Referral programme amounts (D-113): friend % off + referrer credit per market currency (major units in the UI). */
-export function PublicSiteForm({ value }: { value: { contactEmail: string; address: string; stats: { placed: string; interviews: string; applications: string } } }) {
+export function PublicSiteForm({ value, markets }: { value: { contactEmail: string; offices: Record<string, string>; stats: { placed: string; interviews: string; applications: string } }; markets: { code: string; name: string }[] }) {
   const t = useTranslations("admin.settings");
   const { run, pending, fieldErrors } = useServerAction(savePublicSiteAction);
   const err = (k: string) => fieldErrors[k];
@@ -155,7 +155,7 @@ export function PublicSiteForm({ value }: { value: { contactEmail: string; addre
         const fd = new FormData(e.currentTarget);
         run({
           contactEmail: String(fd.get("contactEmail") ?? ""),
-          address: String(fd.get("address") ?? ""),
+          offices: Object.fromEntries(markets.map((m) => [m.code, String(fd.get(`office-${m.code}`) ?? "")])),
           stats: { placed: String(fd.get("placed") ?? ""), interviews: String(fd.get("interviews") ?? ""), applications: String(fd.get("applications") ?? "") },
         });
       }}
@@ -163,9 +163,11 @@ export function PublicSiteForm({ value }: { value: { contactEmail: string; addre
       <Field id="ps-email" label={t("contactEmail")} hint={t("contactEmailHint")} error={err("contactEmail")}>
         <Input {...fieldA11y("ps-email", err("contactEmail"), true)} name="contactEmail" type="email" defaultValue={value.contactEmail} />
       </Field>
-      <Field id="ps-address" label={t("siteAddress")} hint={t("siteAddressHint")} error={err("address")}>
-        <Input {...fieldA11y("ps-address", err("address"), false)} name="address" defaultValue={value.address} />
-      </Field>
+      {markets.map((m) => (
+        <Field key={m.code} id={`ps-office-${m.code}`} label={t("office", { country: m.name })} hint={t("officeHint")} error={err(`offices.${m.code}`)}>
+          <Input {...fieldA11y(`ps-office-${m.code}`, err(`offices.${m.code}`), false)} name={`office-${m.code}`} defaultValue={value.offices[m.code] ?? ""} />
+        </Field>
+      ))}
       <p className="text-[13px] text-muted-foreground sm:col-span-2">{t("statsHint")}</p>
       <Field id="ps-placed" label={t("statPlaced")} error={err("stats.placed")}>
         <Input {...fieldA11y("ps-placed", err("stats.placed"), false)} name="placed" defaultValue={value.stats.placed} className="tabular" />

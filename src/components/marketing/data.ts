@@ -1,5 +1,5 @@
 import "server-only";
-import { getSettings } from "@/server/services/settings";
+import { DEFAULT_SETTINGS, getSettings } from "@/server/services/settings";
 import { unstable_cache } from "next/cache";
 import { db } from "@/server/db";
 import { getPricing, type PricingPlan } from "@/server/services/catalog";
@@ -114,7 +114,10 @@ export function targetRange(pricing: MarketPricing | undefined) {
 
 /** Public contact details + headline results from admin settings (D-142). */
 export async function getPublicSite() {
-  return (await getSettings()).publicSite;
+  const s = (await getSettings()).publicSite as typeof DEFAULT_SETTINGS.publicSite & { address?: string };
+  // Rows saved before offices-per-market existed carried one `address` (the US office).
+  const offices = s.offices ?? (s.address ? { US: s.address } : {});
+  return { ...s, offices };
 }
 
 /** Proof-strip counters: computed from the DB, cached for a day (SPEC §6.2). */

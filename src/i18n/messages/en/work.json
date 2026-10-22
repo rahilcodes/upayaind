@@ -378,7 +378,9 @@
         "attachment": "Attachment (optional)",
         "attachmentHint": "E.g. a medical certificate. PDF, DOCX, PNG or JPG up to 5 MB.",
         "submit": "Submit request"
-      }
+      },
+      "coveredBy": "Covered by {list}",
+      "noCoverYet": "No cover set yet"
     },
     "timesheet": {
       "metaTitle": "Timesheet",
@@ -505,7 +507,6 @@
       "legend": "Solid = approved, dashed = pending, ½ = half day. Holidays show their region code.",
       "recent": "Recent decisions",
       "noRecent": "No decisions yet.",
-      "coverSet": "Cover set",
       "col": {
         "dates": "Dates",
         "type": "Type",
@@ -516,10 +517,11 @@
       "toasts": {
         "approved": "Leave approved. The employee has been notified.",
         "rejected": "Leave rejected. The employee has been notified.",
-        "cover": "Cover set. The cover specialist has been notified.",
+        "cover": "Cover saved. The cover specialists, the employee and their applicants have been notified.",
         "typeSaved": "Leave type saved",
         "holidayAdded": "Holiday added",
-        "holidayDeleted": "Holiday removed"
+        "holidayDeleted": "Holiday removed",
+        "approvedWithCover": "Leave approved and cover set. Everyone involved has been notified."
       },
       "decide": {
         "approve": "Approve",
@@ -529,13 +531,29 @@
         "noteOptional": "Comment (optional)",
         "noteRequired": "Reason for rejecting (shared with the employee)",
         "cancel": "Cancel",
-        "coverTitle": "Set cover for {name}'s students?",
-        "coverDescription": "{count, plural, one {# student} other {# students}} will need a specialist while they're away. The cover gets access only for the leave dates.",
-        "coverLabel": "Cover specialist",
-        "coverPick": "Choose a specialist…",
-        "otherMarket": "different market",
-        "skip": "Not now",
-        "setCover": "Set cover"
+        "coverTitle": "Cover for {name}'s applicants",
+        "coverDescription": "{count, plural, one {# applicant needs} other {# applicants need}} a specialist while they're away. Covers get access only for the leave dates.",
+        "otherMarket": "other market",
+        "setCover": "Set cover",
+        "coverHeading": "Cover while away ({from})",
+        "coverLoading": "Loading applicants…",
+        "coverNone": "This employee has no active applicants, so no cover is needed.",
+        "noCandidates": "Nobody is available to cover these dates.",
+        "assignAll": "Assign all to",
+        "assignAllPick": "Choose a specialist…",
+        "noCover": "No cover",
+        "coverFor": "Cover for {name}",
+        "noTitle": "No target title yet",
+        "summary": "{count, plural, one {# applicant} other {# applicants}} → {list}",
+        "summaryNone": "No cover assigned yet.",
+        "unassigned": "{count, plural, one {# applicant has} other {# applicants have}} no cover.",
+        "unassignedShort": "{count} without cover",
+        "approveWithoutCover": "Approve without cover for the {count, plural, one {unassigned applicant} other {# unassigned applicants}}",
+        "approveAndCover": "Approve and set cover",
+        "changeCover": "Change cover",
+        "saveCover": "Save cover",
+        "coverEditTitle": "Cover for {name}'s applicants",
+        "coverEditDescription": "Leave dates: {dates}. Covers get access only for these dates; applicants and specialists are notified of changes."
       },
       "holidays": {
         "title": "Holidays {year}",
@@ -567,7 +585,9 @@
         "unlimited": "No limit",
         "yes": "Yes",
         "no": "No"
-      }
+      },
+      "coveredBy": "Covered by {list}",
+      "noCoverYet": "No cover yet for {count, plural, one {# applicant} other {# applicants}}"
     },
     "adminAttendance": {
       "metaTitle": "Attendance",

@@ -1,6 +1,7 @@
 import "server-only";
 import { runNoResponseSweep, runTestimonialRequests } from "@/server/services/applications";
 import { runInterviewReminders } from "@/server/services/interview-reminders";
+import { endExpiredCovers } from "@/server/services/assignment";
 import { defineJob } from "./client";
 
 /**
@@ -25,5 +26,10 @@ export const testimonialRequestJob = defineJob({
 export const interviewReminderJob = defineJob({
   id: "applications-interview-reminders",
   cron: "5 * * * *", // hourly; the service's windows (≤ 90 min / ≤ 24 h) tolerate an hourly cadence
-  run: async () => runInterviewReminders(),
+  run: async () => {
+    const reminders = await runInterviewReminders();
+    // Same hourly tick closes COVER assignments whose leave window has ended (D-144).
+    const coversEnded = await endExpiredCovers();
+    return { ...reminders, coversEnded };
+  },
 });

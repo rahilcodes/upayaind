@@ -674,6 +674,10 @@
           "label": "Specialist changed",
           "hint": "If your specialist changes."
         },
+        "cover_student": {
+          "label": "Cover while your specialist is away",
+          "hint": "Who handles your applications while your specialist is on leave."
+        },
         "mock_interview_booked": {
           "label": "Mock interview bookings",
           "hint": "Confirmation when you book a mock interview."

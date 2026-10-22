@@ -35,7 +35,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
         {children}
       </main>
       <SiteFooter markets={markets} legal={legalSlugs} site={site} />
-      <JsonLd data={organizationLd({ phones: markets.flatMap((m) => (m.phoneDisplay ? [{ phone: m.phoneDisplay, country: m.code }] : [])), email: site.contactEmail, address: site.address })} />
+      <JsonLd data={organizationLd({ phones: markets.flatMap((m) => (m.phoneDisplay ? [{ phone: m.phoneDisplay, country: m.code }] : [])), email: site.contactEmail, addresses: Object.values(site.offices).filter(Boolean) })} />
       <Analytics
         gaId={env.NEXT_PUBLIC_GA_ID}
         clarityId={env.NEXT_PUBLIC_CLARITY_ID}

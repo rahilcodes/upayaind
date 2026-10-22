@@ -1,7 +1,10 @@
 import "server-only";
+import { z } from "zod";
 import { db, Prisma, type Tx } from "@/server/db";
-import { dateOnly, dayKey } from "@/lib/dates";
+import { addDayKey, dateOnly, dayKey, keyFromDateOnly, startOfDayInTz } from "@/lib/dates";
+import { formatInTz } from "@/lib/format";
 import { firstName } from "@/lib/utils";
+import { log } from "@/server/log";
 import { audit } from "./audit";
 import { notify, notifyManagers } from "./notify";
 import { sendAlert } from "./alerts";
@@ -252,32 +255,307 @@ export async function reassign(input: {
   return outcome;
 }
 
-/** Temporary cover during approved leave (F2): COVER assignments limited to [from, to]. */
+// ───────────────────────────── Cover during leave (F2 + F9, D-144) ─────────────────────────────
+
+export const CoverEntry = z.object({ studentId: z.string().min(1).max(64), coverEmployeeId: z.string().min(1).max(64) });
+export const ApplyCoverInput = z.object({
+  leaveRequestId: z.string().min(1).max(64),
+  covers: z.array(CoverEntry).max(500),
+});
+export type CoverEntryT = z.infer<typeof CoverEntry>;
+
+export type CoverCandidate = {
+  employeeId: string;
+  userId: string;
+  name: string;
+  code: string;
+  marketIds: string[];
+  /** Active PRIMARY students + COVER rows overlapping the window (other leaves). */
+  load: number;
+  max: number;
+  accepting: boolean;
+  sameMarket: boolean;
+  onLeave: false;
+};
+
+type CoverWindow = {
+  /** Employee on leave. */
+  primaryEmployeeId: string;
+  primaryMarketIds: string[];
+  /** Leave dates (date-only, UTC midnight) used to detect overlapping leave. */
+  fromDate: Date;
+  toDate: Date;
+  /** Instants the COVER rows span (start of fromDate → start of the day after toDate, employee tz). */
+  from: Date;
+  to: Date;
+  /** Rows of this leave don't count towards a candidate's load. */
+  leaveRequestId: string | null;
+};
+
+/**
+ * Employees who could cover: active (not deleted), not interview coaches
+ * (D-140), not the employee on leave, not on approved leave overlapping the
+ * window. Sorted same market first, then by load ratio.
+ */
+export async function listCoverCandidates(client: Tx | typeof db, w: CoverWindow): Promise<CoverCandidate[]> {
+  const [away, emps] = await Promise.all([
+    client.leaveRequest.findMany({ where: { status: "APPROVED", fromDate: { lte: w.toDate }, toDate: { gte: w.fromDate } }, select: { employeeId: true } }),
+    client.employeeProfile.findMany({
+      where: { id: { not: w.primaryEmployeeId }, maxStudents: { gt: 0 }, user: { status: "ACTIVE", deletedAt: null, role: { not: "COACH" } } },
+      select: { id: true, userId: true, employeeCode: true, maxStudents: true, marketIds: true, acceptingNewStudents: true, user: { select: { name: true } } },
+      orderBy: { user: { name: "asc" } },
+    }),
+  ]);
+  const awayIds = new Set(away.map((a) => a.employeeId));
+  const pool = emps.filter((e) => !awayIds.has(e.id));
+  if (!pool.length) return [];
+  const ids = pool.map((e) => e.id);
+  const loads = await client.assignment.groupBy({
+    by: ["employeeId"],
+    where: {
+      employeeId: { in: ids },
+      isActive: true,
+      OR: [
+        { type: "PRIMARY" },
+        { type: "COVER", startsAt: { lt: w.to }, OR: [{ endsAt: null }, { endsAt: { gt: w.from } }], ...(w.leaveRequestId ? { NOT: { leaveRequestId: w.leaveRequestId } } : {}) },
+      ],
+    },
+    _count: { _all: true },
+  });
+  const load = new Map(loads.map((l) => [l.employeeId, l._count._all]));
+  return pool
+    .map((e) => ({
+      employeeId: e.id,
+      userId: e.userId,
+      name: e.user.name,
+      code: e.employeeCode,
+      marketIds: e.marketIds,
+      load: load.get(e.id) ?? 0,
+      max: e.maxStudents,
+      accepting: e.acceptingNewStudents,
+      sameMarket: e.marketIds.some((m) => w.primaryMarketIds.includes(m)),
+      onLeave: false as const,
+    }))
+    .sort((a, b) => Number(b.sameMarket) - Number(a.sameMarket) || a.load / a.max - b.load / b.max || a.name.localeCompare(b.name));
+}
+
+/**
+ * Pure suggestion (unit-tested): each student goes to the candidate serving
+ * their market with the lowest load; loads are bumped as we go so ties spread
+ * round-robin. A student already covered for this leave keeps that cover
+ * while it's still a candidate. Returns studentId → employeeId | null.
+ */
+export function suggestCovers(
+  students: { studentId: string; marketId: string }[],
+  candidates: Pick<CoverCandidate, "employeeId" | "marketIds" | "load" | "max">[],
+  existing: Record<string, string> = {},
+): Record<string, string | null> {
+  const load = new Map(candidates.map((c) => [c.employeeId, c.load]));
+  const out: Record<string, string | null> = {};
+  const pending: typeof students = [];
+  for (const s of students) {
+    const keep = existing[s.studentId];
+    if (keep && load.has(keep)) {
+      out[s.studentId] = keep;
+      load.set(keep, (load.get(keep) ?? 0) + 1);
+    } else pending.push(s);
+  }
+  for (const s of pending) {
+    const inMarket = candidates.filter((c) => c.marketIds.includes(s.marketId));
+    const pool = inMarket.length ? inMarket : candidates;
+    let best: (typeof pool)[number] | null = null;
+    for (const c of pool) {
+      const l = load.get(c.employeeId) ?? 0;
+      if (!best) best = c;
+      else {
+        const bl = load.get(best.employeeId) ?? 0;
+        if (l < bl || (l === bl && l / c.max < bl / best.max)) best = c;
+      }
+    }
+    out[s.studentId] = best?.employeeId ?? null;
+    if (best) load.set(best.employeeId, (load.get(best.employeeId) ?? 0) + 1);
+  }
+  return out;
+}
+
+export type CoverPlanResult = {
+  leaveRequestId: string | null;
+  primaryEmployeeId: string;
+  primaryUserId: string;
+  primaryName: string;
+  dates: string;
+  created: number;
+  ended: number;
+  /** cover employee → students they cover (full plan, not just changes). */
+  byCover: { employeeId: string; userId: string; name: string; students: { studentId: string; userId: string; name: string; isNew: boolean }[] }[];
+};
+
+/** "24–28 Oct" / "28 Oct – 2 Nov" / "24 Oct" in the employee's calendar. */
+export function formatDateRange(fromKey: string, toKey: string) {
+  const f = (k: string, p: string) => formatInTz(new Date(`${k}T12:00:00Z`), "UTC", p);
+  if (fromKey === toKey) return f(fromKey, "d MMM");
+  if (fromKey.slice(0, 7) === toKey.slice(0, 7)) return `${f(fromKey, "d")}–${f(toKey, "d MMM")}`;
+  return `${f(fromKey, "d MMM")} – ${f(toKey, "d MMM")}`;
+}
+
+/** Window the COVER rows span: start of fromDate → start of the day after toDate, in the employee's timezone. */
+export function coverWindow(fromDate: Date, toDate: Date, tz: string) {
+  const fromKey = keyFromDateOnly(fromDate);
+  const toKey = keyFromDateOnly(toDate);
+  return { fromKey, toKey, from: startOfDayInTz(fromKey, tz), to: startOfDayInTz(addDayKey(toKey, 1), tz) };
+}
+
+/**
+ * Core of the cover plan — runs inside the caller's transaction so approving a
+ * leave and covering its applicants is one atomic step (D-144).
+ * - every student must be an active PRIMARY student of the employee on leave;
+ * - every cover must be a current candidate (see listCoverCandidates);
+ * - active COVER rows of this leave that aren't in the plan are ended, missing
+ *   rows are created, identical rows are kept (idempotent);
+ * - leaveRequest.coverEmployeeId = the cover with the most students.
+ */
+async function applyCoverCore(tx: Tx, actorId: string, w: CoverWindow & { primaryUserId: string; primaryName: string; fromKey: string; toKey: string }, rawCovers: CoverEntryT[], now = new Date()): Promise<CoverPlanResult> {
+  const covers = z.array(CoverEntry).max(500).parse(rawCovers);
+  const seen = new Set<string>();
+  for (const c of covers) {
+    if (seen.has(c.studentId)) throw new AssignmentError("Each applicant can have only one cover.");
+    seen.add(c.studentId);
+    if (c.coverEmployeeId === w.primaryEmployeeId) throw new AssignmentError("Choose a different employee as cover.");
+  }
+  const primaries = await tx.assignment.findMany({
+    where: { employeeId: w.primaryEmployeeId, isActive: true, type: "PRIMARY" },
+    select: { studentId: true, student: { select: { userId: true, user: { select: { name: true } } } } },
+  });
+  const students = new Map(primaries.map((p) => [p.studentId, { userId: p.student.userId, name: p.student.user.name }]));
+  const candidates = new Map((await listCoverCandidates(tx, w)).map((c) => [c.employeeId, c]));
+  for (const c of covers) {
+    const s = students.get(c.studentId);
+    if (!s) throw new AssignmentError("One of the applicants isn't assigned to this employee any more. Reload and try again.");
+    const cand = candidates.get(c.coverEmployeeId);
+    if (!cand) throw new AssignmentError(`The chosen cover for ${s.name} isn't available (inactive, an interview coach, or on leave at the same time).`);
+  }
+
+  const existing = w.leaveRequestId ? await tx.assignment.findMany({ where: { leaveRequestId: w.leaveRequestId, type: "COVER", isActive: true }, select: { id: true, studentId: true, employeeId: true } }) : [];
+  const wanted = new Set(covers.map((c) => `${c.studentId}:${c.coverEmployeeId}`));
+  const have = new Set(existing.map((e) => `${e.studentId}:${e.employeeId}`));
+  const toEnd = existing.filter((e) => !wanted.has(`${e.studentId}:${e.employeeId}`));
+  const toCreate = covers.filter((c) => !have.has(`${c.studentId}:${c.coverEmployeeId}`));
+  if (toEnd.length) {
+    await tx.assignment.updateMany({ where: { id: { in: toEnd.map((e) => e.id) } }, data: { isActive: false, endsAt: now, endReason: "Cover changed" } });
+  }
+  if (toCreate.length) {
+    await tx.assignment.createMany({
+      data: toCreate.map((c) => ({ studentId: c.studentId, employeeId: c.coverEmployeeId, type: "COVER" as const, source: "MANUAL" as const, startsAt: w.from, endsAt: w.to, leaveRequestId: w.leaveRequestId, createdById: actorId })),
+    });
+  }
+  const counts = new Map<string, number>();
+  for (const c of covers) counts.set(c.coverEmployeeId, (counts.get(c.coverEmployeeId) ?? 0) + 1);
+  const primaryCover = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+  if (w.leaveRequestId) await tx.leaveRequest.update({ where: { id: w.leaveRequestId }, data: { coverEmployeeId: primaryCover } });
+  await audit(
+    {
+      actorId,
+      action: "assignment.cover",
+      entity: w.leaveRequestId ? "LeaveRequest" : "EmployeeProfile",
+      entityId: w.leaveRequestId ?? w.primaryEmployeeId,
+      before: { covers: existing.map((e) => ({ studentId: e.studentId, coverEmployeeId: e.employeeId })) },
+      after: { covers, from: w.from, to: w.to, primaryCover, created: toCreate.length, ended: toEnd.length },
+    },
+    tx,
+  );
+  const created = new Set(toCreate.map((c) => `${c.studentId}:${c.coverEmployeeId}`));
+  const byCover = [...counts.keys()].map((employeeId) => {
+    const cand = candidates.get(employeeId)!;
+    return {
+      employeeId,
+      userId: cand.userId,
+      name: cand.name,
+      students: covers
+        .filter((c) => c.coverEmployeeId === employeeId)
+        .map((c) => ({ studentId: c.studentId, userId: students.get(c.studentId)!.userId, name: students.get(c.studentId)!.name, isNew: created.has(`${c.studentId}:${employeeId}`) })),
+    };
+  });
+  return { leaveRequestId: w.leaveRequestId, primaryEmployeeId: w.primaryEmployeeId, primaryUserId: w.primaryUserId, primaryName: w.primaryName, dates: formatDateRange(w.fromKey, w.toKey), created: toCreate.length, ended: toEnd.length, byCover };
+}
+
+/** Load the leave and build the cover window (status is returned so callers can insist on APPROVED). */
+export async function loadCoverWindow(client: Tx | typeof db, leaveRequestId: string) {
+  const req = await client.leaveRequest.findUnique({
+    where: { id: leaveRequestId },
+    select: { id: true, status: true, employeeId: true, fromDate: true, toDate: true, employee: { select: { userId: true, marketIds: true, user: { select: { name: true, timezone: true } } } } },
+  });
+  if (!req) throw new AssignmentError("Leave request not found.");
+  const win = coverWindow(req.fromDate, req.toDate, req.employee.user.timezone);
+  return {
+    status: req.status,
+    window: { leaveRequestId: req.id, primaryEmployeeId: req.employeeId, primaryUserId: req.employee.userId, primaryName: req.employee.user.name, primaryMarketIds: req.employee.marketIds, fromDate: req.fromDate, toDate: req.toDate, ...win },
+  };
+}
+
+/** Apply a cover plan inside an existing transaction (the leave must already be APPROVED in `tx`). */
+export async function applyCoverTx(tx: Tx, actorId: string, raw: z.input<typeof ApplyCoverInput>, now = new Date()) {
+  const input = ApplyCoverInput.parse(raw);
+  const { status, window } = await loadCoverWindow(tx, input.leaveRequestId);
+  if (status !== "APPROVED") throw new AssignmentError("Approve the request before setting cover.");
+  return applyCoverCore(tx, actorId, window, input.covers, now);
+}
+
+/** Notifications for a (changed) cover plan: one per cover employee, one to the employee on leave, one per newly covered student. */
+export async function notifyCoverPlan(r: CoverPlanResult) {
+  if (!r.created && !r.ended) return;
+  const list = (xs: { name: string }[]) => xs.map((x) => x.name).join(", ");
+  for (const c of r.byCover) {
+    await notify(c.userId, "cover_employee", { count: c.students.length, primaryName: r.primaryName, dates: r.dates, names: list(c.students) });
+    for (const s of c.students.filter((x) => x.isNew)) {
+      await notify(s.userId, "cover_student", { primaryFirstName: firstName(r.primaryName), coverFirstName: firstName(c.name), dates: r.dates });
+    }
+  }
+  if (r.leaveRequestId) {
+    const summary = r.byCover.length ? r.byCover.map((c) => `${c.name}: ${list(c.students)}`).join(" · ") : "No cover was assigned.";
+    await notify(r.primaryUserId, "leave_cover_set", { dates: r.dates, summary });
+  }
+}
+
+/** Per-applicant cover for an approved leave (admin "Change cover" / approve-and-cover). */
+export async function applyCover(actor: { id: string }, raw: z.input<typeof ApplyCoverInput>, now = new Date()) {
+  const r = await db.$transaction((tx) => applyCoverTx(tx, actor.id, raw, now), { timeout: 20_000, maxWait: 20_000 });
+  await notifyCoverPlan(r).catch((e) => log.error("cover.notify_failed", { err: e }));
+  return r;
+}
+
+/**
+ * Temporary cover during approved leave (F2): one employee covers every active
+ * PRIMARY student over [from, to]. Thin wrapper over the per-applicant plan;
+ * with a leaveRequestId the rows are linked to the leave (editable later).
+ */
 export async function setCover(input: { primaryEmployeeId: string; coverEmployeeId: string; from: Date; to: Date; actorId: string; leaveRequestId?: string }) {
   if (input.primaryEmployeeId === input.coverEmployeeId) throw new AssignmentError("Choose a different employee as cover.");
-  const primaries = await db.assignment.findMany({
-    where: { employeeId: input.primaryEmployeeId, isActive: true, type: "PRIMARY" },
-    select: { studentId: true, student: { select: { user: { select: { name: true } } } } },
-  });
-  const [cover, primary] = await Promise.all([
-    db.employeeProfile.findUnique({ where: { id: input.coverEmployeeId }, select: { userId: true } }),
-    db.employeeProfile.findUnique({ where: { id: input.primaryEmployeeId }, select: { user: { select: { name: true } } } }),
-  ]);
-  if (!cover || !primary) throw new AssignmentError("Employee not found.");
-  const created = await db.$transaction(
-    primaries.map((p) =>
-      db.assignment.create({
-        data: { studentId: p.studentId, employeeId: input.coverEmployeeId, type: "COVER", source: "MANUAL", startsAt: input.from, endsAt: input.to, createdById: input.actorId },
-      }),
-    ),
+  const r = await db.$transaction(
+    async (tx) => {
+      const primaries = await tx.assignment.findMany({ where: { employeeId: input.primaryEmployeeId, isActive: true, type: "PRIMARY" }, select: { studentId: true } });
+      const covers = primaries.map((p) => ({ studentId: p.studentId, coverEmployeeId: input.coverEmployeeId }));
+      if (input.leaveRequestId) return applyCoverTx(tx, input.actorId, { leaveRequestId: input.leaveRequestId, covers });
+      const primary = await tx.employeeProfile.findUnique({ where: { id: input.primaryEmployeeId }, select: { userId: true, marketIds: true, user: { select: { name: true, timezone: true } } } });
+      if (!primary) throw new AssignmentError("Employee not found.");
+      const fromKey = dayKey(input.from, primary.user.timezone);
+      const toKey = dayKey(new Date(input.to.getTime() - 1), primary.user.timezone);
+      return applyCoverCore(
+        tx,
+        input.actorId,
+        { leaveRequestId: null, primaryEmployeeId: input.primaryEmployeeId, primaryUserId: primary.userId, primaryName: primary.user.name, primaryMarketIds: primary.marketIds, fromDate: dateOnly(fromKey), toDate: dateOnly(toKey), from: input.from, to: input.to, fromKey, toKey },
+        covers,
+      );
+    },
+    { timeout: 20_000, maxWait: 20_000 },
   );
-  if (input.leaveRequestId) await db.leaveRequest.update({ where: { id: input.leaveRequestId }, data: { coverEmployeeId: input.coverEmployeeId } });
-  await audit({ actorId: input.actorId, action: "assignment.cover", entity: "EmployeeProfile", entityId: input.primaryEmployeeId, after: { cover: input.coverEmployeeId, from: input.from, to: input.to, students: primaries.length } });
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  for (const p of primaries) {
-    await notify(cover.userId, "cover_employee", { studentName: p.student.user.name, from: fmt(input.from), to: fmt(input.to), primaryName: primary.user.name });
-  }
-  return { count: created.length };
+  await notifyCoverPlan(r).catch((e) => log.error("cover.notify_failed", { err: e }));
+  return { count: r.created };
+}
+
+/** Hourly: COVER rows whose window has passed are closed (they already grant no access past endsAt). */
+export async function endExpiredCovers(now = new Date()) {
+  const r = await db.assignment.updateMany({ where: { type: "COVER", isActive: true, endsAt: { lt: now } }, data: { isActive: false, endReason: "Leave ended" } });
+  return r.count;
 }
 
 /** Re-home every student of a deactivated employee through F2 (excluding that employee). */

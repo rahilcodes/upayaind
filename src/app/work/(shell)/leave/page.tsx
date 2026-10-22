@@ -112,6 +112,7 @@ export default async function LeavePage() {
                         <p className="line-clamp-2">{h.reason}</p>
                         {h.attachmentId ? <a href={`/api/files/${h.attachmentId}`} className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold"><Paperclip className="h-3 w-3" aria-hidden="true" />{t("attachment")}</a> : null}
                         {h.decisionNote ? <p className="mt-1 text-xs text-muted-foreground">{t("managerNote", { note: h.decisionNote })}</p> : null}
+                        {h.status === "APPROVED" ? <p className="mt-1 text-xs text-muted-foreground">{h.covers.length ? t("coveredBy", { list: h.covers.map((c) => `${c.name} (${c.count})`).join(", ") }) : t("noCoverYet")}</p> : null}
                       </TD>
                       <TD>
                         <Badge tone={STATUS_TONE[h.status]}>{tl(h.status)}</Badge>

@@ -263,6 +263,23 @@
       "note": "Results across all our markets.",
       "hiredAt": "Students have been hired at {companies}"
     },
+    "placed": {
+      "label": "Companies where our candidates were placed",
+      "eyebrow": "Trusted by candidates placed at",
+      "title": "Our candidates placed in",
+      "sub": "Top companies where our candidates successfully got hired"
+    },
+    "reach": {
+      "title": "Our global reach",
+      "sub": "We support job seekers across the United States, the United Kingdom and India.",
+      "markersLabel": "Countries we serve",
+      "legendLabel": "Map legend",
+      "countries": {
+        "US": "United States",
+        "UK": "United Kingdom",
+        "IN": "India"
+      }
+    },
     "compare": {
       "eyebrow": "Why UpayaInd",
       "title": "Job hunting is a second full-time job. Hand it to us.",
@@ -663,7 +680,7 @@
       "whatsappText": "Hi UpayaInd, I’d like to know more about your service.",
       "callTitle": "Call us",
       "emailTitle": "Email us",
-      "locationTitle": "Our office",
+      "officesTitle": "Our offices",
       "replyTime": "We usually reply within one working day."
     },
     "legal": {

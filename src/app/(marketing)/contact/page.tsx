@@ -38,6 +38,10 @@ export default async function ContactPage() {
   const formMarkets = signupMarkets.length ? signupMarkets : markets.map((m) => ({ code: m.code, name: m.name }));
   const dialCodes = Object.entries(DIAL_CODES).map(([code, d]) => ({ code, label: `${code} ${d.dial}` }));
   const withContact = markets.filter((m) => m.whatsapp || m.phoneDisplay);
+  // Offices in market order (visitor's market first via PerMarket ordering is not needed: all are listed).
+  const offices = Object.entries(site.offices)
+    .filter(([, address]) => address.trim())
+    .map(([code, address]) => ({ code, address, name: markets.find((m) => m.code === code)?.name ?? code }));
 
   return (
     <>
@@ -108,10 +112,17 @@ export default async function ContactPage() {
                 )}
               </PerMarket>
             ) : null}
-            {site.address ? (
+            {offices.length ? (
               <div className="rounded-[22px] border border-sand bg-white p-6 sm:p-8">
-                <h2 className="mb-2 text-xl font-bold">{t("locationTitle")}</h2>
-                <address className="text-[15px] not-italic text-[#3E4A6E]">{site.address}</address>
+                <h2 className="mb-4 text-xl font-bold">{t("officesTitle")}</h2>
+                <dl className="grid gap-4">
+                  {offices.map((o) => (
+                    <div key={o.code}>
+                      <dt className="text-[13px] font-semibold uppercase tracking-wide text-[#5A6585]">{o.name}</dt>
+                      <dd><address className="text-[15px] not-italic text-[#3E4A6E]">{o.address}</address></dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             ) : null}
           </div>

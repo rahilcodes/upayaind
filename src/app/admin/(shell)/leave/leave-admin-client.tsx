@@ -1,42 +1,155 @@
 "use client";
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Check, Pencil, Plus, Trash2, UserPlus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox, Field, Input, Select, Textarea, fieldA11y } from "@/components/ui/input";
 import { useServerAction } from "@/components/portal/action-form";
-import { addHolidayAction, decideLeaveAction, deleteHolidayAction, saveLeaveTypeAction, setCoverAction } from "./actions";
+import { addHolidayAction, applyCoverAction, coverPlanAction, decideLeaveAction, deleteHolidayAction, saveLeaveTypeAction } from "./actions";
 
-type Candidate = { id: string; name: string; code: string; load: number; max: number; sameMarket: boolean };
+type PlanResult = Awaited<ReturnType<typeof coverPlanAction>>;
+type Plan = Extract<PlanResult, { ok: true }>["data"];
+type Candidate = Plan["candidates"][number];
+type CoverMap = Record<string, string>; // studentId → employeeId ("" = no cover)
 
-/** Approve / reject with comment; after approval, prompt for cover (F9 → F2). */
-export function DecideButtons({ id, employeeName, students, candidates }: { id: string; employeeName: string; students: number; candidates: Candidate[] }) {
-  const t = useTranslations("work.adminLeave.decide");
-  const router = useRouter();
-  const [open, setOpen] = React.useState<null | "APPROVED" | "REJECTED">(null);
-  const [step, setStep] = React.useState<"decide" | "cover">("decide");
-  const [note, setNote] = React.useState("");
-  const [cover, setCover] = React.useState("");
-  const decide = useServerAction(decideLeaveAction, {
-    refresh: false,
-    onSuccess: (d) => {
-      const r = d as { status: string };
-      if (r.status === "APPROVED" && students > 0 && candidates.length) setStep("cover");
-      else close(true);
-    },
-  });
-  const cov = useServerAction(setCoverAction, { onSuccess: () => close(false) });
-  const close = (refresh: boolean) => {
-    setOpen(null);
-    setStep("decide");
-    setNote("");
-    setCover("");
-    if (refresh) router.refresh();
+const NONE = "";
+
+/** "Divya Menon · UPY-0012 · 5/8 (other market)" — the suffix when the candidate doesn't serve the market in question. */
+function candidateLabel(c: Candidate, suffix: string | null) {
+  return `${c.name} · ${c.code} · ${c.load}/${c.max}${suffix ? ` (${suffix})` : ""}`;
+}
+
+/** Summary "Divya (2), Rahul (1)" for the chosen plan. */
+function summarise(plan: Plan, covers: CoverMap) {
+  const counts = new Map<string, number>();
+  for (const s of plan.students) {
+    const c = covers[s.studentId];
+    if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, n]) => `${plan.candidates.find((c) => c.employeeId === id)?.name ?? "?"} (${n})`)
+    .join(", ");
+}
+
+function toEntries(plan: Plan, covers: CoverMap) {
+  return plan.students.filter((s) => covers[s.studentId]).map((s) => ({ studentId: s.studentId, coverEmployeeId: covers[s.studentId]! }));
+}
+
+/** Loads the plan when the dialog opens; keeps per-applicant choices. */
+function useCoverPlan(leaveRequestId: string, open: boolean) {
+  const [plan, setPlan] = React.useState<Plan | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [covers, setCovers] = React.useState<CoverMap>({});
+  const [loading, setLoading] = React.useState(false);
+  React.useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    void coverPlanAction(leaveRequestId).then((r) => {
+      if (!alive) return;
+      setLoading(false);
+      if (!r.ok) return setError(r.error);
+      setPlan(r.data);
+      setCovers(Object.fromEntries(r.data.students.map((s) => [s.studentId, s.suggestedCoverId ?? NONE])));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [leaveRequestId, open]);
+  const reset = () => {
+    setPlan(null);
+    setCovers({});
+    setError(null);
   };
+  return { plan, covers, setCovers, loading, error, reset };
+}
+
+/**
+ * "Cover while away" table: one row per applicant with a candidate select
+ * (pre-filled with the suggestion), an "Assign all to…" shortcut and a summary.
+ * Stacks into cards below 640px.
+ */
+function CoverPlanner({ id, plan, covers, setCovers, loading, error }: { id: string; plan: Plan | null; covers: CoverMap; setCovers: React.Dispatch<React.SetStateAction<CoverMap>>; loading: boolean; error: string | null }) {
+  const t = useTranslations("work.adminLeave.decide");
+  if (loading && !plan) return <p role="status" className="text-sm text-muted-foreground">{t("coverLoading")}</p>;
+  if (error) return <p role="alert" className="text-sm font-semibold text-danger">{error}</p>;
+  if (!plan) return null;
+  if (plan.students.length === 0) return <p className="text-sm text-muted-foreground">{t("coverNone")}</p>;
+  const assigned = plan.students.filter((s) => covers[s.studentId]).length;
+  const unassigned = plan.students.length - assigned;
+  const summary = summarise(plan, covers);
   return (
-    <Dialog open={open !== null} onOpenChange={(o) => (!o ? close(step === "cover") : undefined)}>
+    <fieldset className="grid gap-3">
+      <legend className="mb-1 text-sm font-semibold">{t("coverHeading", { from: plan.window.label })}</legend>
+      {plan.candidates.length === 0 ? <p className="text-sm text-muted-foreground">{t("noCandidates")}</p> : (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label htmlFor={`all-${id}`} className="text-sm font-medium text-muted-foreground">{t("assignAll")}</label>
+          <Select
+            id={`all-${id}`}
+            className="sm:max-w-xs"
+            value="__pick"
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "__pick") return;
+              setCovers(Object.fromEntries(plan.students.map((s) => [s.studentId, v === "__none" ? NONE : v])));
+            }}
+          >
+            <option value="__pick">{t("assignAllPick")}</option>
+            <option value="__none">{t("noCover")}</option>
+            {plan.candidates.map((c) => <option key={c.employeeId} value={c.employeeId}>{candidateLabel(c, c.sameMarket ? null : t("otherMarket"))}</option>)}
+          </Select>
+        </div>
+      )}
+      <ul className="divide-y divide-border rounded-[12px] border border-border" aria-label={t("coverHeading", { from: plan.window.label })}>
+        {plan.students.map((s) => (
+          <li key={s.studentId} className="grid gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] sm:items-center">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">
+                {s.name} <Badge tone="grey" className="ml-1 align-middle">{s.marketCode}</Badge>
+              </p>
+              <p className="truncate text-[13px] text-muted-foreground">{s.targetTitles[0] ?? t("noTitle")}</p>
+            </div>
+            <Select aria-label={t("coverFor", { name: s.name })} value={covers[s.studentId] ?? NONE} onChange={(e) => setCovers((m) => ({ ...m, [s.studentId]: e.target.value }))}>
+              <option value={NONE}>{t("noCover")}</option>
+              {plan.candidates.map((c) => (
+                <option key={c.employeeId} value={c.employeeId}>
+                  {candidateLabel(c, c.marketIds.includes(s.marketId) ? null : t("otherMarket"))}
+                </option>
+              ))}
+            </Select>
+          </li>
+        ))}
+      </ul>
+      <p role="status" className="text-sm">
+        {assigned > 0 ? <span className="font-semibold">{t("summary", { count: assigned, list: summary })}</span> : <span className="text-muted-foreground">{t("summaryNone")}</span>}
+        {unassigned > 0 ? <span className="block text-[13px] text-[#7A4E0E]">{t("unassigned", { count: unassigned })}</span> : null}
+      </p>
+    </fieldset>
+  );
+}
+
+/** Approve (with the cover plan in the same step) or reject with a comment (F9 → F2, D-144). */
+export function DecideButtons({ id, employeeName, students }: { id: string; employeeName: string; students: number }) {
+  const t = useTranslations("work.adminLeave.decide");
+  const [open, setOpen] = React.useState<null | "APPROVED" | "REJECTED">(null);
+  const [note, setNote] = React.useState("");
+  const [withoutCover, setWithoutCover] = React.useState(false);
+  const cp = useCoverPlan(id, open === "APPROVED" && students > 0);
+  const close = () => {
+    setOpen(null);
+    setNote("");
+    setWithoutCover(false);
+    cp.reset();
+  };
+  const decide = useServerAction(decideLeaveAction, { onSuccess: close });
+  const unassigned = cp.plan ? cp.plan.students.filter((s) => !cp.covers[s.studentId]).length : 0;
+  const approveBlocked = open === "APPROVED" && students > 0 && (cp.loading || (!cp.error && cp.plan === null) || (unassigned > 0 && !withoutCover));
+  return (
+    <Dialog open={open !== null} onOpenChange={(o) => (!o ? close() : undefined)}>
       <div className="flex flex-wrap gap-2">
         <DialogTrigger asChild>
           <Button size="sm" variant="success" onClick={() => setOpen("APPROVED")}><Check className="h-4 w-4" aria-hidden="true" />{t("approve")}</Button>
@@ -45,75 +158,73 @@ export function DecideButtons({ id, employeeName, students, candidates }: { id: 
           <Button size="sm" variant="outline" onClick={() => setOpen("REJECTED")}><X className="h-4 w-4" aria-hidden="true" />{t("reject")}</Button>
         </DialogTrigger>
       </div>
-      <DialogContent
-        title={step === "cover" ? t("coverTitle", { name: employeeName }) : open === "APPROVED" ? t("approveTitle", { name: employeeName }) : t("rejectTitle", { name: employeeName })}
-        description={step === "cover" ? t("coverDescription", { count: students }) : undefined}
-      >
-        {step === "decide" ? (
-          <form
-            className="grid gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (open) void decide.run(id, open, note);
-            }}
-          >
-            <Field id={`n-${id}`} label={open === "REJECTED" ? t("noteRequired") : t("noteOptional")} error={decide.fieldErrors.note}>
-              <Textarea {...fieldA11y(`n-${id}`, decide.fieldErrors.note)} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={3} required={open === "REJECTED"} />
-            </Field>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => close(false)}>{t("cancel")}</Button>
-              <Button type="submit" variant={open === "APPROVED" ? "success" : "danger"} loading={decide.pending}>{open === "APPROVED" ? t("approve") : t("reject")}</Button>
-            </div>
-          </form>
-        ) : (
-          <form
-            className="grid gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void cov.run(id, cover);
-            }}
-          >
-            <Field id={`c-${id}`} label={t("coverLabel")} error={cov.fieldErrors.cover}>
-              <Select {...fieldA11y(`c-${id}`, cov.fieldErrors.cover)} value={cover} onChange={(e) => setCover(e.target.value)} required>
-                <option value="">{t("coverPick")}</option>
-                {candidates.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.code}) · {c.load}/{c.max}{c.sameMarket ? "" : ` · ${t("otherMarket")}`}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => close(true)}>{t("skip")}</Button>
-              <Button type="submit" loading={cov.pending} disabled={!cover}><UserPlus className="h-4 w-4" aria-hidden="true" />{t("setCover")}</Button>
-            </div>
-          </form>
-        )}
+      <DialogContent wide={open === "APPROVED"} title={open === "APPROVED" ? t("approveTitle", { name: employeeName }) : t("rejectTitle", { name: employeeName })} description={open === "APPROVED" && students > 0 ? t("coverDescription", { count: students }) : undefined}>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!open) return;
+            const covers = open === "APPROVED" && cp.plan ? toEntries(cp.plan, cp.covers) : undefined;
+            void decide.run(id, open, note, covers);
+          }}
+        >
+          <Field id={`n-${id}`} label={open === "REJECTED" ? t("noteRequired") : t("noteOptional")} error={decide.fieldErrors.note}>
+            <Textarea {...fieldA11y(`n-${id}`, decide.fieldErrors.note)} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={3} required={open === "REJECTED"} />
+          </Field>
+          {open === "APPROVED" && students > 0 ? (
+            <>
+              <CoverPlanner id={id} plan={cp.plan} covers={cp.covers} setCovers={cp.setCovers} loading={cp.loading} error={cp.error} />
+              {unassigned > 0 ? (
+                <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                  <Checkbox checked={withoutCover} onChange={(e) => setWithoutCover(e.target.checked)} />
+                  {t("approveWithoutCover", { count: unassigned })}
+                </label>
+              ) : null}
+            </>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={close}>{t("cancel")}</Button>
+            <Button type="submit" variant={open === "APPROVED" ? "success" : "danger"} loading={decide.pending} disabled={approveBlocked}>
+              {open === "APPROVED" ? (students > 0 && cp.plan?.students.length ? t("approveAndCover") : t("approve")) : t("reject")}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
 }
 
-/** Set cover later for an already-approved request. */
-export function CoverButton({ id, candidates }: { id: string; candidates: Candidate[] }) {
+/** Set or change the per-applicant cover of an already-approved request. */
+export function ChangeCoverButton({ id, employeeName, hasCover }: { id: string; employeeName: string; hasCover: boolean }) {
   const t = useTranslations("work.adminLeave.decide");
   const [open, setOpen] = React.useState(false);
-  const [cover, setCover] = React.useState("");
-  const cov = useServerAction(setCoverAction, { onSuccess: () => setOpen(false) });
+  const cp = useCoverPlan(id, open);
+  const close = () => {
+    setOpen(false);
+    cp.reset();
+  };
+  const save = useServerAction(applyCoverAction, { onSuccess: close });
+  const unassigned = cp.plan ? cp.plan.students.filter((s) => !cp.covers[s.studentId]).length : 0;
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline"><UserPlus className="h-4 w-4" aria-hidden="true" />{t("setCover")}</Button>
+        <Button size="sm" variant="outline"><UserPlus className="h-4 w-4" aria-hidden="true" />{hasCover ? t("changeCover") : t("setCover")}</Button>
       </DialogTrigger>
-      <DialogContent title={t("setCover")}>
-        <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); void cov.run(id, cover); }}>
-          <Field id={`cl-${id}`} label={t("coverLabel")}>
-            <Select id={`cl-${id}`} value={cover} onChange={(e) => setCover(e.target.value)} required>
-              <option value="">{t("coverPick")}</option>
-              {candidates.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.code}) · {c.load}/{c.max}</option>)}
-            </Select>
-          </Field>
-          <div className="flex justify-end"><Button type="submit" loading={cov.pending} disabled={!cover}>{t("setCover")}</Button></div>
+      <DialogContent wide title={t("coverEditTitle", { name: employeeName })} description={cp.plan ? t("coverEditDescription", { dates: cp.plan.window.label }) : undefined}>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (cp.plan) void save.run(id, toEntries(cp.plan, cp.covers));
+          }}
+        >
+          <CoverPlanner id={`e-${id}`} plan={cp.plan} covers={cp.covers} setCovers={cp.setCovers} loading={cp.loading} error={cp.error} />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={close}>{t("cancel")}</Button>
+            <Button type="submit" loading={save.pending} disabled={!cp.plan || cp.plan.students.length === 0}>
+              {t("saveCover")}{unassigned > 0 && cp.plan?.students.length ? ` (${t("unassignedShort", { count: unassigned })})` : ""}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

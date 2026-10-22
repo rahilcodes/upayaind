@@ -507,6 +507,7 @@ model Assignment {
   endsAt      DateTime?
   endReason   String?
   createdById String?
+  leaveRequestId String? // COVER rows created for a leave (D-144) — lets the cover be edited/replaced per leave
   createdAt   DateTime         @default(now())
 
   student  StudentProfile  @relation(fields: [studentId], references: [id])
@@ -514,6 +515,7 @@ model Assignment {
 
   @@index([employeeId, isActive])
   @@index([studentId, isActive])
+  @@index([leaveRequestId])
 }
 
 // ───────────────────────────── Vault ─────────────────────────────

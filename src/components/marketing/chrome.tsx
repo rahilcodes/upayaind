@@ -92,7 +92,7 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
   );
 }
 
-export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo[]; legal: Set<string>; site?: { contactEmail: string; address: string } }) {
+export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo[]; legal: Set<string>; site?: { contactEmail: string; offices: Record<string, string> } }) {
   const t = await getTranslations("marketing");
   const linkCls = "inline-flex min-h-11 items-center text-[#3E4A6E] no-underline hover:text-royal sm:min-h-9";
   const legalLinks = (["privacy", "terms", "refund", "guarantee", "cookies", "agreement"] as const)
@@ -141,7 +141,7 @@ export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo
             currentLabel={t("market.current")}
             items={markets.map((m) => ({ code: m.code, label: t("market.short", { country: m.name, currency: m.currency }) }))}
           />
-          {site?.contactEmail || site?.address ? (
+          {site?.contactEmail ? (
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="font-semibold">{t("footer.contact")}</span>
               {site.contactEmail ? (
@@ -149,18 +149,18 @@ export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo
                   {site.contactEmail}
                 </a>
               ) : null}
-              {site.address ? (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>{site.address}</span>
-                </>
-              ) : null}
             </p>
           ) : null}
           <PerMarket items={markets} as="span">
             {(m) => (
               <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span>{t("footer.market", { country: m.name })}</span>
+                {site?.offices?.[m.code] ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{site.offices[m.code]}</span>
+                  </>
+                ) : null}
                 {m.phoneDisplay ? (
                   <>
                     <span aria-hidden="true">·</span>

@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 import { DashboardDemo, type DemoApp } from "./dashboard-demo";
 import { HeroDashboardMock, PILL } from "./dashboard-mock";
 import { formatCount, getLandings, getMarketPricing, getMarketPricingFallback, getPublicSite, getStories, hasPurchasablePlan, hiredAt, targetRange, type MarketPricing } from "./data";
+import { GlobalReach } from "./global-reach";
 import { JsonLd, faqLd } from "./json-ld";
 import { MarketPin } from "./market";
+import { PlacedLogos } from "./placed-logos";
 import { PlanCards } from "./pricing";
 import { Audiences, FaqList, FinalCta, PrepSection, StoryCard } from "./sections";
 import { trackAttrs } from "./track";
@@ -130,6 +132,9 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
           </div>
         </section>
       ) : null}
+
+      {/* 2b. Placed-at logo marquee (D-143) */}
+      <PlacedLogos tone="white" />
 
       {/* 3. Who it's for (country-specific) */}
       <Section labelledBy="who-title">
@@ -378,8 +383,11 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
       {/* 13. Interview prep (shared) */}
       <PrepSection tone={prepTone} />
 
+      {/* 13b. Global reach map (D-143) */}
+      <GlobalReach market={market} tone={flip(prepTone)} />
+
       {/* 14. FAQ (country-specific) */}
-      <Section tone={flip(prepTone)} labelledBy="faq-title" inner="max-w-[820px]">
+      <Section tone={prepTone} labelledBy="faq-title" inner="max-w-[820px]">
         <H2 id="faq-title" className="mb-8 text-center">
           {tc("faq.title")}
         </H2>

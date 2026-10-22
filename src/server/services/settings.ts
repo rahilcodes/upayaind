@@ -16,7 +16,7 @@ export type Settings = {
   /** Outgoing Slack/Teams-compatible webhooks (D-122). */
   alertWebhooks?: { id: string; url: string; label: string; events: string[]; enabled: boolean }[];
   /** Public website: contact details and the headline results on the homepage proof strip (D-142). */
-  publicSite: { contactEmail: string; address: string; stats: { placed: string; interviews: string; applications: string } };
+  publicSite: { contactEmail: string; offices: Record<string, string>; stats: { placed: string; interviews: string; applications: string } };
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -31,7 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   alertWebhooks: [],
   publicSite: {
     contactEmail: "contact@upayaind.com",
-    address: "502 W 7th St, Ste 100, Erie, PA 16052",
+    offices: { US: "502 W 7th St, Ste 100, Erie, PA 16052, USA", IN: "B 609, B-Block, Asian Sun City, Kothaguda X Road, Kondapur, Hyderabad, Telangana 500084, India" },
     stats: { placed: "60+", interviews: "800+", applications: "7000+" },
   },
 };

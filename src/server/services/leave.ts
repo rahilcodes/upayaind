@@ -7,6 +7,7 @@ import { audit } from "./audit";
 import { LIMITS, storeUpload, deleteObject } from "./files";
 import { notify, notifyManagers } from "./notify";
 import { employeeContext, rollupDay } from "./attendance";
+import { CoverEntry, applyCoverTx, formatDateRange, listCoverCandidates, loadCoverWindow, notifyCoverPlan, suggestCovers } from "./assignment";
 import { log } from "@/server/log";
 
 /**
@@ -166,8 +167,15 @@ export async function myLeave(user: Actor, now = new Date()) {
     }),
     db.leaveType.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true, paid: true, annualQuota: true } }),
   ]);
-  const files = await attachmentIds(history.map((h) => h.attachmentKey));
-  return { year, balances, types, history: history.map((h) => ({ ...h, attachmentId: h.attachmentKey ? (files.get(h.attachmentKey) ?? null) : null })), timezone: ctx.timezone, regions: ctx.regions };
+  const [files, covers] = await Promise.all([attachmentIds(history.map((h) => h.attachmentKey)), coverSummaries(history.filter((h) => h.status === "APPROVED").map((h) => h.id))]);
+  return {
+    year,
+    balances,
+    types,
+    history: history.map((h) => ({ ...h, attachmentId: h.attachmentKey ? (files.get(h.attachmentKey) ?? null) : null, covers: covers.get(h.id) ?? [] })),
+    timezone: ctx.timezone,
+    regions: ctx.regions,
+  };
 }
 
 async function attachmentIds(keys: (string | null)[]) {
@@ -211,18 +219,22 @@ export async function listPending() {
 }
 
 export async function listRecentDecisions(take = 20) {
-  return db.leaveRequest.findMany({
+  const rows = await db.leaveRequest.findMany({
     where: { status: { in: ["APPROVED", "REJECTED"] } },
     orderBy: { decidedAt: "desc" },
     take,
-    select: { id: true, fromDate: true, toDate: true, days: true, status: true, decisionNote: true, decidedAt: true, coverEmployeeId: true, employeeId: true, leaveType: { select: { name: true } }, employee: { select: { user: { select: { name: true } } } } },
+    select: { id: true, fromDate: true, toDate: true, days: true, status: true, decisionNote: true, decidedAt: true, coverEmployeeId: true, employeeId: true, leaveType: { select: { name: true } }, employee: { select: { user: { select: { name: true } }, _count: { select: { assignments: { where: { isActive: true, type: "PRIMARY" } } } } } } },
   });
+  const covers = await coverSummaries(rows.filter((r) => r.status === "APPROVED").map((r) => r.id));
+  return rows.map((r) => ({ ...r, students: r.employee._count.assignments, covers: covers.get(r.id) ?? [] }));
 }
 
 export const DecideInput = z.object({
   id: z.string().min(1),
   decision: z.enum(["APPROVED", "REJECTED"]),
   note: z.string().trim().max(1000).optional().nullable(),
+  /** Approve + cover in one step (D-144): per-applicant cover for the leave window. Ignored on rejection. */
+  covers: z.array(CoverEntry).max(500).optional(),
 });
 
 export async function decideLeave(actor: Actor, raw: z.input<typeof DecideInput>, now = new Date()) {
@@ -236,12 +248,20 @@ export async function decideLeave(actor: Actor, raw: z.input<typeof DecideInput>
   if (!req) throw new LeaveError("Leave request not found.");
   if (req.employee.userId === actor.id) throw new LeaveError("You can't decide your own leave request.");
   if (req.status !== "PENDING") throw new LeaveError("This request has already been decided.");
-  const updated = await db.leaveRequest.updateMany({
-    where: { id: req.id, status: "PENDING" },
-    data: { status: input.decision, decidedById: actor.id, decidedAt: now, decisionNote: input.note || null },
-  });
-  if (!updated.count) throw new LeaveError("This request has already been decided.");
-  await audit({ actorId: actor.id, action: input.decision === "APPROVED" ? "leave.approve" : "leave.reject", entity: "LeaveRequest", entityId: req.id, before: { status: req.status }, after: { status: input.decision, note: input.note } });
+  // Decision + cover plan in one transaction: a failing cover never leaves an approved-but-uncovered leave.
+  const cover = await db.$transaction(
+    async (tx) => {
+      const updated = await tx.leaveRequest.updateMany({
+        where: { id: req.id, status: "PENDING" },
+        data: { status: input.decision, decidedById: actor.id, decidedAt: now, decisionNote: input.note || null },
+      });
+      if (!updated.count) throw new LeaveError("This request has already been decided.");
+      await audit({ actorId: actor.id, action: input.decision === "APPROVED" ? "leave.approve" : "leave.reject", entity: "LeaveRequest", entityId: req.id, before: { status: req.status }, after: { status: input.decision, note: input.note, covers: input.covers?.length } }, tx);
+      if (input.decision === "APPROVED" && input.covers) return applyCoverTx(tx, actor.id, { leaveRequestId: req.id, covers: input.covers }, now);
+      return null;
+    },
+    { timeout: 20_000, maxWait: 20_000 },
+  );
   const from = keyFromDateOnly(req.fromDate);
   const to = keyFromDateOnly(req.toDate);
   // Approved leave marks past days ON_LEAVE right away (future days are rolled up nightly).
@@ -251,24 +271,63 @@ export async function decideLeave(actor: Actor, raw: z.input<typeof DecideInput>
     for (const k of eachDayKey(from, to)) if (k < today) await rollupDay(req.employeeId, k, now, ctx);
   }
   await notify(req.employee.userId, "leave_decision", { decision: input.decision === "APPROVED" ? "approved" : "rejected", type: req.leaveType.name, from, to, note: input.note ?? "" }).catch((e) => log.error("leave.notify_failed", { err: e }));
-  return { id: req.id, status: input.decision as LeaveStatus, employeeId: req.employeeId, from, to };
+  if (cover) await notifyCoverPlan(cover).catch((e) => log.error("cover.notify_failed", { err: e }));
+  return { id: req.id, status: input.decision as LeaveStatus, employeeId: req.employeeId, from, to, cover: cover ? { created: cover.created, ended: cover.ended } : null };
 }
 
-/** Employees who could cover (active, not the one on leave, not on leave themselves in the window). */
+/** Employees who could cover (active, not a coach, not the one on leave, not on leave themselves in the window). */
 export async function coverCandidates(leaveRequestId: string) {
-  const req = await db.leaveRequest.findUnique({ where: { id: leaveRequestId }, select: { employeeId: true, fromDate: true, toDate: true, employee: { select: { marketIds: true } } } });
-  if (!req) throw new LeaveError("Leave request not found.");
-  const away = await db.leaveRequest.findMany({ where: { status: "APPROVED", fromDate: { lte: req.toDate }, toDate: { gte: req.fromDate } }, select: { employeeId: true } });
-  const awayIds = new Set(away.map((a) => a.employeeId));
-  const emps = await db.employeeProfile.findMany({
-    where: { id: { not: req.employeeId }, maxStudents: { gt: 0 }, user: { status: "ACTIVE", deletedAt: null } },
-    select: { id: true, employeeCode: true, maxStudents: true, marketIds: true, user: { select: { name: true } }, _count: { select: { assignments: { where: { isActive: true, type: "PRIMARY" } } } } },
-    orderBy: { user: { name: "asc" } },
+  const { window } = await loadCoverWindow(db, leaveRequestId);
+  return listCoverCandidates(db, window);
+}
+
+/**
+ * Everything the "approve and set cover" dialog needs (D-144): the leave
+ * window, the employee's active applicants with a suggested cover each, and the
+ * candidates. Suggestions keep an existing cover for this leave and otherwise
+ * spread the applicants over same-market colleagues by load.
+ */
+export async function planCover(leaveRequestId: string) {
+  const { status, window } = await loadCoverWindow(db, leaveRequestId);
+  const [rows, candidates, existing] = await Promise.all([
+    db.assignment.findMany({
+      where: { employeeId: window.primaryEmployeeId, isActive: true, type: "PRIMARY" },
+      select: { studentId: true, student: { select: { marketId: true, targetTitles: true, market: { select: { code: true } }, user: { select: { name: true } } } } },
+    }),
+    listCoverCandidates(db, window),
+    db.assignment.findMany({ where: { leaveRequestId, type: "COVER", isActive: true }, select: { studentId: true, employeeId: true } }),
+  ]);
+  const students = rows
+    .map((r) => ({ studentId: r.studentId, name: r.student.user.name, marketId: r.student.marketId, marketCode: r.student.market.code, targetTitles: r.student.targetTitles }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const current = Object.fromEntries(existing.map((e) => [e.studentId, e.employeeId]));
+  const suggested = suggestCovers(students, candidates, current);
+  return {
+    status,
+    employeeName: window.primaryName,
+    window: { from: window.from, to: window.to, fromKey: window.fromKey, toKey: window.toKey, label: formatDateRange(window.fromKey, window.toKey) },
+    students: students.map((s) => ({ ...s, currentCoverId: current[s.studentId] ?? null, suggestedCoverId: suggested[s.studentId] ?? null })),
+    candidates,
+  };
+}
+
+/** Who covers whom for these leaves: leaveRequestId → [{employeeId, name, count}] from the active COVER rows (D-144). */
+export async function coverSummaries(leaveRequestIds: string[]) {
+  const out = new Map<string, { employeeId: string; name: string; count: number }[]>();
+  if (!leaveRequestIds.length) return out;
+  const rows = await db.assignment.findMany({
+    where: { leaveRequestId: { in: leaveRequestIds }, type: "COVER", isActive: true },
+    select: { leaveRequestId: true, employeeId: true, employee: { select: { user: { select: { name: true } } } } },
   });
-  return emps
-    .filter((e) => !awayIds.has(e.id))
-    .map((e) => ({ id: e.id, name: e.user.name, code: e.employeeCode, load: e._count.assignments, max: e.maxStudents, sameMarket: e.marketIds.some((m) => req.employee.marketIds.includes(m)) }))
-    .sort((a, b) => Number(b.sameMarket) - Number(a.sameMarket) || a.load / a.max - b.load / b.max);
+  for (const r of rows) {
+    const list = out.get(r.leaveRequestId!) ?? [];
+    const hit = list.find((x) => x.employeeId === r.employeeId);
+    if (hit) hit.count += 1;
+    else list.push({ employeeId: r.employeeId, name: r.employee.user.name, count: 1 });
+    out.set(r.leaveRequestId!, list);
+  }
+  for (const list of out.values()) list.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  return out;
 }
 
 /** Leave calendar: approved + pending leave overlapping [from, to], plus holidays. */

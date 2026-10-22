@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableWrap, Table, THead, TH, TR, TD } from "@/components/ui/table";
 import { requireRole } from "@/server/auth/guards";
-import { coverCandidates, holidayRegionOptions, leaveCalendar, listHolidays, listLeaveTypes, listPending, listRecentDecisions } from "@/server/services/leave";
+import { holidayRegionOptions, leaveCalendar, listHolidays, listLeaveTypes, listPending, listRecentDecisions } from "@/server/services/leave";
 import { addDayKey, dayKey, keyFromDateOnly, weekdayOfKey } from "@/lib/dates";
 import { formatInTz } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { CoverButton, DecideButtons, DeleteHolidayButton, HolidayForm, LeaveTypeDialog } from "./leave-admin-client";
+import { ChangeCoverButton, DecideButtons, DeleteHolidayButton, HolidayForm, LeaveTypeDialog } from "./leave-admin-client";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +41,6 @@ export default async function AdminLeavePage({ searchParams }: { searchParams: P
   const year = Number(today.slice(0, 4));
 
   const [pending, recent, cal, holidays, types, regions] = await Promise.all([listPending(), listRecentDecisions(15), leaveCalendar(from, to), listHolidays(year), listLeaveTypes(), holidayRegionOptions()]);
-  const candidates = new Map<string, Awaited<ReturnType<typeof coverCandidates>>>();
-  for (const id of [...pending.map((p) => p.id), ...recent.filter((r) => r.status === "APPROVED" && !r.coverEmployeeId && keyFromDateOnly(r.toDate) >= today).map((r) => r.id)]) {
-    candidates.set(id, await coverCandidates(id));
-  }
   const people = [...new Map(cal.leaves.map((l) => [l.employee.id, l.employee])).values()];
 
   return (
@@ -78,7 +74,7 @@ export default async function AdminLeavePage({ searchParams }: { searchParams: P
                   {p.attachmentId ? <div><a href={`/api/files/${p.attachmentId}`} className="inline-flex items-center gap-1 font-semibold"><Paperclip className="h-3.5 w-3.5" aria-hidden="true" />{t("attachment")}</a></div> : null}
                 </dl>
                 {p.balance?.limited && p.days > p.balance.available ? <p role="status" className="text-[13px] font-semibold text-danger">{t("overBalance")}</p> : null}
-                <DecideButtons id={p.id} employeeName={p.employee.user.name} students={p.students} candidates={candidates.get(p.id) ?? []} />
+                <DecideButtons id={p.id} employeeName={p.employee.user.name} students={p.students} />
               </li>
             ))}
           </ul>
@@ -160,7 +156,14 @@ export default async function AdminLeavePage({ searchParams }: { searchParams: P
                     <TD>{r.leaveType.name} · {n(r.days)}</TD>
                     <TD><Badge tone={r.status === "APPROVED" ? "green" : "red"}>{tl(r.status)}</Badge></TD>
                     <TD className="max-w-[260px] truncate text-muted-foreground">{r.decisionNote ?? ""}</TD>
-                    <TD className="text-right">{candidates.has(r.id) ? <CoverButton id={r.id} candidates={candidates.get(r.id)!} /> : r.coverEmployeeId ? <span className="text-xs font-semibold text-success">{t("coverSet")}</span> : null}</TD>
+                    <TD className="text-right">
+                      {r.status === "APPROVED" ? (
+                        <div className="flex flex-col items-end gap-1">
+                          {r.covers.length ? <span className="text-xs font-semibold text-success">{t("coveredBy", { list: r.covers.map((c) => `${c.name} (${c.count})`).join(", ") })}</span> : r.students > 0 && keyFromDateOnly(r.toDate) >= today ? <span className="text-xs font-semibold text-[#7A4E0E]">{t("noCoverYet", { count: r.students })}</span> : null}
+                          {keyFromDateOnly(r.toDate) >= today && r.students > 0 ? <ChangeCoverButton id={r.id} employeeName={r.employee.user.name} hasCover={r.covers.length > 0} /> : null}
+                        </div>
+                      ) : null}
+                    </TD>
                   </TR>
                 ))}
               </tbody>

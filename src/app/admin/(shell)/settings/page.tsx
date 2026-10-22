@@ -27,7 +27,7 @@ export default async function SettingsPage() {
           <GeneralForm value={{ autoAssignEnabled: s.autoAssignEnabled, defaultMaxStudents: s.defaultMaxStudents, noResponseDays: s.noResponseDays, belowTargetAlertTime: s.belowTargetAlertTime, aiLimits: s.aiLimits }} />
         </Section>
         <Section id="public-site" title={t("publicSiteTitle")} description={t("publicSiteDescription")}>
-          <PublicSiteForm value={s.publicSite} />
+          <PublicSiteForm value={s.publicSite} markets={markets.filter((m) => m.isActive).map((m) => ({ code: m.code, name: m.name }))} />
         </Section>
         <Section id="business" title={t("businessTitle")} description={t("businessDescription")}>
           {markets.length ? (

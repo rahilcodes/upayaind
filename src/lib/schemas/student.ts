@@ -134,6 +134,7 @@ export const STUDENT_EMAIL_PREFS = [
   "new_message",
   "assigned_student",
   "reassigned_student",
+  "cover_student",
   "mock_interview_booked",
   "mock_session_scheduled",
   "mock_session_cancelled",
