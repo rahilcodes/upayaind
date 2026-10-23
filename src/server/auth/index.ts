@@ -4,7 +4,7 @@ import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { z } from "zod";
-import { env, integrations } from "@/env";
+import { env, integrations, staff2faRequired } from "@/env";
 import { db } from "@/server/db";
 import { requestMeta } from "@/server/request";
 import { rateLimit } from "@/server/services/ratelimit";
@@ -14,6 +14,12 @@ import { burnPasswordCheck, verifyPassword } from "./password";
 import { consumeMagicLink, MagicLinkError } from "@/server/services/magic-link";
 import { isStaff } from "./rbac";
 import { sessionVersionValid } from "./sessions";
+
+/** Staff MFA state at sign-in: verify when enrolled, otherwise enrol — or skip entirely when 2FA is optional (D-146). */
+function mfaFor(totpEnabled: boolean): MfaState {
+  if (totpEnabled) return "verify";
+  return staff2faRequired ? "setup" : "ok";
+}
 
 /** Lockout after 8 failed attempts in 15 minutes (SPEC §10). */
 export const LOCKOUT = { attempts: 8, windowMinutes: 15 } as const;
@@ -246,7 +252,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         token.name = c.name;
         token.email = c.email;
         token.timezone = c.timezone;
-        token.mfa = (staff ? (c.totpEnabled ? "verify" : "setup") : "none") satisfies MfaState;
+        token.mfa = (staff ? mfaFor(c.totpEnabled) : "none") satisfies MfaState;
         token.needsProfile = c.role === "STUDENT" && !c.student;
         token.onboarded = Boolean(c.student?.onboardingCompletedAt);
         token.sessionExpiresAt = Date.now() + (staff ? STAFF_SESSION_HOURS * 3600e3 : STUDENT_SESSION_DAYS * 86400e3);
@@ -273,7 +279,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         token.needsProfile = c.role === "STUDENT" && !c.student;
         token.onboarded = Boolean(c.student?.onboardingCompletedAt);
         token.checkedAt = Date.now();
-        if (isStaff(c.role) && token.mfa !== "ok") token.mfa = c.totpEnabled ? "verify" : "setup";
+        if (isStaff(c.role) && token.mfa !== "ok") token.mfa = mfaFor(c.totpEnabled);
         if (trigger === "update" && session && verifyMfaProof(uid, (session as { mfaProof?: unknown }).mfaProof)) {
           token.mfa = "ok";
         }

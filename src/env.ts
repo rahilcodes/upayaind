@@ -69,6 +69,8 @@ const schema = z.object({
   SENTRY_PROJECT: z.string().optional(),
   SENTRY_AUTH_TOKEN: z.string().optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional(),
+  /** "0" makes 2-step verification optional for staff (D-146); default on, as SPEC §10 requires. */
+  STAFF_2FA_REQUIRED: z.enum(["0", "1"]).default("1"),
 
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
@@ -102,6 +104,9 @@ export type Env = typeof env;
 
 /** Which provider the resume AI uses (D-136). */
 export const aiProvider = resolveAiProvider(env);
+
+/** Staff must enrol and verify TOTP unless the operator turned it off (D-146). */
+export const staff2faRequired = env.STAFF_2FA_REQUIRED !== "0";
 
 export const integrations = {
   storage: Boolean(env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET),
