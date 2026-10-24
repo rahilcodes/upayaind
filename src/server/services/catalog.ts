@@ -97,7 +97,8 @@ export async function getPricing(marketCode: string | null | undefined) {
         .map((x) => {
           intervals.add(x.interval);
           const months = INTERVAL_MONTHS[x.interval];
-          const perMonthMinor = Math.round(x.amountMinor / months);
+          // Whole major units (₹4,333 a month, not ₹4,999.67): a marketing figure, not an invoice line.
+          const perMonthMinor = Math.round(x.amountMinor / months / 100) * 100;
           const savingPct =
             monthly && x.interval !== "MONTHLY" && x.interval !== "ONE_TIME" && monthly.amountMinor > 0
               ? Math.max(0, Math.round((1 - x.amountMinor / (monthly.amountMinor * months)) * 100))
