@@ -34,7 +34,7 @@ geoip2 /usr/share/GeoIP/dbip-country-lite.mmdb {
 }
 EOF
 
-cp "$SITE" "$SITE.pre-geoip.bak.$(date +%s)"
+mkdir -p /etc/nginx/backups && cp "$SITE" "/etc/nginx/backups/$(basename "$SITE").pre-geoip.bak.$(date +%s)" # never inside sites-enabled: nginx would load the copy too
 if ! grep -q "X-Country-Code" "$SITE"; then
   sed -i 's|\(\s*\)proxy_set_header X-Forwarded-Proto \$scheme;|&\n\1proxy_set_header X-Country-Code $geoip2_country_code;\n\1proxy_set_header CF-IPCountry $geoip2_country_code;|' "$SITE"
 fi
