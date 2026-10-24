@@ -59,6 +59,8 @@ export async function listPayments(raw: Record<string, string | undefined>) {
       provider: true,
       providerPaymentId: true,
       failureReason: true,
+      method: true,
+      reference: true,
       paidAt: true,
       createdAt: true,
       studentId: true,

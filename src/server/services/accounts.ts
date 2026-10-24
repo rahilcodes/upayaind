@@ -147,7 +147,12 @@ export async function verifyEmail(token: string) {
 export async function requestPasswordReset(email: string) {
   const user = await db.user.findUnique({ where: { email }, select: { id: true, name: true, status: true, deletedAt: true } });
   if (!user || user.deletedAt || user.status === "DEACTIVATED") return;
-  const token = await issueToken(user.id, "RESET_PASSWORD");
+  await sendPasswordResetEmail(user.id, email);
+}
+
+/** Issue a RESET_PASSWORD token (30 min, single use) and email the link. Shared by self-service and the admin panel (D-147). */
+export async function sendPasswordResetEmail(userId: string, email: string) {
+  const token = await issueToken(userId, "RESET_PASSWORD");
   await sendEmail({
     to: email,
     subject: "Reset your UpayaInd password",
@@ -176,11 +181,11 @@ export async function resetPassword(token: string, password: string) {
   return userId;
 }
 
-/** Accept a staff invite: set password (2FA setup follows at first login). */
+/** Accept an invite: set password. Staff go on to 2FA setup; students (D-147) go to onboarding. */
 export async function acceptInvite(token: string, password: string) {
   const userId = await consumeToken(token, "INVITE");
   if (!userId) throw new AccountError("This invite has expired or was already used. Ask your admin for a new one.", "token");
-  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true, name: true, role: true } });
   if (!user) throw new AccountError("Account not found.");
   await checkPasswordPolicy(password, [user.email, user.name]);
   await db.user.update({

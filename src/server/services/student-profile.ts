@@ -102,45 +102,76 @@ export async function getStudentProfile(user: Actor) {
 
 export type StudentProfileData = Awaited<ReturnType<typeof getStudentProfile>>;
 
-export async function savePreferences(user: Actor, raw: PreferencesInput) {
-  const studentId = await studentIdFor(user);
+// ─────────────────────────── Cores shared with the admin panel (D-147) ───────────────────────────
+// `apply*` take a studentId and are used by both the student self-service path
+// (below, after `studentIdFor`) and the admin edit path (admin-student-accounts.ts),
+// so the stored shape is identical whoever saves.
+
+/** Validate + normalise job preferences into the StudentProfile columns. */
+export function preferencesData(raw: PreferencesInput) {
   const p = preferencesSchema.parse(raw);
   const currency = p.salaryCurrency ?? "USD";
-  await db.studentProfile.update({
-    where: { id: studentId },
-    data: {
-      targetTitles: p.targetTitles,
-      seniority: p.seniority,
-      industries: p.industries,
-      locations: p.locations,
-      remoteOk: p.remoteOk,
-      workModes: p.workModes,
-      employmentTypes: p.employmentTypes,
-      minSalaryMinor: p.minSalary === null ? null : toMinor(p.minSalary, currency),
-      salaryCurrency: currency,
-      workAuthorization: p.workAuthorization,
-      needsSponsorship: SPONSORSHIP_AUTH.has(p.workAuthorization),
-      willingToRelocate: p.willingToRelocate,
-      noticePeriod: p.noticePeriod || null,
-      avoidCompanies: p.avoidCompanies,
-      targetCompanies: p.targetCompanies,
-    },
-  });
+  return {
+    targetTitles: p.targetTitles,
+    seniority: p.seniority,
+    industries: p.industries,
+    locations: p.locations,
+    remoteOk: p.remoteOk,
+    workModes: p.workModes,
+    employmentTypes: p.employmentTypes,
+    minSalaryMinor: p.minSalary === null ? null : toMinor(p.minSalary, currency),
+    salaryCurrency: currency,
+    workAuthorization: p.workAuthorization,
+    needsSponsorship: SPONSORSHIP_AUTH.has(p.workAuthorization),
+    willingToRelocate: p.willingToRelocate,
+    noticePeriod: p.noticePeriod || null,
+    avoidCompanies: p.avoidCompanies,
+    targetCompanies: p.targetCompanies,
+  };
+}
+
+export async function applyPreferences(studentId: string, raw: PreferencesInput) {
+  const data = preferencesData(raw);
+  await db.studentProfile.update({ where: { id: studentId }, data });
+  return data;
+}
+
+export function linksData(raw: LinksInput) {
+  const l = linksSchema.parse(raw);
+  return { linkedinUrl: l.linkedinUrl, githubUrl: l.githubUrl, portfolioUrl: l.portfolioUrl };
+}
+
+export async function applyLinks(studentId: string, raw: LinksInput) {
+  const data = linksData(raw);
+  await db.studentProfile.update({ where: { id: studentId }, data });
+  return data;
+}
+
+/** Name / phone / timezone on the User row; the phone is validated for the student's market. */
+export async function applyPersonal(studentId: string, raw: PersonalInput) {
+  const p = personalSchema.parse(raw);
+  const s = await db.studentProfile.findUnique({ where: { id: studentId }, select: { userId: true, market: { select: { code: true } } } });
+  if (!s) throw new ForbiddenError();
+  const phone = phoneSchema(s.market.code ?? "US").safeParse(p.phone);
+  if (!phone.success) throw new StudentProfileError("Enter a valid phone number with country code.", "phone");
+  const data = { name: p.name, phone: phone.data, timezone: p.timezone };
+  await db.user.update({ where: { id: s.userId }, data });
+  return data;
+}
+
+export async function savePreferences(user: Actor, raw: PreferencesInput) {
+  const studentId = await studentIdFor(user);
+  await applyPreferences(studentId, raw);
 }
 
 export async function saveLinks(user: Actor, raw: LinksInput) {
   const studentId = await studentIdFor(user);
-  const l = linksSchema.parse(raw);
-  await db.studentProfile.update({ where: { id: studentId }, data: { linkedinUrl: l.linkedinUrl, githubUrl: l.githubUrl, portfolioUrl: l.portfolioUrl } });
+  await applyLinks(studentId, raw);
 }
 
 export async function savePersonal(user: Actor, raw: PersonalInput) {
   const studentId = await studentIdFor(user);
-  const p = personalSchema.parse(raw);
-  const market = await db.studentProfile.findUnique({ where: { id: studentId }, select: { market: { select: { code: true } } } });
-  const phone = phoneSchema(market?.market.code ?? "US").safeParse(p.phone);
-  if (!phone.success) throw new StudentProfileError("Enter a valid phone number with country code.", "phone");
-  await db.user.update({ where: { id: user.id }, data: { name: p.name, phone: phone.data, timezone: p.timezone } });
+  await applyPersonal(studentId, raw);
 }
 
 const SECTION_LABEL: Record<string, string> = {

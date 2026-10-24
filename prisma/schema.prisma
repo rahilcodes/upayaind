@@ -27,6 +27,7 @@ enum Role {
   MANAGER
   ADMIN
   COACH // interview coach: mock interviews + training only (D-140)
+  TEAM_LEAD // runs operations end to end; commercial sections only when an admin enables them (D-149)
 }
 
 enum UserStatus {
@@ -469,6 +470,8 @@ model Payment {
   taxMinor          Int           @default(0)
   refundedMinor     Int           @default(0)
   failureReason     String?
+  method            String? // how an offline payment was made: bank | cash | upi | card | other (D-147b)
+  reference         String? // bank/UPI transaction reference typed by the admin
   paidAt            DateTime?
   createdAt         DateTime      @default(now())
 

@@ -9,6 +9,7 @@ import { trackEvent } from "@/server/services/events";
 import { notify, notifyManagers } from "@/server/services/notify";
 import { sendAlert } from "@/server/services/alerts";
 import { formatDate, formatMoney } from "@/lib/format";
+import { INTERVAL_MONTHS, addMonths } from "@/lib/billing-period";
 import { redeemCoupon } from "./coupons";
 import { generateInvoiceForPayment } from "./invoices";
 import { onFirstPaymentSucceeded } from "@/server/services/referrals";
@@ -166,19 +167,15 @@ function sumDiscounts(inv: Stripe.Invoice) {
   return (inv.total_discount_amounts ?? []).reduce((a, r) => a + (r.amount ?? 0), 0);
 }
 
-function addMonths(d: Date, months: number) {
-  const x = new Date(d);
-  x.setUTCMonth(x.getUTCMonth() + months);
-  return x;
-}
-
 /**
  * Move a local subscription to ACTIVE with its period. Emits
  * `subscription.activated` (→ auto-assignment) only on a real transition.
+ * Shared with the admin manual-billing service (D-147b): `actorId` attributes
+ * the audit row when an admin, not a webhook, triggers the activation.
  */
-async function activate(
+export async function activate(
   subId: string,
-  data: { periodStart: Date | null; periodEnd: Date | null; providerSubId?: string | null; providerCustomerId?: string | null; cancelAtPeriodEnd?: boolean },
+  data: { periodStart: Date | null; periodEnd: Date | null; providerSubId?: string | null; providerCustomerId?: string | null; cancelAtPeriodEnd?: boolean; actorId?: string | null },
 ) {
   const before = await db.subscription.findUniqueOrThrow({ where: { id: subId }, select: { status: true, studentId: true, currentPeriodEnd: true } });
   const newPeriod = data.periodEnd && before.currentPeriodEnd?.getTime() !== data.periodEnd.getTime();
@@ -200,14 +197,15 @@ async function activate(
       where: { studentId: before.studentId, id: { not: subId }, status: { in: ["PENDING_PAYMENT", "ACTIVE", "PAST_DUE"] } },
       data: { status: "CANCELED", cancelAtPeriodEnd: false },
     });
-    await audit({ action: "subscription.activate", entity: "Subscription", entityId: subId, before: { status: before.status }, after: { status: "ACTIVE", periodEnd: data.periodEnd } });
+    await audit({ actorId: data.actorId ?? null, action: "subscription.activate", entity: "Subscription", entityId: subId, before: { status: before.status }, after: { status: "ACTIVE", periodEnd: data.periodEnd } });
     await emit("subscription.activated", { studentId: before.studentId });
   }
   return { transitioned: before.status !== "ACTIVE" };
 }
 
-type PaymentInput = {
-  subscriptionId: string;
+export type PaymentInput = {
+  /** Null for a manual payment that isn't tied to a subscription (D-147b). */
+  subscriptionId: string | null;
   studentId: string;
   providerPaymentId: string;
   provider: string;
@@ -218,6 +216,9 @@ type PaymentInput = {
   paidAt: Date;
   periodStart: Date | null;
   periodEnd: Date | null;
+  /** Offline payments only (D-147b): how it was paid and the admin's reference. */
+  method?: string | null;
+  reference?: string | null;
 };
 
 /**
@@ -225,7 +226,7 @@ type PaymentInput = {
  * sequential invoice number allocated in the same transaction. A previously
  * FAILED attempt for the same invoice is upgraded to SUCCEEDED.
  */
-async function recordSuccessfulPayment(p: PaymentInput): Promise<{ paymentId: string; created: boolean }> {
+export async function recordSuccessfulPayment(p: PaymentInput): Promise<{ paymentId: string; created: boolean }> {
   const existing = await db.payment.findUnique({ where: { providerPaymentId: p.providerPaymentId }, select: { id: true, status: true } });
   if (existing && existing.status !== "FAILED" && existing.status !== "PENDING") return { paymentId: existing.id, created: false };
   try {
@@ -242,6 +243,8 @@ async function recordSuccessfulPayment(p: PaymentInput): Promise<{ paymentId: st
         failureReason: null,
         paidAt: p.paidAt,
         invoiceNumber,
+        method: p.method ?? null,
+        reference: p.reference ?? null,
       };
       if (existing) {
         // Guard the upgrade so two concurrent deliveries can't both win.
@@ -265,7 +268,7 @@ async function recordSuccessfulPayment(p: PaymentInput): Promise<{ paymentId: st
 class AlreadyRecorded extends Error {}
 
 /** After a new payment: invoice PDF, events, student notification. Failures here never undo the payment. */
-async function afterPayment(paymentId: string, ctx: { discountMinor: number; periodStart: Date | null; periodEnd: Date | null; couponId?: string | null }) {
+export async function afterPayment(paymentId: string, ctx: { discountMinor: number; periodStart: Date | null; periodEnd: Date | null; couponId?: string | null }) {
   let attachment: { filename: string; content: Buffer } | undefined;
   try {
     const inv = await generateInvoiceForPayment(paymentId, { discountMinor: ctx.discountMinor, periodStart: ctx.periodStart, periodEnd: ctx.periodEnd });
@@ -346,8 +349,7 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<st
   const sub = await db.subscription.findUniqueOrThrow({ where: { id: local.id }, select: { planPrice: { select: { interval: true } } } });
   const paidAt = new Date((session.created ?? Math.floor(Date.now() / 1000)) * 1000);
   const periodStart = local.status === "ACTIVE" && local.currentPeriodEnd && local.currentPeriodEnd > paidAt ? local.currentPeriodEnd : paidAt;
-  const months = { MONTHLY: 1, QUARTERLY: 3, HALF_YEARLY: 6, YEARLY: 12, ONE_TIME: 1 }[sub.planPrice.interval];
-  const periodEnd = addMonths(periodStart, months);
+  const periodEnd = addMonths(periodStart, INTERVAL_MONTHS[sub.planPrice.interval]);
   const providerPaymentId = idOf(session.payment_intent) ?? session.id;
   const already = await db.payment.findUnique({ where: { providerPaymentId }, select: { status: true } });
   if (already?.status === "SUCCEEDED" || already?.status === "REFUNDED" || already?.status === "PARTIALLY_REFUNDED") return "duplicate payment";

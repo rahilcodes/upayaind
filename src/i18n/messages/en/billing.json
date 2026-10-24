@@ -311,7 +311,14 @@
         "failed": "Failed: {reason}",
         "provider": "Provider",
         "pagination": "Showing up to 25 per page",
-        "manual": "Manual"
+        "manual": "Manual",
+        "method": {
+          "bank": "Bank transfer",
+          "cash": "Cash",
+          "upi": "UPI",
+          "card": "Card (offline)",
+          "other": "Other"
+        }
       },
       "toasts": {
         "planSaved": "Plan saved",

@@ -85,7 +85,7 @@ const MARKETS = [
   { code: "UK", name: "United Kingdom", currency: "GBP", locale: "en-GB", minPriceMinor: 3900, defaultTimezone: "Europe/London", style: "UK_CV", isActive: true, phoneDisplay: null, whatsapp: null },
   { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA", minPriceMinor: 6500, defaultTimezone: "America/Toronto", style: "CA_RESUME", isActive: false, phoneDisplay: null, whatsapp: null },
   { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU", minPriceMinor: 7500, defaultTimezone: "Australia/Sydney", style: "AU_RESUME", isActive: false, phoneDisplay: null, whatsapp: null },
-  { code: "IN", name: "India", currency: "INR", locale: "en-IN", minPriceMinor: 299900, defaultTimezone: "Asia/Kolkata", style: "IN_RESUME", isActive: true, phoneDisplay: "+91 799 700 1700", whatsapp: "917997001700" },
+  { code: "IN", name: "India", currency: "INR", locale: "en-IN", minPriceMinor: 299900, defaultTimezone: "Asia/Kolkata", style: "IN_RESUME", isActive: true, phoneDisplay: "+91 95508 88128", whatsapp: "919550888128" },
 ] as const;
 
 // Client's plan sheet (D-137). Prices are US monthly; the "N–M applications/day"
@@ -137,6 +137,46 @@ const PLANS = [
       "24hr priority support",
     ],
     demo: { MONTHLY: 35900 },
+  },
+] as const;
+
+/**
+ * India sells 3-month packages (client sheet, Oct 2026): Basic ₹12,999 and
+ * Premium ₹14,999 (1 interview a week), QUARTERLY only, no Standard tier.
+ * They are separate Plan rows priced only in IN, so the US/UK monthly plans
+ * are untouched and getPricing("IN") shows exactly these two.
+ */
+const INDIA_PLANS = [
+  {
+    code: "in_basic", name: "Basic", isFeatured: false, sortOrder: 11, dailyTarget: 8, amountMinor: 1299900, interviewsPromise: "1–2 interviews a month",
+    description: "Steady, targeted applications with a career consultant behind you.",
+    features: [
+      "5–10 applications a day, matched to your profile",
+      "Career consultant guidance on resume improvements",
+      "LinkedIn profile guidance",
+      "Guidance on identifying relevant opportunities",
+      "Interview preparation tips and guidance",
+      "Weekly progress tracking and reports",
+      "Candidate support throughout the process",
+    ],
+  },
+  {
+    code: "in_premium", name: "Premium", isFeatured: true, sortOrder: 12, dailyTarget: 18, amountMinor: 1499900, interviewsPromise: "1 interview a week",
+    description: "Maximum reach with a dedicated HR executive as your personal partner.",
+    features: [
+      "Everything in Basic",
+      "15–20 applications a day",
+      "Advanced, job-specific resume optimisation",
+      "Multiple resume versions for target roles",
+      "LinkedIn profile optimisation",
+      "Relevant job / WhatsApp groups access",
+      "Regular application status updates on WhatsApp",
+      "Mock interviews with actionable feedback",
+      "HR and role-specific interview prep",
+      "Recruiter follow-ups and priority interview scheduling",
+      "Full access to the detailed application tracker",
+      "Dedicated HR executive (personal partner)",
+    ],
   },
 ] as const;
 
@@ -199,6 +239,27 @@ function doc(paragraphs: string[]) {
   };
 }
 
+/** India's two 3-month packages (idempotent; safe to run on a live DB). Retires the IN placeholders of the US plans. */
+export async function seedIndiaPlans() {
+  const india = await db.market.findUnique({ where: { code: "IN" }, select: { id: true } });
+  if (!india) return;
+  for (const p of INDIA_PLANS) {
+    const plan = await db.plan.upsert({
+      where: { code: p.code },
+      update: { name: p.name, description: p.description, features: [...p.features], isFeatured: p.isFeatured, sortOrder: p.sortOrder, isActive: true, deletedAt: null },
+      create: { code: p.code, name: p.name, description: p.description, features: [...p.features], isFeatured: p.isFeatured, sortOrder: p.sortOrder },
+    });
+    await db.planPrice.upsert({
+      where: { planId_marketId_interval: { planId: plan.id, marketId: india.id, interval: "QUARTERLY" } },
+      update: { amountMinor: p.amountMinor, currency: "INR", dailyTarget: p.dailyTarget, interviewsPromise: p.interviewsPromise, isActive: true },
+      create: { planId: plan.id, marketId: india.id, interval: "QUARTERLY", amountMinor: p.amountMinor, currency: "INR", dailyTarget: p.dailyTarget, interviewsPromise: p.interviewsPromise },
+    });
+  }
+  // Only Basic and Premium (3-month) are sold in India: hide every other IN price (the 0-rupee placeholders of the US plans, Standard, monthly rows).
+  const keep = await db.plan.findMany({ where: { code: { in: INDIA_PLANS.map((p) => p.code) } }, select: { id: true } });
+  await db.planPrice.updateMany({ where: { marketId: india.id, isActive: true, NOT: { AND: [{ planId: { in: keep.map((k) => k.id) } }, { interval: "QUARTERLY" }] } }, data: { isActive: false } });
+}
+
 async function seedReference() {
   for (const s of RESUME_STYLES) {
     await db.resumeStyle.upsert({ where: { code: s.code }, update: { ...s, sectionOrder: [...s.sectionOrder] }, create: { ...s, sectionOrder: [...s.sectionOrder] } });
@@ -235,12 +296,13 @@ async function seedReference() {
     // The plan sheet is monthly only; retire quarterly rows from earlier seeds.
     await db.planPrice.updateMany({ where: { planId: plan.id, interval: "QUARTERLY", isActive: true }, data: { isActive: false } });
     for (const m of liveMarkets) {
-      if (m.id === us.id) continue;
+      if (m.id === us.id || m.code === "IN") continue; // India has its own packages (seedIndiaPlans)
       const existing = await db.planPrice.findUnique({ where: { planId_marketId_interval: { planId: plan.id, marketId: m.id, interval: "MONTHLY" } } });
       if (!existing) await db.planPrice.create({ data: { planId: plan.id, marketId: m.id, interval: "MONTHLY", amountMinor: 0, currency: m.currency, dailyTarget: p.dailyTarget } });
       else await db.planPrice.update({ where: { id: existing.id }, data: { dailyTarget: p.dailyTarget } });
     }
   }
+  await seedIndiaPlans();
   for (const lt of LEAVE_TYPES) await db.leaveType.upsert({ where: { name: lt.name }, update: lt, create: lt });
   for (const [key, value] of Object.entries(SETTINGS)) await db.setting.upsert({ where: { key }, update: {}, create: { key, value } });
 
@@ -346,6 +408,20 @@ function profileFor(name: string, email: string, phone: string, role: (typeof RO
 }
 
 /** Dev DBs seeded before D-140 have no coach: add Kavya and attach the demo student and mocks to her. Idempotent. */
+/** Dev DBs seeded before D-149 have no team lead: add Vikram. Idempotent. */
+async function ensureDemoTeamLead() {
+  if (await db.user.findUnique({ where: { email: "teamlead@upayaind.test" }, select: { id: true } })) return;
+  const us = await db.market.findUniqueOrThrow({ where: { code: "US" } });
+  const manager = await db.employeeProfile.findUnique({ where: { employeeCode: "UPY-0001" }, select: { id: true } });
+  await db.user.create({
+    data: {
+      email: "teamlead@upayaind.test", name: "Vikram Nair", role: "TEAM_LEAD", passwordHash: await hash(DEMO_PASSWORD, { memoryCost: 19456, timeCost: 2, parallelism: 1, algorithm: 2 }), timezone: STAFF_TZ, emailVerified: new Date(), totpSecretEnc: seal(DEMO_TOTP_SECRET), totpEnabled: true,
+      employee: { create: { employeeCode: "UPY-0002", title: "Team Lead", marketIds: [us.id], maxStudents: 0, acceptingNewStudents: false, workSchedule: { days: [1, 2, 3, 4, 5], startTime: "09:30", endTime: "18:30", hours: 9, timezone: STAFF_TZ, enforceWindow: false }, managerId: manager?.id ?? null, joiningDate: new Date("2025-03-03") } },
+    },
+  });
+  console.log("• Added demo team lead teamlead@upayaind.test (existing demo data kept).");
+}
+
 async function ensureDemoCoach() {
   if (await db.user.findUnique({ where: { email: "coach@upayaind.test" }, select: { id: true } })) return;
   const us = await db.market.findUniqueOrThrow({ where: { code: "US" } });
@@ -368,6 +444,7 @@ async function seedDemo() {
   if ((await db.studentProfile.count()) > 0) {
     console.log("• Demo data already present — skipping.");
     await ensureDemoCoach();
+    await ensureDemoTeamLead();
     return;
   }
   const passwordHash = await hash(DEMO_PASSWORD, { memoryCost: 19456, timeCost: 2, parallelism: 1, algorithm: 2 });
@@ -382,6 +459,10 @@ async function seedDemo() {
   const manager = await db.user.create({
     data: { email: "manager@upayaind.test", name: "Meena Kapoor", role: "MANAGER", passwordHash, timezone: STAFF_TZ, emailVerified: new Date(), totpSecretEnc, totpEnabled: true, employee: { create: { employeeCode: "UPY-0001", title: "Operations Manager", marketIds: [us.id], maxStudents: 0, acceptingNewStudents: false, workSchedule: schedule, joiningDate: new Date("2025-01-06") } } },
     include: { employee: true },
+  });
+  // Team lead (D-149): runs operations, no money sections unless an admin enables them.
+  await db.user.create({
+    data: { email: "teamlead@upayaind.test", name: "Vikram Nair", role: "TEAM_LEAD", passwordHash, timezone: STAFF_TZ, emailVerified: new Date(), totpSecretEnc, totpEnabled: true, employee: { create: { employeeCode: "UPY-0002", title: "Team Lead", marketIds: [us.id], maxStudents: 0, acceptingNewStudents: false, workSchedule: schedule, managerId: manager.employee!.id, joiningDate: new Date("2025-03-03") } } },
   });
   const employees = [];
   for (const [i, [name, email]] of [["Arjun Rao", "arjun@upayaind.test"], ["Divya Menon", "divya@upayaind.test"], ["Rahul Verma", "rahul@upayaind.test"]].entries()) {
@@ -617,11 +698,17 @@ async function seedDemo() {
 }
 
 async function main() {
+  // `--reference-only`: reference data only (markets, plans, settings, CMS drafts) — what a live server runs after a deploy.
+  if (process.argv.includes("--reference-only")) {
+    await seedReference();
+    console.log("✓ Reference data (markets, styles, plans, leave types, settings, CMS)");
+    return;
+  }
   await seedReference();
   console.log("✓ Reference data (markets, styles, plans, leave types, settings, CMS)");
   await seedDemo();
   console.log("✓ Demo data");
-  console.log(`\nDemo logins (password: ${DEMO_PASSWORD})\n  admin@upayaind.test · manager@upayaind.test · arjun@upayaind.test · coach@upayaind.test · student@upayaind.test\n  Staff 2FA secret (dev only): ${DEMO_TOTP_SECRET}\n`);
+  console.log(`\nDemo logins (password: ${DEMO_PASSWORD})\n  admin@upayaind.test · manager@upayaind.test · teamlead@upayaind.test · arjun@upayaind.test · coach@upayaind.test · student@upayaind.test\n  Staff 2FA secret (dev only): ${DEMO_TOTP_SECRET}\n`);
 }
 
 main()

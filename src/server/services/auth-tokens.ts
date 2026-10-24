@@ -44,3 +44,13 @@ export async function peekToken(raw: string, type: AuthTokenType) {
   });
   return Boolean(t);
 }
+
+/** Peek and tell who the token belongs to (the invite page picks student vs team copy, D-147). */
+export async function peekTokenOwner(raw: string, type: AuthTokenType) {
+  if (!raw || raw.length > 200) return null;
+  const t = await db.authToken.findFirst({
+    where: { tokenHash: sha256(raw), type, consumedAt: null, expiresAt: { gt: new Date() } },
+    select: { user: { select: { id: true, role: true } } },
+  });
+  return t ? { userId: t.user.id, role: t.user.role } : null;
+}

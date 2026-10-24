@@ -70,7 +70,7 @@ describe("onboarding", () => {
     const c = await setup();
     await savePreferences(c.student, PREFS);
     const s = await db.studentProfile.findUniqueOrThrow({ where: { id: c.studentId } });
-    expect(s.targetTitles).toEqual(["data analyst", "BI Analyst"].map((t, i) => (i === 0 ? "data analyst" : t)));
+    expect(s.targetTitles).toEqual(["Data Analyst", "BI Analyst"]); // case-insensitive dedupe keeps the first spelling typed
     expect(s.needsSponsorship).toBe(true);
     expect(s.minSalaryMinor).toBe(9_500_000);
     expect(s.salaryCurrency).toBe("USD");

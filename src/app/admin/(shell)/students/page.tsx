@@ -14,8 +14,11 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { Table, TableWrap, TD, TH, THead, TR } from "@/components/ui/table";
 import { SubscriptionStatus } from "@/generated/prisma/enums";
 import { requireAction } from "@/server/auth/guards";
+import { can } from "@/server/auth/rbac";
 import { listStudents } from "@/server/services/admin-students";
+import { studentFormOptions } from "@/server/services/admin-student-accounts";
 import { formatDate } from "@/lib/format";
+import { StudentCreateDialog } from "./student-create-dialog";
 
 export const metadata: Metadata = { title: "Students" };
 export const dynamic = "force-dynamic";
@@ -30,13 +33,20 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
   const f = data.filter;
   const current = { q: f.q, market: f.market, plan: f.plan, status: f.status, employee: f.employee, onboarding: f.onboarding, below: f.below, awaiting: f.awaiting, deleted: f.deleted };
   const filtered = Object.values(current).some(Boolean);
+  const canManage = can(user.role, "students.manage");
+  const formOptions = canManage ? await studentFormOptions() : null;
 
   return (
     <>
       <PageHeader
         title={t("title")}
         description={t("description", { total: data.total })}
-        actions={<ExportButtons href="/api/admin/students/export" params={current} csvLabel={tc("exportCsv")} xlsxLabel={tc("exportXlsx")} />}
+        actions={
+          <>
+            <ExportButtons href="/api/admin/students/export" params={current} csvLabel={tc("exportCsv")} xlsxLabel={tc("exportXlsx")} />
+            {formOptions ? <StudentCreateDialog options={formOptions} /> : null}
+          </>
+        }
       />
 
       <form method="get" className="mb-5 grid grid-cols-2 gap-3 rounded-[18px] border border-border bg-surface p-4 md:grid-cols-4 xl:grid-cols-[2fr_repeat(4,1fr)]">

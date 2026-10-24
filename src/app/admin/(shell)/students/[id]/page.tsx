@@ -17,11 +17,14 @@ import { requireAction } from "@/server/auth/guards";
 import { getStudent360, reassignOptions, studentApplications } from "@/server/services/admin-students";
 import { getThreadForAdmin } from "@/server/services/messaging";
 import { listReferralsForAdmin } from "@/server/services/referrals";
-import { formatDate, formatInTz, formatMoney } from "@/lib/format";
+import { formatDate, formatInTz, formatMoney, fromMinor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CoachAssign, DeletionControls, NotesEditor, PauseControls, StudentReassign } from "./student-actions";
+import { AccountAccessActions, AccountEditDialog, AccountStatusBadge, LinksEditDialog } from "./account-dialogs";
+import { PreferencesEditDialog } from "./preferences-dialog";
+import { studentFormOptions } from "@/server/services/admin-student-accounts";
 import { listCoachOptions } from "@/server/services/coach";
-import { can } from "@/server/auth/rbac";
+import { can, DEFAULT_TEAM_LEAD_SECTIONS } from "@/server/auth/rbac";
 import type { Role } from "@/generated/prisma/enums";
 import { AuditDiff } from "@/components/admin/audit-diff";
 
@@ -47,12 +50,36 @@ export default async function Student360Page({ params, searchParams }: { params:
   const tet = await getTranslations("employmentType");
   const tz = user.timezone;
   const isAdmin = user.role === "ADMIN";
+  // Commercial data (D-149): team leads see the billing tab only when an admin enabled the Payments section.
+  const seesMoney = user.role !== "TEAM_LEAD" || (user.sections ?? DEFAULT_TEAM_LEAD_SECTIONS).includes("payments");
+  if (tab === "billing" && !seesMoney) notFound();
+  const tb = await getTranslations("billing.admin.payments");
   const current = s.assignments.find((a) => a.isActive && a.type === "PRIMARY") ?? null;
   const covers = s.assignments.filter((a) => a.isActive && a.type === "COVER");
   const activeSub = s.subscriptions.find((x) => x.status === "ACTIVE" || x.status === "PAUSED") ?? s.subscriptions[0] ?? null;
   const pausable = isAdmin && activeSub && (activeSub.status === "ACTIVE" || activeSub.status === "PAUSED") ? activeSub : null;
   const deletionState = s.user.deletedAt ? "deleted" : s.user.deletionRequestedAt ? "requested" : "none";
   const tabHref = (k: Tab) => (k === "overview" ? `/admin/students/${s.id}` : `/admin/students/${s.id}?tab=${k}`);
+  // Editing (D-147): MANAGER/ADMIN, never on a deleted account.
+  const canManage = can(user.role, "students.manage") && deletionState !== "deleted";
+  const formOptions = canManage ? await studentFormOptions() : null;
+  const salaryCurrency = s.salaryCurrency ?? "USD";
+  const prefsValue = {
+    targetTitles: s.targetTitles,
+    seniority: s.seniority ?? "",
+    industries: s.industries,
+    locations: s.locations,
+    remoteOk: s.remoteOk,
+    workModes: s.workModes,
+    employmentTypes: s.employmentTypes,
+    minSalary: s.minSalaryMinor === null ? null : fromMinor(s.minSalaryMinor, salaryCurrency),
+    salaryCurrency,
+    workAuthorization: s.workAuthorization ?? "",
+    willingToRelocate: s.willingToRelocate,
+    noticePeriod: s.noticePeriod ?? "",
+    avoidCompanies: s.avoidCompanies,
+    targetCompanies: s.targetCompanies,
+  };
 
   return (
     <>
@@ -98,7 +125,7 @@ export default async function Student360Page({ params, searchParams }: { params:
 
       <nav aria-label={t("sections")} className="mb-5 overflow-x-auto">
         <ul className="inline-flex gap-1 rounded-[14px] bg-surface-muted p-1">
-          {TABS.map((k) => (
+          {TABS.filter((k) => k !== "billing" || seesMoney).map((k) => (
             <li key={k}>
               <Link href={tabHref(k)} aria-current={tab === k ? "page" : undefined} className={cn("inline-flex min-h-10 items-center whitespace-nowrap rounded-[10px] px-4 text-sm font-semibold", tab === k ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                 {t(`tabs.${k}`)}
@@ -111,9 +138,21 @@ export default async function Student360Page({ params, searchParams }: { params:
       {tab === "overview" ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <div className="grid gap-6">
-            <Section id="profile" title={t("profileTitle")}>
+            <Section
+              id="profile"
+              title={t("profileTitle")}
+              actions={
+                formOptions ? (
+                  <>
+                    <AccountEditDialog studentId={s.id} value={{ name: s.user.name, email: s.user.email, phone: s.user.phone ?? "", timezone: s.user.timezone, marketCode: s.market.code, status: s.user.status }} options={formOptions} />
+                    <LinksEditDialog studentId={s.id} value={{ linkedinUrl: s.linkedinUrl ?? "", githubUrl: s.githubUrl ?? "", portfolioUrl: s.portfolioUrl ?? "" }} />
+                  </>
+                ) : null
+              }
+            >
               <KeyValue
                 items={[
+                  { label: t("account.status"), value: <AccountStatusBadge status={s.user.status} /> },
                   { label: t("phone"), value: s.user.phone },
                   { label: t("timezone"), value: s.user.timezone },
                   { label: t("joined"), value: formatDate(s.createdAt, tz) },
@@ -144,7 +183,7 @@ export default async function Student360Page({ params, searchParams }: { params:
                 ]}
               />
             </Section>
-            <Section id="prefs" title={t("prefsTitle")}>
+            <Section id="prefs" title={t("prefsTitle")} actions={canManage ? <PreferencesEditDialog studentId={s.id} value={prefsValue} marketCode={s.market.code} /> : null}>
               <KeyValue
                 items={[
                   { label: t("targetTitles"), value: <Chips items={s.targetTitles} /> },
@@ -360,6 +399,7 @@ export default async function Student360Page({ params, searchParams }: { params:
                       <TH>{t("date")}</TH>
                       <TH className="text-right">{t("amount")}</TH>
                       <TH>{tc("view")}</TH>
+                      <TH>{t("paymentMethod")}</TH>
                       <TH>{t("invoice")}</TH>
                     </tr>
                   </THead>
@@ -373,6 +413,10 @@ export default async function Student360Page({ params, searchParams }: { params:
                         </TD>
                         <TD>
                           <PaymentStatusPill status={p.status} />
+                        </TD>
+                        <TD className="text-[13px]">
+                          {p.provider === "MANUAL" ? (p.method ? tb(`method.${p.method}` as "method.bank") : tb("manual")) : p.provider === "STRIPE" ? "Stripe" : p.provider}
+                          {p.reference ? <span className="block text-[12px] text-muted-foreground">{p.reference}</span> : null}
                         </TD>
                         <TD>
                           {p.fileId ? (
@@ -440,6 +484,18 @@ export default async function Student360Page({ params, searchParams }: { params:
       ) : null}
 
       {tab === "access" ? (
+        <div className="grid gap-6">
+          <Section id="account" title={t("account.title")} description={t("account.description")}>
+            <KeyValue
+              className="mb-5"
+              items={[
+                { label: t("account.status"), value: <AccountStatusBadge status={s.user.status} /> },
+                { label: t("account.email"), value: <span className="flex flex-wrap items-center gap-2">{s.user.email} <Badge tone={s.user.emailVerified ? "green" : "amber"}>{s.user.emailVerified ? t("account.verified") : t("account.unverified")}</Badge></span> },
+                { label: t("account.lastLogin"), value: s.user.lastLoginAt ? formatInTz(s.user.lastLoginAt, tz) : tc("never") },
+              ]}
+            />
+            {canManage ? <AccountAccessActions studentId={s.id} status={s.user.status} emailVerified={Boolean(s.user.emailVerified)} /> : null}
+          </Section>
         <Section id="vault" title={t("vaultTitle")} description={t("vaultDescription")}>
           {s.credentials.length ? (
             <div className="grid gap-5">
@@ -477,6 +533,7 @@ export default async function Student360Page({ params, searchParams }: { params:
             <p className="text-sm text-muted-foreground">{t("vaultEmpty")}</p>
           )}
         </Section>
+        </div>
       ) : null}
 
       {tab === "audit" ? (

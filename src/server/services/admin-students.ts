@@ -120,10 +120,17 @@ export async function listStudents(raw: Record<string, string | undefined>) {
 export async function studentFilterOptions() {
   const [markets, plans, employees] = await Promise.all([
     db.market.findMany({ orderBy: { name: "asc" }, select: { code: true, name: true } }),
-    db.plan.findMany({ where: { deletedAt: null }, orderBy: { sortOrder: "asc" }, select: { code: true, name: true } }),
+    db.plan.findMany({ where: { deletedAt: null }, orderBy: { sortOrder: "asc" }, select: { code: true, name: true, prices: { where: { isActive: true }, select: { market: { select: { code: true } } } } } }),
     db.employeeProfile.findMany({ where: { user: { deletedAt: null, status: { not: "DEACTIVATED" }, role: { not: "COACH" } } }, orderBy: { user: { name: "asc" } }, select: { id: true, user: { select: { name: true } } } }),
   ]);
-  return { markets, plans, employees: employees.map((e) => ({ id: e.id, name: e.user.name })) };
+  // Plans with the same name in different markets (India's "Basic"/"Premium" vs the US ones, D-152) get the market in the label.
+  const nameCount = new Map<string, number>();
+  for (const p of plans) nameCount.set(p.name, (nameCount.get(p.name) ?? 0) + 1);
+  const labelled = plans.map((p) => {
+    const codes = [...new Set(p.prices.map((x) => x.market.code))].sort();
+    return { code: p.code, name: (nameCount.get(p.name) ?? 0) > 1 && codes.length ? `${p.name} (${codes.join("/")})` : p.name };
+  });
+  return { markets, plans: labelled, employees: employees.map((e) => ({ id: e.id, name: e.user.name })) };
 }
 
 /** All matching rows for CSV export (capped). */
@@ -186,7 +193,7 @@ export async function getStudent360(studentId: string) {
       orderBy: { createdAt: "desc" },
       select: { id: true, status: true, provider: true, currentPeriodStart: true, currentPeriodEnd: true, cancelAtPeriodEnd: true, pausedAt: true, pausedDays: true, createdAt: true, planPrice: { select: { interval: true, amountMinor: true, currency: true, dailyTarget: true, plan: { select: { name: true } } } } },
     }),
-    db.payment.findMany({ where: { studentId }, orderBy: { createdAt: "desc" }, take: 50, select: { id: true, amountMinor: true, currency: true, status: true, invoiceNumber: true, invoiceKey: true, refundedMinor: true, paidAt: true, createdAt: true } }),
+    db.payment.findMany({ where: { studentId }, orderBy: { createdAt: "desc" }, take: 50, select: { id: true, amountMinor: true, currency: true, status: true, provider: true, method: true, reference: true, invoiceNumber: true, invoiceKey: true, refundedMinor: true, paidAt: true, createdAt: true } }),
     db.assignment.findMany({
       where: { studentId },
       orderBy: { startsAt: "desc" },

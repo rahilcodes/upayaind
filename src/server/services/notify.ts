@@ -260,6 +260,20 @@ export const TEMPLATES = {
     cta: () => "View billing",
     mandatory: true,
   },
+  plan_changed: {
+    title: (p) => `Your plan is now ${s(p.plan)}`,
+    body: (p) => `Your plan is now ${s(p.plan)} — ${s(p.target)} applications per weekday.`,
+    link: () => "/app/billing",
+    cta: () => "View billing",
+    mandatory: true,
+  },
+  subscription_canceled: {
+    title: (p) => `Your ${s(p.plan)} plan has been canceled`,
+    body: () => "Applications stop from today. Choose a plan any time to start again — your history and resumes stay available.",
+    link: () => "/app/billing",
+    cta: () => "View plans",
+    mandatory: true,
+  },
   subscription_paused_employee: {
     title: (p) => `${s(p.studentName)}'s plan is paused`,
     body: (p) => `Stop applying for ${s(p.studentName)} until the plan resumes. Reason: ${s(p.reason) || "—"}.`,
@@ -342,7 +356,7 @@ export async function notify(
 }
 
 /** Notify every active manager and admin (e.g. AWAITING assignment, new lead). */
-export async function notifyManagers(type: NotificationType, payload: P = {}, roles: ("MANAGER" | "ADMIN")[] = ["MANAGER", "ADMIN"]) {
+export async function notifyManagers(type: NotificationType, payload: P = {}, roles: ("MANAGER" | "TEAM_LEAD" | "ADMIN")[] = ["MANAGER", "TEAM_LEAD", "ADMIN"]) {
   const users = await db.user.findMany({ where: { role: { in: roles }, status: "ACTIVE", deletedAt: null }, select: { id: true } });
   await Promise.all(users.map((u) => notify(u.id, type, payload)));
 }

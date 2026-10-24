@@ -3,6 +3,7 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import type { Role } from "@/generated/prisma/enums";
 import { auth, signIn, signOut, signMfaProof, unstable_update } from "@/server/auth";
 import { portalForRole, isStaff } from "@/server/auth/rbac";
 import { requestMeta } from "@/server/request";
@@ -191,14 +192,16 @@ export async function acceptInviteAction(_: FormState, fd: FormData): Promise<Fo
   const parsed = resetSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   let email: string;
+  let role: Role;
   try {
-    ({ email } = await acceptInvite(parsed.data.token, parsed.data.password));
+    ({ email, role } = await acceptInvite(parsed.data.token, parsed.data.password));
   } catch (e) {
     if (e instanceof AccountError) return e.field === "password" ? { fieldErrors: { password: [e.message] } } : { error: e.message };
     throw e;
   }
   await signIn("credentials", { email, password: parsed.data.password, redirect: false });
-  redirect("/2fa");
+  // Staff set up 2FA next; a student created by the team (D-147) goes straight to onboarding.
+  redirect(isStaff(role) ? "/2fa" : "/app/onboarding");
 }
 
 export type TotpState = FormState & { backupCodes?: string[]; next?: string };

@@ -34,7 +34,12 @@ const trimmedList = (max: number, itemMax = 120) =>
   z
     .array(z.string().trim().max(itemMax))
     .max(max)
-    .transform((a) => [...new Map(a.filter(Boolean).map((v) => [v.toLowerCase(), v])).values()]);
+    .transform((a) => {
+      // Case-insensitive dedupe keeping the first spelling the user typed ("Data Analyst" wins over a later "data analyst").
+      const seen = new Map<string, string>();
+      for (const v of a.filter(Boolean)) if (!seen.has(v.toLowerCase())) seen.set(v.toLowerCase(), v);
+      return [...seen.values()];
+    });
 
 export const preferencesSchema = z.object({
   targetTitles: trimmedList(5, 100).refine((a) => a.length >= 1, "Add at least one target job title."),

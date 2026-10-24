@@ -136,7 +136,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
                   </TD>
                   <TD className="text-[13px]">
                     {p.subscription ? `${p.subscription.planPrice.plan.name} · ${ti(p.subscription.planPrice.interval)}` : "—"}
-                    <span className="block text-[12px] text-muted-foreground">{p.provider === "MANUAL" ? t("manual") : p.provider}</span>
+                    <span className="block text-[12px] text-muted-foreground">
+                      {p.provider === "MANUAL" ? t("manual") : p.provider}
+                      {p.method ? ` · ${t(`method.${p.method}` as "method.bank")}` : ""}
+                      {p.reference ? ` · ${p.reference}` : ""}
+                    </span>
                   </TD>
                   <TD className="tabular text-right">
                     <span className="font-semibold">{formatMoney(p.amountMinor, p.currency, p.student.market.locale)}</span>

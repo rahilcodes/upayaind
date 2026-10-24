@@ -13,6 +13,22 @@ import { autoAssign, reassign } from "@/server/services/assignment";
 import { pauseSubscription, resumeSubscription } from "@/server/services/billing/pause";
 import { confirmDeletion, dismissDeletionRequest, restoreDeletedStudent, saveInternalNotes } from "@/server/services/admin-students";
 import { assignCoach } from "@/server/services/coach";
+import {
+  createStudent,
+  markEmailVerified,
+  reactivateStudent,
+  resendStudentInvite,
+  resendVerification,
+  sendStudentPasswordReset,
+  signOutEverywhere,
+  suspendStudent,
+  updateStudentAccount,
+  updateStudentLinks,
+  updateStudentPreferences,
+  type CreateStudentInput,
+  type UpdateStudentAccountInput,
+} from "@/server/services/admin-student-accounts";
+import type { LinksInput, PreferencesInput } from "@/lib/schemas/student";
 
 const id = z.string().min(1).max(64);
 const reasonSchema = z.string().trim().min(3, "Add a short reason.").max(500);
@@ -110,6 +126,96 @@ export async function startViewAsAction(studentId: string) {
   await audit({ actorId: user.id, action: "user.view_as", entity: "StudentProfile", entityId: student.id, after: { studentUserId: student.user.id, minutes: VIEW_AS_MINUTES }, ip: meta.ip });
   (await cookies()).set(VIEW_AS_COOKIE, token, VIEW_AS_COOKIE_OPTIONS);
   redirect("/app");
+}
+
+// ─────────────────────────── Create / edit students (D-147, MANAGER + ADMIN) ───────────────────────────
+
+export async function createStudentAction(input: CreateStudentInput) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return createStudent(user, input);
+  }, t(input.mode === "invite" ? "studentInvited" : "studentCreated"));
+}
+
+export async function updateStudentAccountAction(studentId: string, input: UpdateStudentAccountInput) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return updateStudentAccount(user, id.parse(studentId), input);
+  }, t("studentSaved"));
+}
+
+export async function updateStudentPreferencesAction(studentId: string, input: PreferencesInput) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return updateStudentPreferences(user, id.parse(studentId), input);
+  }, t("preferencesSaved"));
+}
+
+export async function updateStudentLinksAction(studentId: string, input: LinksInput) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return updateStudentLinks(user, id.parse(studentId), input);
+  }, t("linksSaved"));
+}
+
+export async function sendStudentPasswordResetAction(studentId: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return sendStudentPasswordReset(user, id.parse(studentId));
+  }, t("passwordResetSent"));
+}
+
+export async function resendStudentInviteAction(studentId: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return resendStudentInvite(user, id.parse(studentId));
+  }, t("inviteSent"));
+}
+
+export async function resendStudentVerificationAction(studentId: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return resendVerification(user, id.parse(studentId));
+  }, t("verificationSent"));
+}
+
+export async function markStudentVerifiedAction(studentId: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return markEmailVerified(user, id.parse(studentId));
+  }, t("markedVerified"));
+}
+
+export async function suspendStudentAction(studentId: string, reason: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return suspendStudent(user, id.parse(studentId), reasonSchema.parse(reason));
+  }, t("studentSuspended"));
+}
+
+export async function reactivateStudentAction(studentId: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return reactivateStudent(user, id.parse(studentId));
+  }, t("studentReactivated"));
+}
+
+export async function signOutStudentEverywhereAction(studentId: string) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return signOutEverywhere(user, id.parse(studentId));
+  }, t("signedOutEverywhere"));
 }
 
 /** Leave "view as" and return to Student 360 (the admin session was never changed). */
