@@ -1,5 +1,5 @@
 import "server-only";
-import { integrations } from "@/env";
+import { emailTransport } from "@/env";
 import { sendEmail } from "../email";
 import type { NotificationChannel } from "./types";
 
@@ -23,4 +23,4 @@ export const emailChannel: NotificationChannel = {
 };
 
 /** Exposed for the health/doctor output. */
-export const emailMode = () => (integrations.email ? "resend" : "console");
+export const emailMode = () => emailTransport;

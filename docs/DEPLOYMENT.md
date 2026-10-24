@@ -10,7 +10,7 @@ Target setup (SPEC §4): Vercel (app) + Neon Postgres + Cloudflare R2 + Inngest 
 | Cloudflare R2 | A **private** bucket + an API token with read/write on it | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` |
 | AI: OpenAI **or** Anthropic (D-136) | One API key. `AI_PROVIDER` picks the provider (unset: OpenAI if only `OPENAI_API_KEY` is set, otherwise Anthropic) | OpenAI: `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-5.5`), optional `OPENAI_MODEL_FAST`, `OPENAI_BASE_URL`, `OPENAI_PRICE_*_PER_MTOK`. Anthropic: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), optional `ANTHROPIC_MODEL_FAST`, `ANTHROPIC_PRICE_*_PER_MTOK` |
 | Stripe | Secret key; webhook endpoint `https://<domain>/api/webhooks/stripe` with events `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` |
-| Resend | Verified sending domain | `RESEND_API_KEY`, `EMAIL_FROM` |
+| Email: Resend **or** SMTP (D-150) | Resend: verified sending domain. SMTP: any mailbox you own (Hostinger `smtp.hostinger.com:465`, Google Workspace `smtp.gmail.com:587` + app password, Zoho…). `EMAIL_FROM` must use that mailbox/domain. | `RESEND_API_KEY` **or** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`; `EMAIL_FROM` |
 | Inngest | App synced to `https://<domain>/api/inngest` | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` |
 | Upstash | Redis database | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
 | Google (optional) | OAuth client, redirect `https://<domain>/api/auth/callback/google` | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` |
@@ -49,3 +49,9 @@ seeded production).
 5. **Staff:** Admin → Employees → invite. Each person sets a password and two-step verification on first login.
 6. Old-site redirects are already in `next.config.ts` (SPEC §18). Rotate the old system's credentials at cut-over.
 7. Restore test: restore a Neon branch to a point in time and boot staging against it.
+
+## 5. Self-hosted VPS notes (nginx in front of `pnpm start`)
+
+- **Visitor country (D-151):** install `libnginx-mod-http-geoip2`, download the free DB-IP country database to `/usr/share/GeoIP/dbip-country-lite.mmdb`, add `/etc/nginx/conf.d/geoip2.conf` (`geoip2 … { $geoip2_country_code default=XX source=$remote_addr country iso_code; }`) and `proxy_set_header X-Country-Code $geoip2_country_code;` in the site's `location /`. Refresh the database monthly (`dbip-country-lite-YYYY-MM.mmdb.gz`). Test: `curl -sI https://<domain>/ | grep -i set-cookie` from an Indian/UK IP shows `market=IN` / `market=UK`.
+- **Email (D-150):** set either `RESEND_API_KEY` or the `SMTP_*` variables in `.env`, restart the service, then check `/api/health` (`email: "smtp"|"resend"`) and that the red "Emails are not being sent" banner is gone from `/admin`. Send yourself a password-reset email to confirm.
+- **After each deploy:** `git pull && pnpm install --frozen-lockfile && pnpm build && pnpm db:deploy && pnpm db:seed --reference-only && systemctl restart <service>`. `--reference-only` upserts markets, plans (incl. the India packages), settings defaults and CMS drafts without touching users.

@@ -54,7 +54,14 @@ const schema = z.object({
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 
-  RESEND_API_KEY: optionalInDev(),
+  /** Email: Resend (API key) OR any SMTP mailbox (D-150). In production at least one must be set unless SKIP_ENV_STRICT=1. */
+  RESEND_API_KEY: optionalString(),
+  SMTP_HOST: optionalString(),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+  SMTP_USER: optionalString(),
+  SMTP_PASS: optionalString(),
+  /** "1" = implicit TLS (port 465). Default: on for 465, STARTTLS otherwise. */
+  SMTP_SECURE: z.enum(["0", "1"]).optional().or(z.literal("").transform(() => undefined)),
   EMAIL_FROM: z.string().default("UpayaInd <hello@upayaind.com>"),
 
   INNGEST_EVENT_KEY: z.string().optional(),
@@ -81,6 +88,9 @@ const schema = z.object({
   CALCOM_LINK: z.string().optional(),
 }).superRefine((e, ctx) => {
   if (!isProd) return;
+  if (!e.RESEND_API_KEY && !(e.SMTP_HOST && e.SMTP_USER && e.SMTP_PASS)) {
+    ctx.addIssue({ code: "custom", path: ["RESEND_API_KEY"], message: "Set RESEND_API_KEY or SMTP_HOST + SMTP_USER + SMTP_PASS so emails can be sent" });
+  }
   const key = resolveAiProvider(e) === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
   if (!e[key]) ctx.addIssue({ code: "custom", path: [key], message: `Required for AI_PROVIDER=${resolveAiProvider(e)}` });
 });
@@ -108,11 +118,14 @@ export const aiProvider = resolveAiProvider(env);
 /** Staff must enrol and verify TOTP unless the operator turned it off (D-146). */
 export const staff2faRequired = env.STAFF_2FA_REQUIRED !== "0";
 
+/** Which transport sends email (D-150): Resend when its key is set, else SMTP, else the console outbox. */
+export const emailTransport: "resend" | "smtp" | "console" = env.RESEND_API_KEY ? "resend" : env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS ? "smtp" : "console";
+
 export const integrations = {
   storage: Boolean(env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET),
   ai: Boolean(aiProvider === "openai" ? env.OPENAI_API_KEY : env.ANTHROPIC_API_KEY),
   stripe: Boolean(env.STRIPE_SECRET_KEY),
-  email: Boolean(env.RESEND_API_KEY),
+  email: Boolean(env.RESEND_API_KEY) || Boolean(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS),
   redis: Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN),
   google: Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET),
   inngest: Boolean(env.INNGEST_EVENT_KEY),

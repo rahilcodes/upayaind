@@ -84,6 +84,8 @@ Enforce all rules **on the server** in every server action and route handler. Ne
 | Resume styles & templates | — | ❌ | ❌ | ✅ |
 | Settings, audit log | — | ❌ | view audit | ✅ |
 
+**Team lead (`TEAM_LEAD`, D-149):** a MANAGER superset for whoever runs the business day to day — every student, employee, assignment, attendance, leave, report, lead, content and prep screen — but no commercial section (plans, coupons, payments, markets, manual billing) and no Settings. An ADMIN chooses the admin sections a team lead may open under Settings → Team lead access; money sections are off by default.
+
 **Interview coach (`COACH`, D-140):** staff login (password + 2FA) limited to the `/coach` portal: own mock-interview sessions and scorecards, students assigned via `StudentProfile.coachId` or a booked session. No access to applications, resumes, vault or messages.
 
 **Row-level rule:** an employee may read or write data for a student **only** while an active assignment exists between them. Implement it once as a helper, `assertEmployeeCanAccessStudent(employeeId, studentId)`, and call it everywhere.

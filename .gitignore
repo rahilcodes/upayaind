@@ -53,3 +53,7 @@ next-env.d.ts
 /playwright-report
 /coverage
 tests/e2e/.auth
+
+# local-only exports (never commit)
+*.local.csv
+*.local.txt
