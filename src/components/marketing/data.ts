@@ -117,7 +117,9 @@ export async function getPublicSite() {
   const s = (await getSettings()).publicSite as typeof DEFAULT_SETTINGS.publicSite & { address?: string };
   // Rows saved before offices-per-market existed carried one `address` (the US office).
   const offices = s.offices ?? (s.address ? { US: s.address } : {});
-  return { ...s, offices };
+  // Rows saved before social links existed (D-148) fall back to the defaults.
+  const social = { ...DEFAULT_SETTINGS.publicSite.social, ...(s.social ?? {}) };
+  return { ...s, offices, social };
 }
 
 /** Proof-strip counters: computed from the DB, cached for a day (SPEC §6.2). */

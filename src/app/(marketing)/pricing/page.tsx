@@ -78,7 +78,7 @@ export default async function PricingPage() {
         className="pb-6 text-center sm:pb-8 [&_h1]:mx-auto [&_p]:mx-auto"
       />
 
-      <section aria-labelledby="plans-title" className="bg-paper px-4 pb-16 sm:px-6 sm:pb-20">
+      <section aria-labelledby="plans-title" className="bg-transparent px-4 pb-16 sm:px-6 sm:pb-20">
         <h2 id="plans-title" className="sr-only">
           {t("pricing.compareTitle")}
         </h2>
@@ -86,7 +86,10 @@ export default async function PricingPage() {
           <PerMarket items={all.map((p) => ({ code: p.market.code, p }))}>
             {({ p }) =>
               p.plans.length ? (
-                <PricingTable pricing={p} />
+                <>
+                  <PricingTable pricing={p} />
+                  {p.market.code === "IN" ? <p className="mx-auto mt-6 max-w-[760px] rounded-[14px] border border-[#C6D9FC] bg-white px-4 py-3 text-center text-sm text-[#1A4FB8]">{t("pricing.inNote")}</p> : null}
+                </>
               ) : (
                 <div className="mx-auto max-w-[560px] rounded-[20px] border border-sand bg-white p-8 text-center">
                   <p className="text-[#3E4A6E]">{t("pricing.noPlans", { country: p.market.name })}</p>
@@ -135,7 +138,7 @@ export default async function PricingPage() {
         </p>
       </Section>
 
-      <FinalCta calcom={Boolean(env.CALCOM_LINK)} />
+      <FinalCta calcom={Boolean(env.CALCOM_LINK)} markets={markets} />
       <JsonLd data={[serviceLd(all), faqLd(faq)]} />
     </>
   );

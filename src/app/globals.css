@@ -202,6 +202,16 @@ html[data-theme="dark"] .portal .sidebar-logo {
   }
 }
 
+/* Marketing site background (D-148): soft brand gradient with radial glows. Sections with tone="paper" are transparent so it shows through. */
+@utility mk-bg {
+  background-color: #f7f9ff;
+  background-image:
+    radial-gradient(1100px 620px at 88% -8%, rgba(56, 182, 255, 0.18), transparent 62%),
+    radial-gradient(900px 560px at -12% 28%, rgba(47, 115, 242, 0.14), transparent 60%),
+    radial-gradient(1000px 600px at 105% 78%, rgba(47, 115, 242, 0.1), transparent 60%),
+    linear-gradient(180deg, #f7f9ff 0%, #edf3fe 32%, #f7f9ff 58%, #e9f1ff 100%);
+}
+
 @utility brand-gradient {
   background-image: linear-gradient(90deg, #1f5ad1, #2f73f2, #38b6ff);
 }

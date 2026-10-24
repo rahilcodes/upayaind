@@ -41,7 +41,8 @@
       "openMenu": "Open menu",
       "closeMenu": "Close menu",
       "skip": "Skip to content",
-      "breadcrumb": "Breadcrumb"
+      "breadcrumb": "Breadcrumb",
+      "callWhatsapp": "Call or WhatsApp {phone}"
     },
     "market": {
       "button": "Market: {country}",
@@ -68,7 +69,16 @@
         "guarantee": "Guarantee",
         "cookies": "Cookies",
         "agreement": "Placement Agreement"
-      }
+      },
+      "follow": "Follow UpayaInd",
+      "social": {
+        "linkedin": "UpayaInd on LinkedIn",
+        "instagram": "UpayaInd on Instagram",
+        "facebook": "UpayaInd on Facebook",
+        "youtube": "UpayaInd on YouTube",
+        "x": "UpayaInd on X"
+      },
+      "callWhatsapp": "Call / WhatsApp"
     },
     "hero": {
       "eyebrow": "Done-for-you job applications",
@@ -389,7 +399,7 @@
       "intervalLabel": "Billing period",
       "interval": {
         "MONTHLY": "Monthly",
-        "QUARTERLY": "Quarterly",
+        "QUARTERLY": "3 months",
         "HALF_YEARLY": "6 months",
         "YEARLY": "Yearly",
         "ONE_TIME": "One-time"
@@ -443,7 +453,10 @@
           "q": "What happens to my data if I leave?",
           "a": "Your applications and resumes stay visible to you. You can export your data or ask us to delete your account from Settings."
         }
-      ]
+      ],
+      "perMonthApprox": "≈ {amount} a month",
+      "interviews": "Interview promise: {promise}",
+      "inNote": "All plans run for 3 months. Materials, application customisation and tailored support are provided for both IT and non-IT profiles."
     },
     "prep": {
       "eyebrow": "Beyond applications",
@@ -480,7 +493,9 @@
       "title": "Spend your time on interviews, not applications.",
       "sub": "Your specialist can start applying within a day of sign-up.",
       "getStarted": "Get started",
-      "bookCall": "Book a free call"
+      "bookCall": "Book a free call",
+      "callWhatsapp": "Call / WhatsApp {phone}",
+      "email": "Email {email}"
     },
     "how": {
       "eyebrow": "How it works",
@@ -616,7 +631,8 @@
       "founderTitle": "A note from our founder",
       "teamTitle": "The team",
       "teamSub": "The people behind your applications.",
-      "linkedin": "{name} on LinkedIn"
+      "linkedin": "{name} on LinkedIn",
+      "galleryTitle": "Life at UpayaInd"
     },
     "blog": {
       "eyebrow": "Blog",
@@ -681,7 +697,9 @@
       "callTitle": "Call us",
       "emailTitle": "Email us",
       "officesTitle": "Our offices",
-      "replyTime": "We usually reply within one working day."
+      "replyTime": "We usually reply within one working day.",
+      "followTitle": "Follow us",
+      "officeImage": "Our {country} office"
     },
     "legal": {
       "updated": "Last updated {date}",
@@ -893,7 +911,7 @@
           "ctaPrimary": "Get started",
           "ctaSecondary": "See how it works",
           "point1": "Resume tailored to every job",
-          "point2": "Daily WhatsApp check-in on Standard",
+          "point2": "Daily WhatsApp check-in on Premium",
           "point3": "Live tracking dashboard"
         },
         "who": {
@@ -989,7 +1007,7 @@
             {
               "when": "Ongoing",
               "title": "You interview, we keep going",
-              "body": "Track everything live, get a daily WhatsApp update on the Standard plan, prep with us and keep going until the offer letter is signed."
+              "body": "Track everything live, get a daily WhatsApp update on the Premium plan, prep with us and keep going until the offer letter is signed."
             }
           ]
         },
@@ -1014,8 +1032,8 @@
           ]
         },
         "pricing": {
-          "title": "Simple monthly plans",
-          "sub": "Prices in INR for India. Cancel any time.",
+          "title": "3-month Career Success Packages",
+          "sub": "Prices in INR. One payment covers 3 months of applications and support — IT and non-IT profiles.",
           "finalisingTitle": "Plans for India are being finalised",
           "finalisingBody": "Talk to us on WhatsApp or book a call — we’ll confirm the price in rupees before you pay anything, and reserve a specialist for you."
         },
@@ -1048,7 +1066,7 @@
             },
             {
               "q": "What does the daily WhatsApp check-in include?",
-              "a": "On the Standard plan, a message every working day with what was applied, what moved and anything we need from you. Reply any time."
+              "a": "On the Premium plan, a message every working day with what was applied, what moved and anything we need from you. Reply any time."
             }
           ]
         },
@@ -1239,6 +1257,198 @@
       "demo": "Demo",
       "readMore": "Read more",
       "notFound": "Page not found"
+    },
+    "images": {
+      "comingSoon": "Image coming soon",
+      "placeholderAria": "Placeholder for an image: {what}"
+    },
+    "testimonials": {
+      "eyebrow": "What our applicants say",
+      "title": "Hired, and glad they didn’t have to do it alone",
+      "sub": "A few of the people our specialists have applied for, in their own words.",
+      "ratingLabel": "{n} out of 5 stars",
+      "placedAs": "{role} · {location}",
+      "allStories": "Read the full success stories",
+      "items": {
+        "IN": [
+          {
+            "placeholder": true,
+            "name": "Rohit Verma",
+            "role": "Data Analyst",
+            "location": "Hyderabad",
+            "rating": 5,
+            "photo": "testimonial-in-1",
+            "quote": "I was applying on Naukri every night after work and hearing nothing. UpayaInd sent 12–15 tailored applications a day for me and I had three interview calls in the second week. The WhatsApp update every evening kept me in the loop."
+          },
+          {
+            "placeholder": true,
+            "name": "Meghana Rao",
+            "role": "QA Engineer",
+            "location": "Bengaluru",
+            "rating": 5,
+            "photo": "testimonial-in-2",
+            "quote": "Every resume they sent was rewritten around the job description, not a copy-paste. Recruiters actually replied. I signed an offer in week six and the team kept applying until I asked them to stop."
+          },
+          {
+            "placeholder": true,
+            "name": "Aditya Kulkarni",
+            "role": "ServiceNow Developer",
+            "location": "Pune",
+            "rating": 5,
+            "photo": "testimonial-in-3",
+            "quote": "My notice period was 60 days and I thought it was too early to start. They put it on every application and I still got shortlisted. The tracker showed me exactly which companies had viewed my profile."
+          },
+          {
+            "placeholder": true,
+            "name": "Harsha Reddy",
+            "role": "AI/ML fresher",
+            "location": "Chennai",
+            "rating": 4,
+            "photo": "testimonial-in-4",
+            "quote": "As a fresher I didn’t know where to apply. The specialist found off-campus drives and graduate roles I had never seen and built a resume that read like a professional’s. First interview in 10 days, offer in a month."
+          },
+          {
+            "placeholder": true,
+            "name": "Nikhil Jain",
+            "role": "Data Analyst",
+            "location": "Hyderabad",
+            "rating": 5,
+            "photo": "testimonial-in-5",
+            "quote": "The best part was not spending weekends on job portals. 200+ applications in a month, a mock interview before each real one, and a dashboard that showed everything. Worth it."
+          },
+          {
+            "placeholder": true,
+            "name": "Ananya Iyer",
+            "role": "Business Analyst",
+            "location": "Mumbai",
+            "rating": 5,
+            "photo": "testimonial-in-6",
+            "quote": "I came back after a two-year career break and recruiters weren’t calling. UpayaInd set my profile up as an immediate joiner, applied daily and I had two offers within seven weeks."
+          }
+        ],
+        "US": [
+          {
+            "placeholder": true,
+            "name": "Priya N.",
+            "role": "Data Engineer",
+            "location": "Austin, TX",
+            "rating": 5,
+            "photo": "testimonial-us-1",
+            "quote": "On STEM OPT the clock is brutal. My specialist applied to 30+ sponsorship-friendly roles a day with an ATS-ready resume for each. Four interviews in three weeks and an offer before my grace period ended."
+          },
+          {
+            "placeholder": true,
+            "name": "Marcus T.",
+            "role": "Product Manager",
+            "location": "Chicago, IL",
+            "rating": 5,
+            "photo": "testimonial-us-2",
+            "quote": "I had been laid off and was burning out on applications. Handing it over meant I could actually prepare. The tailored resumes got me past the ATS filters I had been failing for months."
+          },
+          {
+            "placeholder": true,
+            "name": "Rahul K.",
+            "role": "Software Engineer",
+            "location": "San Jose, CA",
+            "rating": 4,
+            "photo": "testimonial-us-3",
+            "quote": "Transparent from day one. Every application was on the dashboard with the exact resume used. I landed a role at a mid-size fintech in week five."
+          },
+          {
+            "placeholder": true,
+            "name": "Jennifer L.",
+            "role": "Nurse Case Manager",
+            "location": "Dallas, TX",
+            "rating": 5,
+            "photo": "testimonial-us-4",
+            "quote": "I’m not in tech and wasn’t sure this was for me. It was. They applied to hospital systems and insurers every day and I had an offer in under a month."
+          },
+          {
+            "placeholder": true,
+            "name": "Daniel O.",
+            "role": "Financial Analyst",
+            "location": "New York, NY",
+            "rating": 5,
+            "photo": "testimonial-us-5",
+            "quote": "Weekly report, daily applications, a specialist I could message any time. I went from zero callbacks to three final rounds in a month."
+          }
+        ],
+        "UK": [
+          {
+            "placeholder": true,
+            "name": "Aisha B.",
+            "role": "Data Analyst",
+            "location": "Manchester",
+            "rating": 5,
+            "photo": "testimonial-uk-1",
+            "quote": "On a Graduate visa I needed a licensed sponsor, and they only applied to those. 25 tailored CVs a day, two assessment centres and an offer in seven weeks."
+          },
+          {
+            "placeholder": true,
+            "name": "Tom H.",
+            "role": "DevOps Engineer",
+            "location": "London",
+            "rating": 5,
+            "photo": "testimonial-uk-2",
+            "quote": "Reed, Totaljobs, CV-Library, LinkedIn — they covered all of them so I didn’t have to. The CV for each role actually matched the spec, and recruiters noticed."
+          },
+          {
+            "placeholder": true,
+            "name": "Sneha P.",
+            "role": "Project Coordinator",
+            "location": "Birmingham",
+            "rating": 4,
+            "photo": "testimonial-uk-3",
+            "quote": "Switching sectors felt impossible on my own. The specialist reframed my experience for each role and I had interviews within a fortnight."
+          },
+          {
+            "placeholder": true,
+            "name": "James W.",
+            "role": "Accountant",
+            "location": "Leeds",
+            "rating": 5,
+            "photo": "testimonial-uk-4",
+            "quote": "I could see every application live and the weekly summary told me what was working. Offer accepted in week six; I never filled in another form."
+          }
+        ]
+      }
+    },
+    "team": {
+      "eyebrow": "Life at UpayaInd",
+      "title": "The people who apply for you",
+      "sub": "Specialists, coaches and reviewers working from our Hyderabad and Erie offices, every weekday.",
+      "label": "Photos of the UpayaInd team"
+    },
+    "promo": {
+      "eyebrow": "From fresher to experienced",
+      "title": "Looking for a job?",
+      "sub": "We help you apply for the right opportunities.",
+      "tags": [
+        "IT or Non-IT",
+        "Any role",
+        "Any experience level"
+      ],
+      "points": [
+        {
+          "title": "Job applications",
+          "body": "Submitted daily by your specialist."
+        },
+        {
+          "title": "Resume support",
+          "body": "Tailored to every job description."
+        },
+        {
+          "title": "Freshers and experienced",
+          "body": "From first job to leadership."
+        },
+        {
+          "title": "IT and Non-IT roles",
+          "body": "Every domain, every portal."
+        }
+      ],
+      "tagline": "More opportunities. A brighter tomorrow.",
+      "taglineSub": "Let us help you take the next step in your career.",
+      "cta": "Get started today"
     }
   }
 }

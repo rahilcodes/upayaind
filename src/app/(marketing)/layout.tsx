@@ -24,7 +24,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
   const legalSlugs = new Set(legal.map((l) => l.slug));
   return (
     <NextIntlClientProvider messages={messages}>
-    <div id="mk-root" suppressHydrationWarning className="flex min-h-dvh flex-col bg-paper text-[16px] leading-[1.55] text-ink">
+    <div id="mk-root" suppressHydrationWarning className="mk-bg flex min-h-dvh flex-col text-[16px] leading-[1.55] text-ink">
       <MarketStyle codes={codes} />
       <MarketScript codes={codes} />
       <a href="#main" className="sr-only z-[60] rounded-md bg-royal px-4 py-3 font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">

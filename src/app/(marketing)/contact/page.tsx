@@ -5,7 +5,10 @@ import { getTranslations } from "next-intl/server";
 import { env } from "@/env";
 import { whatsappHref } from "@/components/marketing/chrome";
 import { getActiveMarkets, getPublicSite } from "@/components/marketing/data";
+import { ImageSlot } from "@/components/marketing/image-slot";
+import { imageSlot } from "@/components/marketing/images";
 import { PerMarket } from "@/components/marketing/market";
+import { SocialLinks } from "@/components/marketing/social-links";
 import { pageMetadata } from "@/components/marketing/seo";
 import { trackAttrs } from "@/components/marketing/track";
 import { PageHero, RisingArrow, container } from "@/components/marketing/ui";
@@ -115,16 +118,21 @@ export default async function ContactPage() {
             {offices.length ? (
               <div className="rounded-[22px] border border-sand bg-white p-6 sm:p-8">
                 <h2 className="mb-4 text-xl font-bold">{t("officesTitle")}</h2>
-                <dl className="grid gap-4">
+                <dl className="grid gap-5">
                   {offices.map((o) => (
                     <div key={o.code}>
                       <dt className="text-[13px] font-semibold uppercase tracking-wide text-[#5A6585]">{o.name}</dt>
                       <dd><address className="text-[15px] not-italic text-[#3E4A6E]">{o.address}</address></dd>
+                      {imageSlot(`contact-office-${o.code.toLowerCase()}`) ? <ImageSlot id={`contact-office-${o.code.toLowerCase()}`} className="mt-3 aspect-[16/10]" rounded="rounded-[14px]" sizes="(min-width: 1024px) 420px, 100vw" /> : null}
                     </div>
                   ))}
                 </dl>
               </div>
             ) : null}
+            <div className="rounded-[22px] border border-sand bg-white p-6 sm:p-8">
+              <h2 className="mb-2 text-xl font-bold">{t("followTitle")}</h2>
+              <SocialLinks links={site.social} className="-ml-3" size={24} />
+            </div>
           </div>
         </div>
       </section>

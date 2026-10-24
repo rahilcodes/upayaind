@@ -3,7 +3,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { cn } from "@/lib/utils";
 import { mediaUrl, type PublicEntry } from "@/server/services/cms";
-import { formatCount, type Story } from "./data";
+import { whatsappHref } from "./chrome";
+import { formatCount, type MarketInfo, type Story } from "./data";
+import { PerMarket } from "./market";
 import { trackAttrs } from "./track";
 import { ArrowRight, Eyebrow, H2, RisingArrow, Section, cta, h2Class } from "./ui";
 
@@ -96,10 +98,12 @@ export function faqItems(entries: PublicEntry[]) {
 }
 
 /** Closing CTA band. `title`/`sub` override the default copy (country homepages, D-141). */
-export async function FinalCta({ calcom, title, sub }: { calcom: boolean; title?: string; sub?: string }) {
+/** `markets` adds a per-market "Call / WhatsApp" line under the buttons (D-148). */
+export async function FinalCta({ calcom, title, sub, markets }: { calcom: boolean; title?: string; sub?: string; markets?: MarketInfo[] }) {
   const t = await getTranslations("marketing.cta");
+  const tc = await getTranslations("marketing.contact");
   return (
-    <section className="bg-paper px-4 py-6 sm:px-6">
+    <section className="bg-transparent px-4 py-6 sm:px-6">
       <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[28px] brand-deep px-6 py-16 text-center text-white sm:px-10 sm:py-[72px]">
         <RisingArrow className="pointer-events-none absolute -bottom-10 -right-16 w-[340px] opacity-35 sm:w-[520px]" />
         <h2 className={cn(h2Class, "relative mx-auto max-w-[820px] lg:text-[52px]")}>{title ?? t("title")}</h2>
@@ -112,6 +116,28 @@ export async function FinalCta({ calcom, title, sub }: { calcom: boolean; title?
             {t("bookCall")}
           </Link>
         </div>
+        {markets?.length ? (
+          <PerMarket items={markets}>
+            {(m) =>
+              m.phoneDisplay ? (
+                <p className="relative mt-7 text-[15px] text-[#EEF4FF]">
+                  <a
+                    href={m.whatsapp ? whatsappHref(m.whatsapp, tc("whatsappText")) : `tel:${m.phoneDisplay.replace(/[^\d+]/g, "")}`}
+                    target={m.whatsapp ? "_blank" : undefined}
+                    rel={m.whatsapp ? "noopener noreferrer" : undefined}
+                    {...trackAttrs("cta_book_call", { location: "final_cta_phone", market: m.code })}
+                    className="inline-flex min-h-11 items-center gap-2 font-semibold text-white tabular underline-offset-4 hover:underline"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6.2 6.2l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+                    </svg>
+                    {t("callWhatsapp", { phone: m.phoneDisplay })}
+                  </a>
+                </p>
+              ) : null
+            }
+          </PerMarket>
+        ) : null}
       </div>
     </section>
   );

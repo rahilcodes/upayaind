@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import type { MarketInfo } from "./data";
 import { PerMarket } from "./market";
 import { MarketMenu, MobileMenu } from "./menus";
+import { SocialLinks } from "./social-links";
+import type { SocialLinksValue } from "./social-links";
 import { trackAttrs } from "./track";
 import { container } from "./ui";
 
@@ -45,7 +47,7 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
   );
 
   return (
-    <header className="relative z-30 border-b border-sand bg-paper">
+    <header className="relative z-30 border-b border-sand bg-white/80 backdrop-blur">
       <div className={cn(container, "flex items-center gap-4 px-4 py-4 sm:px-6 lg:gap-6")}>
         <Link href="/" aria-label={t("nav.home")} className="rounded-md">
           <Brand />
@@ -63,6 +65,25 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3 lg:ml-0">
           <div className="hidden sm:block">{switcher}</div>
+          <PerMarket items={markets} as="span">
+            {(m) =>
+              m.phoneDisplay ? (
+                <a
+                  href={m.whatsapp ? whatsappHref(m.whatsapp, t("contact.whatsappText")) : `tel:${m.phoneDisplay.replace(/[^\d+]/g, "")}`}
+                  target={m.whatsapp ? "_blank" : undefined}
+                  rel={m.whatsapp ? "noopener noreferrer" : undefined}
+                  aria-label={t("nav.callWhatsapp", { phone: m.phoneDisplay })}
+                  {...trackAttrs("cta_book_call", { location: "header_phone", market: m.code })}
+                  className="hidden h-11 items-center gap-1.5 whitespace-nowrap text-[15px] font-semibold text-ink no-underline tabular hover:text-royal xl:inline-flex"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6.2 6.2l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+                  </svg>
+                  {m.phoneDisplay}
+                </a>
+              ) : null
+            }
+          </PerMarket>
           <Link href="/login" className="hidden h-11 items-center rounded-[10px] border-[1.5px] border-royal bg-white px-5 text-[15px] font-semibold text-royal no-underline hover:bg-[#EAF1FE] lg:inline-flex">
             {t("nav.login")}
           </Link>
@@ -92,18 +113,24 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
   );
 }
 
-export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo[]; legal: Set<string>; site?: { contactEmail: string; offices: Record<string, string> } }) {
+export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo[]; legal: Set<string>; site?: { contactEmail: string; offices: Record<string, string>; social?: SocialLinksValue } }) {
   const t = await getTranslations("marketing");
   const linkCls = "inline-flex min-h-11 items-center text-[#3E4A6E] no-underline hover:text-royal sm:min-h-9";
   const legalLinks = (["privacy", "terms", "refund", "guarantee", "cookies", "agreement"] as const)
     .map((slug) => ({ slug, label: t(`footer.legalLinks.${slug}`) }))
     .filter((l) => legal.has(l.slug));
   return (
-    <footer className="bg-paper px-4 pb-10 pt-16 sm:px-6">
+    <footer className="bg-transparent px-4 pb-10 pt-16 sm:px-6">
       <div className={cn(container, "grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4")}>
         <div className="col-span-2 md:col-span-1">
           <div className="mb-3"><Brand height={40} /></div>
           <p className="max-w-[300px] text-[15px] text-[#3E4A6E]">{t("footer.about")}</p>
+          {site?.social ? (
+            <div className="mt-4">
+              <p className="mb-1 text-[13px] font-semibold text-[#5A6585]">{t("footer.follow")}</p>
+              <SocialLinks links={site.social} className="-ml-3" />
+            </div>
+          ) : null}
         </div>
         <nav aria-label={t("footer.product")} className="flex flex-col gap-1 text-[15px]">
           <p className="mb-1 font-bold">{t("footer.product")}</p>
@@ -164,7 +191,8 @@ export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo
                 {m.phoneDisplay ? (
                   <>
                     <span aria-hidden="true">·</span>
-                    <a href={`tel:${m.phoneDisplay.replace(/[^\d+]/g, "")}`} className="inline-flex min-h-11 items-center text-[#3E4A6E] hover:text-royal sm:min-h-0">
+                    <a href={`tel:${m.phoneDisplay.replace(/[^\d+]/g, "")}`} className="inline-flex min-h-11 items-center text-[#3E4A6E] tabular hover:text-royal sm:min-h-0">
+                      <span className="mr-1 font-semibold">{t("footer.callWhatsapp")}</span>
                       {m.phoneDisplay}
                     </a>
                   </>

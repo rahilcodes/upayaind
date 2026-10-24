@@ -27,7 +27,8 @@ export function Section({
   label?: string;
   labelledBy?: string;
 }) {
-  const bg = { paper: "bg-paper", white: "bg-white", ink: "brand-deep text-white", tint: "bg-[#F1F4FB]" }[tone];
+  // "paper" is transparent so the marketing gradient (`mk-bg`, D-148) shows through; white bands stay solid.
+  const bg = { paper: "bg-transparent", white: "bg-white", ink: "brand-deep text-white", tint: "bg-[#F1F4FB]" }[tone];
   return (
     <section id={id} aria-label={label} aria-labelledby={labelledBy} className={cn(sectionPad, bg, id && "scroll-mt-6", className)}>
       <div className={cn(container, inner)}>{children}</div>

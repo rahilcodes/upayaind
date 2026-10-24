@@ -48,14 +48,27 @@ export async function PlanCard({ plan, price, market, compact = false }: { plan:
               <span className="opacity-75">{t(`per.${interval}`)}</span>
             </p>
             {interval !== "MONTHLY" && interval !== "ONE_TIME" ? (
-              <p className={cn("mt-2 text-sm", featured ? "text-[#EEF4FF]" : "text-[#5A6585]")}>{t("perMonth", { amount: formatPrice(price.perMonthMinor, price.currency, market.locale) })}</p>
+              <p className={cn("mt-2 text-sm", featured ? "text-[#EEF4FF]" : "text-[#5A6585]")}>
+                {t(interval === "QUARTERLY" ? "perMonthApprox" : "perMonth", { amount: formatPrice(price.perMonthMinor, price.currency, market.locale) })}
+              </p>
             ) : null}
           </>
         ) : (
           <p className="font-display text-[28px] font-semibold leading-tight">{t("placeholder")}</p>
         )}
       </div>
-      <p className="font-semibold">{t("target", { n: price.dailyTarget })}</p>
+      <div className="flex flex-col gap-1.5">
+        <p className="font-semibold">{t("target", { n: price.dailyTarget })}</p>
+        {price.interviewsPromise ? (
+          <p className={cn("flex items-start gap-2 text-[15px] font-semibold", featured ? "text-[#EEF4FF]" : "text-royal")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-1 shrink-0">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M16 3v4M8 3v4M3 11h18M9 16l2 2 4-4" />
+            </svg>
+            <span>{t("interviews", { promise: price.interviewsPromise })}</span>
+          </p>
+        ) : null}
+      </div>
       <ul className="flex flex-1 flex-col gap-2.5 text-[15px]">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2.5">
@@ -122,7 +135,25 @@ export async function ComparisonTable({ pricing }: { pricing: MarketPricing }) {
   const features: string[] = [];
   // The daily target has its own row; skip "N … applications every weekday" / "N–M … applications/day" features that restate it.
   const restatesTarget = (f: string) => /^\d+\b.*applications?\s*(every (week)?day|\/\s*day|per day|a day)/i.test(f);
-  for (const p of plans) for (const f of p.features) if (!features.includes(f) && !restatesTarget(f)) features.push(f);
+  // "Everything in Basic" inherits that plan's features (and the line itself is not a row).
+  const inheritsFrom = (f: string) => /^everything in (.+?)(,|$)/i.exec(f)?.[1]?.trim() ?? null;
+  const effective = new Map<string, Set<string>>();
+  const resolve = (p: PricingPlan, seen: string[] = []): Set<string> => {
+    const cached = effective.get(p.planId);
+    if (cached) return cached;
+    const out = new Set<string>();
+    for (const f of p.features) {
+      const parent = inheritsFrom(f);
+      if (parent) {
+        const base = plans.find((q) => q.name.toLowerCase() === parent.toLowerCase() && !seen.includes(q.planId));
+        if (base) for (const g of resolve(base, [...seen, p.planId])) out.add(g);
+      } else out.add(f);
+    }
+    effective.set(p.planId, out);
+    return out;
+  };
+  for (const p of plans) for (const f of resolve(p)) if (!features.includes(f) && !restatesTarget(f)) features.push(f);
+  const has = (p: PricingPlan, f: string) => resolve(p).has(f);
   const monthly = (p: PricingPlan) => p.prices.find((x) => x.interval === "MONTHLY") ?? p.prices[0];
   return (
     <div tabIndex={0} role="region" aria-label="Plan comparison" className="relative w-full max-w-full overflow-x-auto rounded-[20px] border border-sand bg-white">
@@ -184,7 +215,7 @@ export async function ComparisonTable({ pricing }: { pricing: MarketPricing }) {
               </th>
               {plans.map((p) => (
                 <td key={p.planId} className={cn("px-5 py-3.5", p.isFeatured && "bg-[#F1F4FB]")}>
-                  {p.features.includes(f) ? (
+                  {has(p, f) ? (
                     <span className="inline-flex items-center gap-2">
                       <Check />
                       <span className="sr-only">{t("included")}</span>

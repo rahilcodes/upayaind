@@ -5,7 +5,9 @@ import type { HomeMarket } from "@/lib/market";
 import { cn } from "@/lib/utils";
 import { DashboardDemo, type DemoApp } from "./dashboard-demo";
 import { HeroDashboardMock, PILL } from "./dashboard-mock";
-import { formatCount, getLandings, getMarketPricing, getMarketPricingFallback, getPublicSite, getStories, hasPurchasablePlan, hiredAt, targetRange, type MarketPricing } from "./data";
+import { formatCount, getActiveMarkets, getLandings, getMarketPricing, getMarketPricingFallback, getPublicSite, getStories, hasPurchasablePlan, hiredAt, targetRange, type MarketPricing } from "./data";
+import { PromoBanner, TeamGallery, Testimonials } from "./extras";
+import { ImageSlot } from "./image-slot";
 import { GlobalReach } from "./global-reach";
 import { JsonLd, faqLd } from "./json-ld";
 import { MarketPin } from "./market";
@@ -27,7 +29,7 @@ import { getPublished } from "@/server/services/cms";
  */
 export async function CountryHome({ market }: { market: HomeMarket }) {
   const [t, tc, ts, pricing] = await Promise.all([getTranslations("marketing"), getTranslations(`marketing.country.${market}`), getTranslations("status"), getMarketPricing(market)]);
-  const [site, stories, landings, guarantee] = await Promise.all([getPublicSite(), getStories(), getLandings(), getPublished("LEGAL", "guarantee")]);
+  const [site, stories, landings, guarantee, markets] = await Promise.all([getPublicSite(), getStories(), getLandings(), getPublished("LEGAL", "guarantee"), getActiveMarkets()]);
   const p: MarketPricing = pricing ?? getMarketPricingFallback(market);
   const range = targetRange(p);
   const fill = (s: string) => s.replace("{min}", String(range.min)).replace("{max}", String(range.max));
@@ -98,8 +100,9 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
               ))}
             </ul>
           </div>
-          <div className="min-w-0 lg:flex-[1_1_480px]">
+          <div className="flex min-w-0 flex-col gap-5 lg:flex-[1_1_480px]">
             <HeroDashboardMock />
+            <ImageSlot id="hero-side" className="aspect-[3/2] max-h-[260px]" sizes="(min-width: 1024px) 480px, 100vw" />
           </div>
         </div>
       </section>
@@ -143,6 +146,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
           {tc("who.title")}
         </H2>
         <p className="mb-12 max-w-[640px] text-lg text-[#3E4A6E]">{tc("who.sub")}</p>
+        <ImageSlot id="who-banner" className="mb-10 aspect-[8/3] max-h-[360px]" sizes="(min-width: 1200px) 1200px, 100vw" />
         <ul className="grid gap-5 md:grid-cols-3">
           {who.map((w, i) => (
             <li key={w.title} className="flex flex-col rounded-[18px] border border-sand bg-white p-7">
@@ -221,6 +225,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
         <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s, i) => (
             <li key={s.title}>
+              <ImageSlot id={`step-${i + 1}`} className="mb-5 aspect-[16/10]" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" />
               <div className="mb-5 flex items-center gap-3">
                 <span aria-hidden="true" className="flex h-12 w-12 flex-none items-center justify-center rounded-[14px] brand-deep font-display text-xl font-semibold text-white">
                   {i + 1}
@@ -249,6 +254,9 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
         <DashboardDemo apps={demoApps} copy={demoCopy} statusLabels={statusLabels} pills={PILL} />
       </Section>
 
+      {/* 7b. Testimonials (sample content until real reviews are supplied, D-148) */}
+      <Testimonials market={market} tone="white" />
+
       {/* 8. Portals + document format (country-specific) */}
       <Section labelledBy="portals-title" inner="flex flex-col gap-12 lg:flex-row lg:items-start">
         <div className="min-w-0 lg:flex-[1_1_440px]">
@@ -264,6 +272,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
               </li>
             ))}
           </ul>
+          <ImageSlot id="portals-side" className="mt-8 aspect-[4/3] max-h-[320px]" sizes="(min-width: 1024px) 440px, 100vw" />
         </div>
         <div className="min-w-0 rounded-[20px] border border-sand bg-white p-7 sm:p-8 lg:flex-[1_1_480px]">
           <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.06em] text-[#5A6585]">{t("country.shared.formatLabel", { doc: p.market.docWord })}</p>
@@ -341,6 +350,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
         {purchasable ? (
           <>
             <PlanCards pricing={p} interval={p.intervals.includes("MONTHLY") ? "MONTHLY" : p.intervals[0]!} compact />
+            {market === "IN" ? <p className="mx-auto mt-6 max-w-[760px] rounded-[14px] border border-[#C6D9FC] bg-white px-4 py-3 text-center text-sm text-[#1A4FB8]">{t("pricing.inNote")}</p> : null}
             <p className="mt-7 text-center">
               <TextLink href="/pricing" className="inline-flex min-h-11 items-center">
                 {guarantee ? t("pricing.compareLink") : t("pricing.compareLinkNoGuarantee")}
@@ -380,14 +390,20 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
         )}
       </Section>
 
+      {/* 12b. "Looking for a job?" promo banner (client poster, D-148) */}
+      <PromoBanner market={market} tone={pricingTone} />
+
       {/* 13. Interview prep (shared) */}
       <PrepSection tone={prepTone} />
 
       {/* 13b. Global reach map (D-143) */}
       <GlobalReach market={market} tone={flip(prepTone)} />
 
+      {/* 13c. Life at UpayaInd photo gallery (D-148) */}
+      <TeamGallery tone={prepTone} />
+
       {/* 14. FAQ (country-specific) */}
-      <Section tone={prepTone} labelledBy="faq-title" inner="max-w-[820px]">
+      <Section tone={flip(prepTone)} labelledBy="faq-title" inner="max-w-[820px]">
         <H2 id="faq-title" className="mb-8 text-center">
           {tc("faq.title")}
         </H2>
@@ -401,7 +417,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
       </Section>
 
       {/* 15. Final CTA band (shared layout, country copy) */}
-      <FinalCta calcom={Boolean(env.CALCOM_LINK)} title={tc("cta.title")} sub={tc("cta.sub")} />
+      <FinalCta calcom={Boolean(env.CALCOM_LINK)} title={tc("cta.title")} sub={tc("cta.sub")} markets={markets} />
     </>
   );
 }

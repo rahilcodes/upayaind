@@ -3,6 +3,8 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { env } from "@/env";
 import { getTeam } from "@/components/marketing/data";
+import { TeamGallery } from "@/components/marketing/extras";
+import { ImageSlot } from "@/components/marketing/image-slot";
 import { FinalCta } from "@/components/marketing/sections";
 import { pageMetadata } from "@/components/marketing/seo";
 import { Eyebrow, H2, PageHero, Prose, Section } from "@/components/marketing/ui";
@@ -28,7 +30,9 @@ export default async function AboutPage() {
   const values = t.raw("values") as { title: string; body: string }[];
   return (
     <>
-      <PageHero eyebrow={t("eyebrow")} title={t("title")} sub={t("sub")} />
+      <PageHero eyebrow={t("eyebrow")} title={t("title")} sub={t("sub")}>
+        <ImageSlot id="about-hero" priority className="mt-10 aspect-[12/7] max-h-[520px]" sizes="(min-width: 1200px) 1200px, 100vw" />
+      </PageHero>
 
       <Section tone="white" labelledBy="mission-title" inner="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
         <div>
@@ -97,6 +101,8 @@ export default async function AboutPage() {
           </ul>
         </Section>
       ) : null}
+
+      <TeamGallery tone={team.length ? "paper" : "white"} title={t("galleryTitle")} />
 
       <FinalCta calcom={Boolean(env.CALCOM_LINK)} />
     </>
