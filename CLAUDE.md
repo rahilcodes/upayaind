@@ -24,7 +24,7 @@ pnpm dev | pnpm typecheck | pnpm lint | pnpm test | pnpm e2e | pnpm db:migrate |
 Offline sandboxes without access to binaries.prisma.sh: `pnpm db:migrate:offline <name>` / `pnpm db:deploy:offline`.
 
 ## Demo logins (seed)
-Password `Upaya!Demo-2026` — admin@upayaind.test, manager@upayaind.test, arjun@upayaind.test, student@upayaind.test.
+Password `Upaya!Demo-2026` — admin@upayaind.test, manager@upayaind.test, teamlead@upayaind.test, arjun@upayaind.test, coach@upayaind.test, student@upayaind.test.
 Staff 2FA (dev only): add secret `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` to an authenticator app.
 
 ## Definition of done

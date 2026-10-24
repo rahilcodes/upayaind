@@ -1,6 +1,7 @@
 import "server-only";
 import type { Role } from "@/generated/prisma/enums";
 import { db } from "@/server/db";
+import { isManagerial } from "@/server/auth/rbac";
 import { ForbiddenError } from "@/server/auth/access";
 
 /**
@@ -40,7 +41,7 @@ export async function searchAll(actor: Actor, rawQuery: string): Promise<SearchR
   const empty: SearchResults = { students: [], employees: [], applications: [] };
   if (q.length < SEARCH_MIN_CHARS) return empty;
   if (actor.role === "STUDENT") throw new ForbiddenError();
-  const staffWide = actor.role === "MANAGER" || actor.role === "ADMIN";
+  const staffWide = isManagerial(actor.role);
   const portal = staffWide ? "/admin" : "/work";
   const scope = staffWide ? null : await visibleStudentIds(actor.id);
   if (scope && !scope.length) return empty;

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
+import { DEFAULT_TEAM_LEAD_SECTIONS } from "@/server/auth/rbac";
 
 /** Typed admin settings (SPEC §11 Settings) with defaults. */
 export type Settings = {
@@ -16,8 +17,20 @@ export type Settings = {
   /** Outgoing Slack/Teams-compatible webhooks (D-122). */
   alertWebhooks?: { id: string; url: string; label: string; events: string[]; enabled: boolean }[];
   /** Public website: contact details and the headline results on the homepage proof strip (D-142). */
-  publicSite: { contactEmail: string; offices: Record<string, string>; stats: { placed: string; interviews: string; applications: string } };
+  publicSite: {
+    contactEmail: string;
+    offices: Record<string, string>;
+    stats: { placed: string; interviews: string; applications: string };
+    /** Social profile URLs shown in the footer (D-148). Empty string = hidden. */
+    social: SocialLinks;
+  };
+  /** Admin sections a TEAM_LEAD may open (D-149). Keys from `ADMIN_SECTIONS` in rbac.ts. */
+  teamLeadAccess: { sections: string[] };
 };
+
+export const SOCIAL_KEYS = ["linkedin", "instagram", "facebook", "youtube", "x"] as const;
+export type SocialKey = (typeof SOCIAL_KEYS)[number];
+export type SocialLinks = Record<SocialKey, string>;
 
 export const DEFAULT_SETTINGS: Settings = {
   autoAssignEnabled: true,
@@ -33,7 +46,15 @@ export const DEFAULT_SETTINGS: Settings = {
     contactEmail: "contact@upayaind.com",
     offices: { US: "502 W 7th St, Ste 100, Erie, PA 16052, USA", IN: "B 609, B-Block, Asian Sun City, Kothaguda X Road, Kondapur, Hyderabad, Telangana 500084, India" },
     stats: { placed: "60+", interviews: "800+", applications: "7000+" },
+    social: {
+      linkedin: "https://www.linkedin.com/company/upayaind/",
+      instagram: "https://www.instagram.com/upayaind/",
+      facebook: "https://www.facebook.com/profile.php?id=61593090549738",
+      youtube: "",
+      x: "",
+    },
   },
+  teamLeadAccess: { sections: [...DEFAULT_TEAM_LEAD_SECTIONS] },
 };
 
 export async function getSettings(): Promise<Settings> {

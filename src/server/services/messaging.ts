@@ -8,6 +8,7 @@ import { audit } from "./audit";
 import { deleteObject, LIMITS, storeUpload } from "./files";
 import { notify } from "./notify";
 import { enforceRateLimit } from "./ratelimit";
+import { isManagerial } from "@/server/auth/rbac";
 
 /**
  * Messaging (SPEC F7).
@@ -72,7 +73,7 @@ export async function threadAccess(user: Actor, threadId: string): Promise<Threa
   if (ep && thread.isActive && (await hasActiveAssignment(ep.id, thread.studentId))) {
     return { thread, canWrite: true, side: "staff" };
   }
-  if (user.role === "MANAGER" || user.role === "ADMIN") return { thread, canWrite: false, side: "observer" };
+  if (isManagerial(user.role)) return { thread, canWrite: false, side: "observer" };
   throw new MessagingError("This conversation isn't available to you.");
 }
 
@@ -147,7 +148,7 @@ export async function listStaffThreads(user: Actor, opts: { q?: string } = {}): 
 
 /** Every thread (managers/admins, read-only quality control). */
 export async function listAllThreadsForAdmin(user: Actor, opts: { q?: string; take?: number } = {}): Promise<ThreadListItem[]> {
-  if (user.role !== "MANAGER" && user.role !== "ADMIN") throw new MessagingError("Only managers and admins can view all conversations.");
+  if (!isManagerial(user.role)) throw new MessagingError("Only managers and admins can view all conversations.");
   const q = opts.q?.trim();
   const threads = await db.messageThread.findMany({
     where: q ? { OR: [{ student: { user: { name: { contains: q, mode: "insensitive" } } } }, { employee: { user: { name: { contains: q, mode: "insensitive" } } } }] } : {},
@@ -319,7 +320,7 @@ export async function getThread(user: Actor, threadId: string, opts: { markAsRea
  * src/components/messaging/thread-viewer.tsx.
  */
 export async function getThreadForAdmin(user: Actor, threadId: string): Promise<ThreadView> {
-  if (user.role !== "MANAGER" && user.role !== "ADMIN") throw new MessagingError("Only managers and admins can view conversations read-only.");
+  if (!isManagerial(user.role)) throw new MessagingError("Only managers and admins can view conversations read-only.");
   const thread = await db.messageThread.findUnique({ where: { id: threadId }, select: THREAD_SELECT });
   if (!thread) throw new MessagingError("Conversation not found.");
   const access: ThreadAccess = { thread, canWrite: false, side: "observer" };
@@ -329,7 +330,7 @@ export async function getThreadForAdmin(user: Actor, threadId: string): Promise<
 
 /** Threads of one student, for admin 360° views (read-only). */
 export async function listThreadsForStudentAdmin(user: Actor, studentId: string) {
-  if (user.role !== "MANAGER" && user.role !== "ADMIN") throw new MessagingError("Only managers and admins can view conversations.");
+  if (!isManagerial(user.role)) throw new MessagingError("Only managers and admins can view conversations.");
   return db.messageThread.findMany({ where: { studentId }, orderBy: { createdAt: "desc" }, select: { id: true, isActive: true, createdAt: true, employee: { select: { user: { select: { name: true } } } }, _count: { select: { messages: true } } } });
 }
 

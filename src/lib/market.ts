@@ -33,9 +33,38 @@ export function normalizeMarket(code: string | null | undefined): MarketCode | n
   return (SUPPORTED_MARKETS as readonly string[]).includes(mapped) ? (mapped as MarketCode) : null;
 }
 
-/** `?market=` override → existing cookie → geo country header → US. */
-export function resolveMarket(input: { override?: string | null; cookie?: string | null; geo?: string | null }): MarketCode {
-  return normalizeMarket(input.override) ?? normalizeMarket(input.cookie) ?? normalizeMarket(input.geo) ?? DEFAULT_MARKET;
+/** `?market=` override → existing cookie → geo country header → browser language region → US. */
+export function resolveMarket(input: { override?: string | null; cookie?: string | null; geo?: string | null; acceptLanguage?: string | null }): MarketCode {
+  return normalizeMarket(input.override) ?? normalizeMarket(input.cookie) ?? normalizeMarket(input.geo) ?? normalizeMarket(countryFromAcceptLanguage(input.acceptLanguage)) ?? DEFAULT_MARKET;
+}
+
+/**
+ * Geo headers we understand, in order: Vercel, Cloudflare, and the generic
+ * `X-Country-Code` that our nginx (GeoIP2 / DB-IP) sets on the VPS (D-151).
+ */
+export const GEO_HEADERS = ["x-vercel-ip-country", "cf-ipcountry", "x-country-code", "x-geo-country"] as const;
+
+export function geoFromHeaders(get: (name: string) => string | null | undefined): string | null {
+  for (const h of GEO_HEADERS) {
+    const v = get(h)?.trim();
+    // "XX"/"ZZ"/"T1" are the "unknown" markers of Cloudflare and GeoIP databases.
+    if (v && v.length === 2 && !["XX", "ZZ", "T1"].includes(v.toUpperCase())) return v;
+  }
+  return null;
+}
+
+/**
+ * Last-resort hint when no geo header is present: the region of the first
+ * `Accept-Language` tag (en-IN → IN, en-GB → GB). Only used before the cookie
+ * exists, so a wrong guess is one click away from being fixed in the switcher.
+ */
+export function countryFromAcceptLanguage(header: string | null | undefined): string | null {
+  if (!header) return null;
+  const first = header.split(",")[0]?.trim().split(";")[0]?.trim();
+  if (!first) return null;
+  const parts = first.split("-");
+  const region = parts.length >= 2 ? parts[parts.length - 1] : null;
+  return region && /^[A-Za-z]{2}$/.test(region) ? region.toUpperCase() : null;
 }
 
 export function isHomeMarket(code: string | null | undefined): code is HomeMarket {

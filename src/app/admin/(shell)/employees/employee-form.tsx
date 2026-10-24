@@ -21,12 +21,13 @@ export type EmployeeFormValue = {
   timezone: string;
   /** Working window (D-139): start → end in the window's own zone; `hours` is derived server-side. */
   schedule: { days: number[]; startTime: string; endTime: string; timezone: string | null; enforceWindow: boolean };
-  role: "EMPLOYEE" | "MANAGER" | "COACH";
+  role: "EMPLOYEE" | "MANAGER" | "TEAM_LEAD" | "COACH";
   acceptingNewStudents: boolean;
 };
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
-const TIMEZONES = ["Asia/Kolkata", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Berlin", "Asia/Dubai", "Asia/Singapore", "Australia/Sydney", "UTC"];
+/** Common zones for staff / student account forms (the student's own profile offers the full IANA list). */
+export const TIMEZONES = ["Asia/Kolkata", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Berlin", "Asia/Dubai", "Asia/Singapore", "Australia/Sydney", "UTC"];
 const DEFAULT_WINDOW_TZ = "America/New_York";
 
 /** "HH:mm" → minutes; length of a start→end window that may cross midnight. */
@@ -53,7 +54,7 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
   const update = useServerAction(updateEmployeeAction, { onSuccess: () => setOpen(false) });
   const { pending, fieldErrors } = editing ? update : create;
   const err = (k: string) => fieldErrors[k] ?? fieldErrors[`schedule.${k}`];
-  const managerLocked = value?.role === "MANAGER" && !canManageManagers;
+  const managerLocked = (value?.role === "MANAGER" || value?.role === "TEAM_LEAD") && !canManageManagers;
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -74,7 +75,7 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
         timezone: String(fd.get("windowTimezone") ?? DEFAULT_WINDOW_TZ),
         enforceWindow: fd.get("enforceWindow") === "on",
       },
-      role: (String(fd.get("role") ?? "EMPLOYEE") as "EMPLOYEE" | "MANAGER" | "COACH"),
+      role: (String(fd.get("role") ?? "EMPLOYEE") as "EMPLOYEE" | "MANAGER" | "TEAM_LEAD" | "COACH"),
       acceptingNewStudents: fd.get("accepting") === "on",
     };
     if (value) update.run({ ...payload, employeeId: value.employeeId });
@@ -156,6 +157,7 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
             <Select {...fieldA11y("emp-role", err("role"), !canManageManagers)} name="role" defaultValue={value?.role ?? "EMPLOYEE"} disabled={!canManageManagers}>
               <option value="EMPLOYEE">{t("roleEmployee")}</option>
               {canManageManagers ? <option value="MANAGER">{t("roleManager")}</option> : null}
+              {canManageManagers ? <option value="TEAM_LEAD">{t("roleTeamLead")}</option> : null}
               <option value="COACH">{t("roleCoach")}</option>
             </Select>
           </Field>

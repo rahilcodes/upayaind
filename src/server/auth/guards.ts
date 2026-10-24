@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import type { Role } from "@/generated/prisma/enums";
 import { db } from "@/server/db";
 import { auth } from "./index";
-import { can, isStaff, ROLES, type Action } from "./rbac";
+import { can, DEFAULT_TEAM_LEAD_SECTIONS, isStaff, ROLES, sectionForAction, type Action } from "./rbac";
 import { getViewAs, isServerActionRequest, type ViewAsContext } from "./view-as";
 
 import { ForbiddenError } from "./access";
@@ -17,6 +17,8 @@ export type SessionUser = {
   email: string;
   timezone: string;
   onboarded: boolean;
+  /** TEAM_LEAD only: admin sections enabled by an admin (D-149). */
+  sections?: string[];
   /** Set when an ADMIN is viewing this student's portal read-only (D-120). */
   viewAs?: { adminId: string; adminName: string; studentId: string };
 };
@@ -43,8 +45,17 @@ export const currentUser = cache(async (): Promise<SessionUser | null> => {
   if (!u?.id) return null;
   const v = await getViewAs();
   if (v) return studentFromViewAs(v);
-  return { id: u.id, role: u.role, name: u.name, email: u.email, timezone: u.timezone, onboarded: u.onboarded };
+  return { id: u.id, role: u.role, name: u.name, email: u.email, timezone: u.timezone, onboarded: u.onboarded, sections: u.sections };
 });
+
+/**
+ * A TEAM_LEAD stands in for a MANAGER everywhere a page or action lists
+ * MANAGER (D-149): the role is a superset of MANAGER. Admin-only lists stay
+ * admin-only.
+ */
+function roleAllowed(role: Role, roles: readonly Role[]) {
+  return roles.includes(role) || (role === "TEAM_LEAD" && roles.includes("MANAGER"));
+}
 
 /**
  * Every server action and protected page starts with this (SPEC §15).
@@ -64,13 +75,21 @@ export async function requireRole(roles: readonly Role[]): Promise<SessionUser> 
       return studentFromViewAs(v);
     }
   }
-  if (!roles.includes(u.role)) throw new ForbiddenError();
-  return { id: u.id, role: u.role, name: u.name, email: u.email, timezone: u.timezone, onboarded: u.onboarded };
+  if (!roleAllowed(u.role, roles)) throw new ForbiddenError();
+  return { id: u.id, role: u.role, name: u.name, email: u.email, timezone: u.timezone, onboarded: u.onboarded, sections: u.sections };
 }
 
+/**
+ * Action check. For a TEAM_LEAD the action's admin section must also be
+ * enabled by the admin (e.g. `payments.view` needs the "payments" section).
+ */
 export async function requireAction(action: Action): Promise<SessionUser> {
   const user = await requireRole(ROLES);
   if (!can(user.role, action)) throw new ForbiddenError();
+  if (user.role === "TEAM_LEAD") {
+    const section = sectionForAction(action);
+    if (section && !(user.sections ?? DEFAULT_TEAM_LEAD_SECTIONS).includes(section)) throw new ForbiddenError("An admin has not enabled this section for team leads.");
+  }
   return user;
 }
 
@@ -86,7 +105,7 @@ export async function requireStudent() {
 }
 
 /** The signed-in staff member's employee profile (managers/admins may not have one). Interview coaches are excluded by default (D-140). */
-export async function requireStaff(roles: readonly Role[] = ["EMPLOYEE", "MANAGER", "ADMIN"]) {
+export async function requireStaff(roles: readonly Role[] = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "ADMIN"]) {
   const user = await requireRole(roles);
   const employee = await db.employeeProfile.findUnique({
     where: { userId: user.id },

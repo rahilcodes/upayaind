@@ -12,7 +12,8 @@ import { safeEqual } from "@/server/crypto";
 import { authConfig, STAFF_SESSION_HOURS, STUDENT_SESSION_DAYS, type MfaState } from "./config.edge";
 import { burnPasswordCheck, verifyPassword } from "./password";
 import { consumeMagicLink, MagicLinkError } from "@/server/services/magic-link";
-import { isStaff } from "./rbac";
+import { isStaff, normalizeTeamLeadSections } from "./rbac";
+import { getSetting } from "@/server/services/settings";
 import { sessionVersionValid } from "./sessions";
 
 /** Staff MFA state at sign-in: verify when enrolled, otherwise enrol — or skip entirely when 2FA is optional (D-146). */
@@ -118,7 +119,9 @@ async function claimsFor(userId: string) {
     },
   });
   if (!u || u.deletedAt || u.status === "SUSPENDED" || u.status === "DEACTIVATED") return null;
-  return u;
+  // A team lead's admin sections are a setting (D-149); carrying them in the JWT lets the edge middleware enforce them.
+  const sections = u.role === "TEAM_LEAD" ? normalizeTeamLeadSections((await getSetting("teamLeadAccess")).sections) : undefined;
+  return { ...u, sections };
 }
 
 const providers = [
@@ -257,6 +260,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         token.onboarded = Boolean(c.student?.onboardingCompletedAt);
         token.sessionExpiresAt = Date.now() + (staff ? STAFF_SESSION_HOURS * 3600e3 : STUDENT_SESSION_DAYS * 86400e3);
         token.sv = c.sessionVersion;
+        token.sections = c.sections;
         token.checkedAt = Date.now();
         return token;
       }
@@ -278,6 +282,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         token.timezone = c.timezone;
         token.needsProfile = c.role === "STUDENT" && !c.student;
         token.onboarded = Boolean(c.student?.onboardingCompletedAt);
+        token.sections = c.sections;
         token.checkedAt = Date.now();
         if (isStaff(c.role) && token.mfa !== "ok") token.mfa = mfaFor(c.totpEnabled);
         if (trigger === "update" && session && verifyMfaProof(uid, (session as { mfaProof?: unknown }).mfaProof)) {

@@ -16,6 +16,7 @@ import { getSetting } from "./settings";
 import { getOrCreateBaseVersion, type StoredValidation } from "./resumes";
 import { parseSchedule, windowStatus } from "./work-window";
 import { log } from "@/server/log";
+import { isManagerial } from "@/server/auth/rbac";
 
 /**
  * Applications (SPEC F4 logging + F5 status lifecycle).
@@ -738,7 +739,7 @@ export async function updateStatus(user: Actor, raw: z.input<typeof UpdateStatus
   if (!app) throw new ApplicationError("Application not found.");
   await assertEmployeeCanAccessStudent(user, app.studentId);
   if (app.status === input.to && !(input.to === "INTERVIEW_SCHEDULED" && input.interview)) throw new ApplicationError(`It's already "${STATUS_LABEL[input.to]}".`);
-  const privileged = user.role === "MANAGER" || user.role === "ADMIN";
+  const privileged = isManagerial(user.role);
   if (!canTransition(app.status, input.to) && app.status !== input.to) {
     if (!(input.force && privileged)) throw new ApplicationError(`Can't move from "${STATUS_LABEL[app.status]}" to "${STATUS_LABEL[input.to]}".`, "to", "invalid_transition");
     if (!input.note) throw new ApplicationError("Add a note explaining the override.", "note");

@@ -198,7 +198,7 @@ export async function runWeeklyReports(now = new Date()) {
 
 /** Monday 09:xx in each manager's zone: one `weekly_summary_admin` per manager per week. */
 export async function runWeeklyAdminSummary(now = new Date()) {
-  const managers = await db.user.findMany({ where: { role: { in: ["MANAGER", "ADMIN"] }, status: "ACTIVE", deletedAt: null }, select: { id: true, timezone: true } });
+  const managers = await db.user.findMany({ where: { role: { in: ["MANAGER", "TEAM_LEAD", "ADMIN"] }, status: "ACTIVE", deletedAt: null }, select: { id: true, timezone: true } });
   const due = managers.filter((m) => isoWeekday(now, m.timezone) === 1 && hourIn(now, m.timezone) === WEEKLY_HOUR);
   if (!due.length) return 0;
   const since = new Date(now.getTime() - 6 * 86400e3);

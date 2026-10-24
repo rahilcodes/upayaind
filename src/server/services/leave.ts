@@ -9,6 +9,7 @@ import { notify, notifyManagers } from "./notify";
 import { employeeContext, rollupDay } from "./attendance";
 import { CoverEntry, applyCoverTx, formatDateRange, listCoverCandidates, loadCoverWindow, notifyCoverPlan, suggestCovers } from "./assignment";
 import { log } from "@/server/log";
+import { isManagerial } from "@/server/auth/rbac";
 
 /**
  * Leave management (SPEC F9).
@@ -188,7 +189,7 @@ async function attachmentIds(keys: (string | null)[]) {
 // ───────────────────────────── Manager / admin ─────────────────────────────
 
 function requireManager(actor: Actor) {
-  if (actor.role !== "MANAGER" && actor.role !== "ADMIN") throw new LeaveError("Only managers and admins can do this.");
+  if (!isManagerial(actor.role)) throw new LeaveError("Only managers and admins can do this.");
 }
 
 export async function listPending() {

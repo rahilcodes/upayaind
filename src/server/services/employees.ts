@@ -95,7 +95,7 @@ export const employeeInputSchema = z.object({
   managerId: z.string().min(1).nullable().optional(),
   timezone: tzSchema.default("Asia/Kolkata"),
   schedule: scheduleSchema,
-  role: z.enum(["EMPLOYEE", "MANAGER", "COACH"]).default("EMPLOYEE"),
+  role: z.enum(["EMPLOYEE", "MANAGER", "TEAM_LEAD", "COACH"]).default("EMPLOYEE"),
   acceptingNewStudents: z.boolean().default(true),
 });
 export type EmployeeInput = z.input<typeof employeeInputSchema>;
@@ -129,14 +129,14 @@ async function validateRefs(input: z.infer<typeof employeeInputSchema>, selfEmpl
   if (input.managerId) {
     if (input.managerId === selfEmployeeId) throw new EmployeeAdminError("An employee can't be their own manager.", "managerId");
     const m = await db.employeeProfile.findUnique({ where: { id: input.managerId }, select: { user: { select: { role: true, status: true } } } });
-    if (!m || !["MANAGER", "ADMIN"].includes(m.user.role) || m.user.status === "DEACTIVATED") throw new EmployeeAdminError("Pick an active manager.", "managerId");
+    if (!m || !["MANAGER", "TEAM_LEAD", "ADMIN"].includes(m.user.role) || m.user.status === "DEACTIVATED") throw new EmployeeAdminError("Pick an active manager.", "managerId");
   }
 }
 
 /** Create an employee (User INVITED + EmployeeProfile) and email the invite link. */
 export async function createEmployee(actor: Actor, raw: EmployeeInput) {
   const input = employeeInputSchema.parse(raw);
-  if (input.role === "MANAGER" && actor.role !== "ADMIN") throw new EmployeeAdminError("Only an admin can create a manager.", "role");
+  if ((input.role === "MANAGER" || input.role === "TEAM_LEAD") && actor.role !== "ADMIN") throw new EmployeeAdminError("Only an admin can create a manager or team lead.", "role");
   await validateRefs(input);
   const exists = await db.user.findUnique({ where: { email: input.email }, select: { id: true } });
   if (exists) throw new EmployeeAdminError("An account with this email already exists.", "email");
@@ -180,7 +180,7 @@ export async function createEmployee(actor: Actor, raw: EmployeeInput) {
 export async function resendInvite(actor: Actor, employeeId: string) {
   const e = await db.employeeProfile.findUnique({ where: { id: employeeId }, select: { userId: true, user: { select: { role: true } } } });
   if (!e) throw new EmployeeAdminError("Employee not found.");
-  if (e.user.role === "ADMIN" || (e.user.role === "MANAGER" && actor.role !== "ADMIN")) throw new EmployeeAdminError("Only an admin can manage this account.");
+  if (e.user.role === "ADMIN" || ((e.user.role === "MANAGER" || e.user.role === "TEAM_LEAD") && actor.role !== "ADMIN")) throw new EmployeeAdminError("Only an admin can manage this account.");
   await sendInviteEmail(e.userId);
   await audit({ actorId: actor.id, action: "employee.invite_resent", entity: "EmployeeProfile", entityId: employeeId });
   return { ok: true };
@@ -196,7 +196,7 @@ export async function updateEmployee(actor: Actor, raw: z.input<typeof employeeU
   });
   if (!before) throw new EmployeeAdminError("Employee not found.");
   if (before.user.role === "ADMIN") throw new EmployeeAdminError("Admin accounts can't be edited here.");
-  if (actor.role !== "ADMIN" && (before.user.role === "MANAGER" || input.role === "MANAGER")) throw new EmployeeAdminError("Only an admin can edit managers or change roles to manager.", "role");
+  if (actor.role !== "ADMIN" && (before.user.role === "MANAGER" || before.user.role === "TEAM_LEAD" || input.role === "MANAGER" || input.role === "TEAM_LEAD")) throw new EmployeeAdminError("Only an admin can edit managers or team leads, or change roles to those.", "role");
   await validateRefs({ ...input, email: "x@x.x" } as z.infer<typeof employeeInputSchema>, input.employeeId);
   const coach = input.role === "COACH";
   const maxStudents = coach ? 0 : (input.maxStudents ?? before.maxStudents);
@@ -231,7 +231,7 @@ export async function deactivateEmployee(actor: Actor, employeeId: string, reaso
   const e = await db.employeeProfile.findUnique({ where: { id: employeeId }, select: { userId: true, user: { select: { role: true, status: true, name: true } } } });
   if (!e) throw new EmployeeAdminError("Employee not found.");
   if (e.userId === actor.id) throw new EmployeeAdminError("You can't deactivate your own account.");
-  if (e.user.role === "ADMIN" || (e.user.role === "MANAGER" && actor.role !== "ADMIN")) throw new EmployeeAdminError("Only an admin can deactivate this account.");
+  if (e.user.role === "ADMIN" || ((e.user.role === "MANAGER" || e.user.role === "TEAM_LEAD") && actor.role !== "ADMIN")) throw new EmployeeAdminError("Only an admin can deactivate this account.");
   if (e.user.status === "DEACTIVATED") throw new EmployeeAdminError("This employee is already deactivated.");
   const students = await db.assignment.count({ where: { employeeId, isActive: true, type: "PRIMARY" } });
   await db.$transaction(async (tx) => {
@@ -247,7 +247,7 @@ export async function deactivateEmployee(actor: Actor, employeeId: string, reaso
 export async function reactivateEmployee(actor: Actor, employeeId: string) {
   const e = await db.employeeProfile.findUnique({ where: { id: employeeId }, select: { userId: true, user: { select: { role: true, status: true, passwordHash: true } } } });
   if (!e) throw new EmployeeAdminError("Employee not found.");
-  if (e.user.role === "MANAGER" && actor.role !== "ADMIN") throw new EmployeeAdminError("Only an admin can reactivate a manager.");
+  if ((e.user.role === "MANAGER" || e.user.role === "TEAM_LEAD") && actor.role !== "ADMIN") throw new EmployeeAdminError("Only an admin can reactivate a manager or team lead.");
   if (e.user.status !== "DEACTIVATED") throw new EmployeeAdminError("This employee is already active.");
   const status = e.user.passwordHash ? "ACTIVE" : "INVITED";
   await db.user.update({ where: { id: e.userId }, data: { status } });
@@ -265,7 +265,7 @@ export async function listEmployees(opts: { q?: string; status?: string; now?: D
     where: {
       user: {
         deletedAt: null,
-        role: { in: ["EMPLOYEE", "MANAGER", "COACH"] },
+        role: { in: ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "COACH"] },
         ...(statusFilter ? { status: { in: statusFilter } } : {}),
         ...(opts.q ? { OR: [{ name: { contains: opts.q, mode: "insensitive" } }, { email: { contains: opts.q, mode: "insensitive" } }] } : {}),
       },
@@ -336,7 +336,7 @@ export async function listEmployees(opts: { q?: string; status?: string; now?: D
 export async function employeeFormOptions() {
   const [markets, managers, defaultMax] = await Promise.all([
     db.market.findMany({ orderBy: { name: "asc" }, select: { id: true, code: true, name: true } }),
-    db.employeeProfile.findMany({ where: { user: { role: { in: ["MANAGER", "ADMIN"] }, status: { not: "DEACTIVATED" }, deletedAt: null } }, select: { id: true, user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }),
+    db.employeeProfile.findMany({ where: { user: { role: { in: ["MANAGER", "TEAM_LEAD", "ADMIN"] }, status: { not: "DEACTIVATED" }, deletedAt: null } }, select: { id: true, user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }),
     getSetting("defaultMaxStudents"),
   ]);
   return { markets, managers: managers.map((m) => ({ id: m.id, name: m.user.name })), defaultMax };

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Role } from "@/generated/prisma/enums";
 import { db, type Tx } from "@/server/db";
+import { isManagerial } from "@/server/auth/rbac";
 
 /** Thrown when a signed-in user may not perform an action (rendered as 403 / error toast). */
 export class ForbiddenError extends Error {
@@ -40,7 +41,7 @@ export async function assertEmployeeCanAccessStudent(
   studentId: string,
   client: Tx | typeof db = db,
 ): Promise<{ employeeProfileId: string | null }> {
-  if (user.role === "MANAGER" || user.role === "ADMIN") {
+  if (isManagerial(user.role)) {
     const ep = await client.employeeProfile.findUnique({ where: { userId: user.id }, select: { id: true } });
     return { employeeProfileId: ep?.id ?? null };
   }

@@ -9,6 +9,7 @@ import { StatCard } from "@/components/portal/stat-card";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/server/auth/guards";
+import { DEFAULT_TEAM_LEAD_SECTIONS } from "@/server/auth/rbac";
 import { applicationsPerDay, funnel, getOverview, revenuePerMonth } from "@/server/services/admin-metrics";
 import { formatInTz, formatMoney, percent } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,9 @@ export default async function AdminOverviewPage() {
   const user = await requireRole(["ADMIN", "MANAGER"]);
   const t = await getTranslations("admin.overview");
   const tz = user.timezone;
-  const [o, perDay, revenue, fun] = await Promise.all([getOverview(tz), applicationsPerDay(tz, 30), revenuePerMonth(tz, 12), funnel(30)]);
+  // Revenue is commercial (D-149): team leads only see it when an admin enabled the Payments section.
+  const seesMoney = user.role !== "TEAM_LEAD" || (user.sections ?? DEFAULT_TEAM_LEAD_SECTIONS).includes("payments");
+  const [o, perDay, revenue, fun] = await Promise.all([getOverview(tz), applicationsPerDay(tz, 30), seesMoney ? revenuePerMonth(tz, 12) : Promise.resolve([]), funnel(30)]);
   const behindTop = o.behind.slice(0, 8);
   const pctToday = percent(o.appliedToday, o.targetToday);
 
@@ -31,7 +34,7 @@ export default async function AdminOverviewPage() {
 
       <section aria-label={t("kpis")} className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         <StatCard label={t("activeStudents")} value={o.activeStudents} hint={t("ofTotal", { total: o.totalStudents })} />
-        <div className="rounded-[16px] border border-border bg-surface px-5 py-[18px]">
+        {seesMoney ? <div className="rounded-[16px] border border-border bg-surface px-5 py-[18px]">
           <p className="text-sm font-medium text-muted-foreground">{t("mrr")}</p>
           {o.mrr.length ? (
             <ul className="mt-1 space-y-0.5">
@@ -46,7 +49,7 @@ export default async function AdminOverviewPage() {
             <p className="tabular mt-1 text-[30px] font-bold leading-tight">—</p>
           )}
           <p className="mt-1.5 text-[13px] text-muted-foreground">{t("mrrHint")}</p>
-        </div>
+        </div> : null}
         <StatCard label={t("newThisWeek")} value={o.newStudentsWeek} hint={t("newHint")} />
         <StatCard label={t("churn")} value={o.churn.churned} hint={t("churnHint", { rate: Math.round(o.churn.rate * 1000) / 10 })} tone={o.churn.churned ? "warning" : "default"} />
         <StatCard
@@ -136,7 +139,7 @@ export default async function AdminOverviewPage() {
         </Section>
       </div>
 
-      <Section id="revenue" className="mt-6" title={t("revenueTitle")} description={t("revenueDescription")} actions={<Link href="/admin/reports?tab=revenue" className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("fullReport")}</Link>}>
+      {seesMoney ? <Section id="revenue" className="mt-6" title={t("revenueTitle")} description={t("revenueDescription")} actions={<Link href="/admin/reports?tab=revenue" className={buttonVariants({ variant: "ghost", size: "sm" })}>{t("fullReport")}</Link>}>
         {revenue.length ? (
           <div className={cn("grid gap-6", revenue.length > 1 && "lg:grid-cols-2")}>
             {revenue.map((r) => {
@@ -155,7 +158,7 @@ export default async function AdminOverviewPage() {
         ) : (
           <EmptyState icon={<AlertTriangle className="h-6 w-6" aria-hidden="true" />} title={t("revenueEmpty")} className="py-8" />
         )}
-      </Section>
+      </Section> : null}
     </>
   );
 }

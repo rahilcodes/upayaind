@@ -8,6 +8,7 @@ import { formatInTz } from "@/lib/format";
 import { tzLabel } from "@/components/work/tz";
 import { audit } from "./audit";
 import { DEFAULT_SCHEDULE, parseSchedule, windowStatus, type WindowStatus, type WorkSchedule } from "./work-window";
+import { isManagerial } from "@/server/auth/rbac";
 
 /**
  * Attendance & time tracking (SPEC F8).
@@ -657,7 +658,7 @@ export async function exportTimesheets(input: { from: string; to: string; employ
 // ───────────────────────────── Manual corrections (audit-logged) ─────────────────────────────
 
 function requireManager(actor: Actor) {
-  if (actor.role !== "MANAGER" && actor.role !== "ADMIN") throw new AttendanceError("Only managers and admins can correct attendance.");
+  if (!isManagerial(actor.role)) throw new AttendanceError("Only managers and admins can correct attendance.");
 }
 
 function requireReason(reason: string) {

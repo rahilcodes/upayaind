@@ -5,7 +5,7 @@ import { useServerAction } from "@/components/portal/action-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Textarea, fieldA11y } from "@/components/ui/input";
-import { saveBusinessAction, saveGeneralAction, savePublicSiteAction, saveReferralAction, saveTemplateAction } from "./actions";
+import { saveBusinessAction, saveGeneralAction, savePublicSiteAction, saveReferralAction, saveTeamLeadAccessAction, saveTemplateAction } from "./actions";
 
 type General = { autoAssignEnabled: boolean; defaultMaxStudents: number; noResponseDays: number; belowTargetAlertTime: string; aiLimits: { employeePerHour: number; studentPerDay: number } };
 
@@ -142,7 +142,10 @@ export function TemplateEditor({ tpl, override }: { tpl: { type: string; title: 
 }
 
 /** Referral programme amounts (D-113): friend % off + referrer credit per market currency (major units in the UI). */
-export function PublicSiteForm({ value, markets }: { value: { contactEmail: string; offices: Record<string, string>; stats: { placed: string; interviews: string; applications: string } }; markets: { code: string; name: string }[] }) {
+const SOCIAL = ["linkedin", "instagram", "facebook", "youtube", "x"] as const;
+type SocialKey = (typeof SOCIAL)[number];
+
+export function PublicSiteForm({ value, markets }: { value: { contactEmail: string; offices: Record<string, string>; stats: { placed: string; interviews: string; applications: string }; social?: Partial<Record<SocialKey, string>> }; markets: { code: string; name: string }[] }) {
   const t = useTranslations("admin.settings");
   const { run, pending, fieldErrors } = useServerAction(savePublicSiteAction);
   const err = (k: string) => fieldErrors[k];
@@ -157,6 +160,7 @@ export function PublicSiteForm({ value, markets }: { value: { contactEmail: stri
           contactEmail: String(fd.get("contactEmail") ?? ""),
           offices: Object.fromEntries(markets.map((m) => [m.code, String(fd.get(`office-${m.code}`) ?? "")])),
           stats: { placed: String(fd.get("placed") ?? ""), interviews: String(fd.get("interviews") ?? ""), applications: String(fd.get("applications") ?? "") },
+          social: Object.fromEntries(SOCIAL.map((k) => [k, String(fd.get(`social-${k}`) ?? "")])) as Record<SocialKey, string>,
         });
       }}
     >
@@ -178,6 +182,12 @@ export function PublicSiteForm({ value, markets }: { value: { contactEmail: stri
       <Field id="ps-applications" label={t("statApplications")} error={err("stats.applications")}>
         <Input {...fieldA11y("ps-applications", err("stats.applications"), false)} name="applications" defaultValue={value.stats.applications} className="tabular" />
       </Field>
+      <p className="text-[13px] text-muted-foreground sm:col-span-2">{t("socialHint")}</p>
+      {SOCIAL.map((k) => (
+        <Field key={k} id={`ps-social-${k}`} label={t(`social.${k}`)} error={err(`social.${k}`)}>
+          <Input {...fieldA11y(`ps-social-${k}`, err(`social.${k}`), false)} name={`social-${k}`} type="url" inputMode="url" placeholder="https://" defaultValue={value.social?.[k] ?? ""} />
+        </Field>
+      ))}
       <div className="sm:col-span-2">
         <Button type="submit" loading={pending}>
           {t("savePublicSite")}
@@ -214,6 +224,52 @@ export function ReferralForm({ value, currencies }: { value: { friendPercentOff:
       <div className="sm:col-span-2">
         <Button type="submit" loading={pending}>
           {t("saveReferral")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** Which admin sections TEAM_LEAD accounts may open (D-149). Money sections are off by default. */
+export function TeamLeadAccessForm({ value, sections }: { value: string[]; sections: { key: string; commercial: boolean }[] }) {
+  const t = useTranslations("admin.settings.teamLead");
+  const tn = useTranslations("nav");
+  const { run, pending } = useServerAction(saveTeamLeadAccessAction);
+  const [chosen, setChosen] = React.useState<string[]>(value);
+  const navKey: Record<string, string> = {
+    students: "allStudents", employees: "employees", assignments: "assignments", applications: "allApplications", attendance: "attendance", leave: "leaveAdmin", reports: "reports",
+    plans: "plans", coupons: "coupons", payments: "payments", markets: "markets", leads: "leads", cms: "cms", prep: "prepAdmin", "resume-styles": "resumeStyles", "audit-log": "auditLog",
+  };
+  const toggle = (k: string, on: boolean) => setChosen((cur) => (on ? [...cur.filter((x) => x !== k), k] : cur.filter((x) => x !== k)));
+  return (
+    <form
+      noValidate
+      className="grid gap-5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run({ sections: chosen });
+      }}
+    >
+      {[false, true].map((commercial) => (
+        <fieldset key={String(commercial)} className={commercial ? "rounded-[14px] border border-warning/40 bg-warning/5 p-4" : ""}>
+          <legend className="mb-2 text-sm font-semibold">{commercial ? t("commercial") : t("operations")}</legend>
+          {commercial ? <p className="mb-3 text-[13px] text-muted-foreground">{t("commercialHint")}</p> : null}
+          <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+            {sections
+              .filter((s) => s.commercial === commercial)
+              .map((s) => (
+                <label key={s.key} className="inline-flex min-h-11 items-center gap-2 text-sm">
+                  <Checkbox checked={chosen.includes(s.key)} onChange={(e) => toggle(s.key, e.target.checked)} />
+                  {tn(navKey[s.key] as "overview")}
+                </label>
+              ))}
+          </div>
+        </fieldset>
+      ))}
+      <p className="text-[13px] text-muted-foreground">{t("applyHint")}</p>
+      <div>
+        <Button type="submit" loading={pending}>
+          {t("save")}
         </Button>
       </div>
     </form>

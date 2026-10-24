@@ -85,7 +85,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
                       {e.code} · {e.title ?? tr(e.role)}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {e.role === "MANAGER" ? <Badge tone="violet">{tr("MANAGER")}</Badge> : null}
+                      {e.role === "MANAGER" || e.role === "TEAM_LEAD" ? <Badge tone="violet">{tr(e.role)}</Badge> : null}
                       {e.status === "INVITED" ? <Badge tone="amber">{t("invited")}</Badge> : null}
                       {e.status === "DEACTIVATED" ? <Badge tone="grey">{t("deactivated")}</Badge> : null}
                       {!e.accepting && e.status === "ACTIVE" ? <Badge tone="slate">{t("notAccepting")}</Badge> : null}
@@ -114,7 +114,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
                   <TD className="tabular whitespace-nowrap text-[13px]">{e.lastLoginAt ? formatInTz(e.lastLoginAt, user.timezone, "d MMM, h:mm a") : tc("never")}</TD>
                   <TD>
                     <div className="flex items-center justify-end gap-1.5">
-                      {e.status === "INVITED" && (e.role !== "MANAGER" || user.role === "ADMIN") ? <ResendInviteButton employeeId={e.id} name={e.name} /> : null}
+                      {e.status === "INVITED" && ((e.role !== "MANAGER" && e.role !== "TEAM_LEAD") || user.role === "ADMIN") ? <ResendInviteButton employeeId={e.id} name={e.name} /> : null}
                       <Link href={`/admin/employees/${e.id}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label={`${tc("view")}: ${e.name}`}>
                         {tc("view")}
                       </Link>

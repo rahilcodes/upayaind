@@ -9,6 +9,7 @@ import { getThread, getThreadForAdmin, listAllThreadsForAdmin, listStaffThreads,
 import { assignedStudentIds } from "@/server/services/targets";
 import { cn } from "@/lib/utils";
 import { BroadcastDialog } from "./broadcast-dialog";
+import { isManagerial } from "@/server/auth/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function WorkMessagesPage({ searchParams }: { searchParams:
   const { user, employee } = await requireStaff();
   const sp = await searchParams;
   const t = await getTranslations("messaging.work");
-  const isManager = user.role === "MANAGER" || user.role === "ADMIN";
+  const isManager = isManagerial(user.role);
   const all = isManager && sp.view === "all";
 
   const items = all ? await listAllThreadsForAdmin(user) : await listStaffThreads(user);

@@ -6,7 +6,8 @@ import { requireAction } from "@/server/auth/guards";
 import { db } from "@/server/db";
 import { templateDefaults } from "@/server/services/admin-settings";
 import { getSettings } from "@/server/services/settings";
-import { BusinessForm, GeneralForm, PublicSiteForm, ReferralForm, TemplateEditor } from "./settings-forms";
+import { BusinessForm, GeneralForm, PublicSiteForm, ReferralForm, TeamLeadAccessForm, TemplateEditor } from "./settings-forms";
+import { ADMIN_SECTIONS, normalizeTeamLeadSections } from "@/server/auth/rbac";
 import { WebhooksForm } from "./webhooks-form";
 import type { AlertWebhook } from "@/server/services/alerts";
 
@@ -25,6 +26,9 @@ export default async function SettingsPage() {
       <div className="grid gap-6">
         <Section id="general" title={t("generalTitle")} description={t("generalDescription")}>
           <GeneralForm value={{ autoAssignEnabled: s.autoAssignEnabled, defaultMaxStudents: s.defaultMaxStudents, noResponseDays: s.noResponseDays, belowTargetAlertTime: s.belowTargetAlertTime, aiLimits: s.aiLimits }} />
+        </Section>
+        <Section id="team-lead" title={t("teamLead.title")} description={t("teamLead.description")}>
+          <TeamLeadAccessForm value={normalizeTeamLeadSections(s.teamLeadAccess?.sections)} sections={ADMIN_SECTIONS.filter((x) => x.key !== "settings").map((x) => ({ key: x.key, commercial: x.commercial }))} />
         </Section>
         <Section id="public-site" title={t("publicSiteTitle")} description={t("publicSiteDescription")}>
           <PublicSiteForm value={s.publicSite} markets={markets.filter((m) => m.isActive).map((m) => ({ code: m.code, name: m.name }))} />

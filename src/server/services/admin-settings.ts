@@ -8,6 +8,7 @@ import { audit } from "./audit";
 import { getSettings, setSetting, type Settings } from "./settings";
 import { TEMPLATES, type NotificationType } from "./notify";
 import { alertWebhooksSchema, type AlertWebhook } from "./alerts";
+import { GRANTABLE_TEAM_LEAD_SECTIONS, normalizeTeamLeadSections } from "@/server/auth/rbac";
 
 /** Admin settings, resume styles/templates (SPEC §11 Settings, §9.3). ADMIN only (enforced by callers). */
 
@@ -28,6 +29,7 @@ export const generalSettingsSchema = z.object({
 export type GeneralSettings = z.infer<typeof generalSettingsSchema>;
 
 /** Public site contact details + proof-strip figures (D-142). Stats are short display strings like "60+". */
+const socialUrl = z.string().trim().max(300).refine((v) => !v || /^https:\/\/\S+$/i.test(v), "Enter a full https:// link, or leave it empty.");
 export const publicSiteSchema = z.object({
   contactEmail: z.string().trim().email("Enter a valid email.").max(120),
   offices: z.record(z.string().length(2).toUpperCase(), z.string().trim().max(200)),
@@ -36,7 +38,19 @@ export const publicSiteSchema = z.object({
     interviews: z.string().trim().max(12),
     applications: z.string().trim().max(12),
   }),
+  /** Social profile links (D-148). Empty = hidden. */
+  social: z.object({ linkedin: socialUrl, instagram: socialUrl, facebook: socialUrl, youtube: socialUrl, x: socialUrl }),
 });
+
+/** Which admin sections TEAM_LEAD accounts may open (D-149). Unknown keys and Settings are dropped. */
+export const teamLeadAccessSchema = z.object({ sections: z.array(z.string().max(40)).max(40) });
+
+export async function saveTeamLeadAccess(actorId: string, raw: z.input<typeof teamLeadAccessSchema>) {
+  const input = teamLeadAccessSchema.parse(raw);
+  const sections = normalizeTeamLeadSections(input.sections);
+  const result = await writeAll(actorId, { teamLeadAccess: { sections } }, "settings.team_lead_access");
+  return { ...result, sections, available: [...GRANTABLE_TEAM_LEAD_SECTIONS] };
+}
 export type PublicSiteSettings = z.infer<typeof publicSiteSchema>;
 
 export async function savePublicSiteSettings(actorId: string, input: z.input<typeof publicSiteSchema>) {

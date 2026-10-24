@@ -6,7 +6,7 @@ import type { Role } from "@/generated/prisma/enums";
  * One assertion per row of the SPEC §3 permissions table.
  * ✅ → allowed, ❌/— → denied. "own"/"assigned" scoping is tested in guards tests.
  */
-const S: Role = "STUDENT", E: Role = "EMPLOYEE", M: Role = "MANAGER", A: Role = "ADMIN", C: Role = "COACH";
+const S: Role = "STUDENT", E: Role = "EMPLOYEE", M: Role = "MANAGER", A: Role = "ADMIN", C: Role = "COACH", T: Role = "TEAM_LEAD";
 const table: [string, Action, Role[]][] = [
   ["Sign up themselves", "signup.self", [S]],
   ["View own dashboard / applications", "student.dashboard.view_own", [S]],
@@ -14,35 +14,35 @@ const table: [string, Action, Role[]][] = [
   ["Add/update credential vault entries", "vault.manage_own", [S]],
   ["Vault reveal (employee, assigned)", "vault.reveal", [E]],
   ["Vault metadata (admin, never secrets)", "vault.view_metadata", [A]],
-  ["See assigned students", "students.view_assigned", [E, M, A]],
-  ["See all students", "students.view_all", [M, A]],
-  ["Generate tailored resumes", "resume.generate", [E, M, A]],
-  ["Log / edit applications", "application.log", [E, M, A]],
-  ["Update application status", "application.update_status", [E, M, A]],
+  ["See assigned students", "students.view_assigned", [E, M, T, A]],
+  ["See all students", "students.view_all", [M, T, A]],
+  ["Generate tailored resumes", "resume.generate", [E, M, T, A]],
+  ["Log / edit applications", "application.log", [E, M, T, A]],
+  ["Update application status", "application.update_status", [E, M, T, A]],
   ["Student reports interview/offer", "application.report_outcome", [S]],
   ["Message with assigned employee", "message.employee", [S]],
   ["Message with assigned students", "message.student", [E]],
-  ["View all threads", "message.view_all", [M, A]],
-  ["Clock in/out, own timesheet", "attendance.self", [E, M, A]],
-  ["Apply for leave", "leave.apply", [E, M]],
-  ["Approve leave", "leave.approve", [M, A]],
-  ["Create/deactivate employees", "employee.manage", [M, A]],
-  ["Assign / reassign students", "assignment.manage", [M, A]],
+  ["View all threads", "message.view_all", [M, T, A]],
+  ["Clock in/out, own timesheet", "attendance.self", [E, M, T, A]],
+  ["Apply for leave", "leave.apply", [E, M, T]],
+  ["Approve leave", "leave.approve", [M, T, A]],
+  ["Create/deactivate employees", "employee.manage", [M, T, A]],
+  ["Assign / reassign students", "assignment.manage", [M, T, A]],
   ["Plans, pricing, coupons, markets", "pricing.manage", [A]],
-  ["Payments (view)", "payments.view", [M, A]],
+  ["Payments (view)", "payments.view", [M, T, A]],
   ["Refunds", "payments.refund", [A]],
-  ["CMS", "cms.manage", [A]],
-  ["Resume styles & templates", "resume_styles.manage", [A]],
+  ["CMS", "cms.manage", [T, A]],
+  ["Resume styles & templates", "resume_styles.manage", [T, A]],
   ["Settings", "settings.manage", [A]],
-  ["Audit log (view)", "audit.view", [M, A]],
-  ["Interview prep admin", "prep.manage", [A]],
+  ["Audit log (view)", "audit.view", [M, T, A]],
+  ["Interview prep admin", "prep.manage", [T, A]],
   ["Coach: own slots, sessions, scorecards (D-140)", "coach.sessions", [C, A]],
-  ["Assign an interview coach (D-140)", "coach.assign", [A, M]],
+  ["Assign an interview coach (D-140)", "coach.assign", [A, M, T]],
 ];
 
 describe("RBAC matrix (SPEC §3)", () => {
   for (const [label, action, allowed] of table) {
-    for (const role of [S, E, M, A, C]) {
+    for (const role of [S, E, M, A, C, T]) {
       const expected = allowed.includes(role);
       it(`${label}: ${role} → ${expected ? "allowed" : "denied"}`, () => {
         expect(can(role, action)).toBe(expected);
@@ -61,6 +61,7 @@ describe("portal routing (SPEC §5 middleware)", () => {
     expect(portalForRole(M)).toBe("/admin");
     expect(portalForRole(A)).toBe("/admin");
     expect(portalForRole(C)).toBe("/coach");
+    expect(portalForRole(T)).toBe("/admin");
   });
   it("interview coaches are staff (TOTP, 12h session) but only open /coach (D-140)", () => {
     expect(isStaff(C)).toBe(true);

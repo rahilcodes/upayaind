@@ -39,7 +39,7 @@ export async function listAudit(raw: Record<string, string | undefined>) {
   const [actors, entities, staff] = await Promise.all([
     actorIds.length ? db.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true, role: true } }) : [],
     db.auditLog.findMany({ distinct: ["entity"], select: { entity: true }, orderBy: { entity: "asc" } }),
-    db.user.findMany({ where: { role: { in: ["EMPLOYEE", "MANAGER", "ADMIN"] } }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: { role: { in: ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "ADMIN"] } }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   const names = new Map(actors.map((a) => [a.id, a]));
   return {

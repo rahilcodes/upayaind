@@ -150,7 +150,8 @@
     "EMPLOYEE": "Specialist",
     "MANAGER": "Manager",
     "ADMIN": "Admin",
-    "COACH": "Interview coach"
+    "COACH": "Interview coach",
+    "TEAM_LEAD": "Team lead"
   },
   "rag": {
     "green": "On track",

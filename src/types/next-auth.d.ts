@@ -13,6 +13,8 @@ declare module "next-auth" {
       needsProfile: boolean;
       onboarded: boolean;
       timezone: string;
+      /** TEAM_LEAD only: admin sections the admin has enabled (D-149). */
+      sections?: string[];
     } & Omit<DefaultSession["user"], "id" | "name" | "email">;
   }
   interface User {
@@ -32,5 +34,7 @@ declare module "next-auth/jwt" {
     checkedAt?: number;
     /** User.sessionVersion at sign-in ("log out everywhere", D-124). */
     sv?: number;
+    /** TEAM_LEAD only: granted admin sections, refreshed with the other claims (D-149). */
+    sections?: string[];
   }
 }

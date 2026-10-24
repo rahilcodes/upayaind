@@ -33,6 +33,7 @@ export const authConfig = {
           needsProfile: Boolean(token.needsProfile),
           onboarded: Boolean(token.onboarded),
           timezone: (token.timezone as string) ?? "UTC",
+          sections: Array.isArray(token.sections) ? (token.sections as string[]) : undefined,
         };
       }
       return session;

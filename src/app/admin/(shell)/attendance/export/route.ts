@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { routeUser } from "@/app/api/resumes/_auth";
 import { exportTimesheets } from "@/server/services/attendance";
+import { isManagerial } from "@/server/auth/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ const key = /^\d{4}-\d{2}-\d{2}$/;
 /** CSV / XLSX timesheet export (MANAGER/ADMIN). */
 export async function GET(req: Request) {
   const user = await routeUser();
-  if (!user || (user.role !== "MANAGER" && user.role !== "ADMIN")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!user || !isManagerial(user.role)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const sp = new URL(req.url).searchParams;
   const from = sp.get("from") ?? "";
   const to = sp.get("to") ?? "";

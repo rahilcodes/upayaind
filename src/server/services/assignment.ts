@@ -122,7 +122,7 @@ export async function autoAssign(
         where: {
           acceptingNewStudents: true,
           marketIds: { has: student.marketId },
-          user: { status: "ACTIVE", deletedAt: null, role: { in: ["EMPLOYEE", "MANAGER", "ADMIN"] } },
+          user: { status: "ACTIVE", deletedAt: null, role: { in: ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "ADMIN"] } },
           ...(opts.excludeEmployeeIds?.length ? { id: { notIn: opts.excludeEmployeeIds } } : {}),
           maxStudents: { gt: 0 },
         },

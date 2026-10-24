@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { authConfig } from "@/server/auth/config.edge";
 import { canOpenPortal, isStaff, portalForRole } from "@/server/auth/rbac";
 import { verifyViewAs, VIEW_AS_COOKIE } from "@/server/auth/view-as.edge";
-import { homePathForMarket, resolveMarket } from "@/lib/market";
+import { geoFromHeaders, homePathForMarket, resolveMarket } from "@/lib/market";
 
 const { auth } = NextAuth(authConfig);
 
@@ -49,7 +49,7 @@ export default auth(async (req) => {
       if (req.cookies.get(VIEW_AS_COOKIE)) res.cookies.delete(VIEW_AS_COOKIE);
       return res;
     }
-    if (!canOpenPortal(user.role, pathname)) {
+    if (!canOpenPortal(user.role, pathname, user.sections)) {
       return NextResponse.rewrite(new URL("/403", nextUrl), { status: 403 });
     }
     if (user.role === "STUDENT") {
@@ -76,8 +76,13 @@ export default auth(async (req) => {
 
   // Market detection (pure helper in src/lib/market.ts): ?market= override → cookie → geo header → US.
   const current = req.cookies.get("market")?.value;
-  const market = resolveMarket({ override: nextUrl.searchParams.get("market"), cookie: current, // Vercel sets x-vercel-ip-country; behind Cloudflare (e.g. the VPS test site) it is cf-ipcountry.
-  geo: req.headers.get("x-vercel-ip-country") ?? req.headers.get("cf-ipcountry") });
+  // Geo: Vercel / Cloudflare / our nginx GeoIP header (D-151); with none of them, the browser's language region is the hint.
+  const market = resolveMarket({
+    override: nextUrl.searchParams.get("market"),
+    cookie: current,
+    geo: geoFromHeaders((h) => req.headers.get(h)),
+    acceptLanguage: current ? null : req.headers.get("accept-language"),
+  });
   const home = pathname === "/" ? homePathForMarket(market) : "/";
   const res = home !== "/" ? NextResponse.rewrite(new URL(home + nextUrl.search, nextUrl)) : NextResponse.next();
 

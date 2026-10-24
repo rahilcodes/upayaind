@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/server/db";
+import { isManagerial } from "@/server/auth/rbac";
 import type { SessionUser } from "@/server/auth/guards";
 
 export async function getStudentBadges(userId: string, studentId: string) {
@@ -10,7 +11,7 @@ export async function getStudentBadges(userId: string, studentId: string) {
 }
 
 export async function getStaffBadges(user: SessionUser, employeeProfileId: string | null) {
-  const isManager = user.role === "MANAGER" || user.role === "ADMIN";
+  const isManager = isManagerial(user.role);
   const [messages, leave, awaiting, leads] = await Promise.all([
     employeeProfileId
       ? db.message.count({ where: { thread: { employeeId: employeeProfileId, isActive: true }, senderId: { not: user.id }, readAt: null } })

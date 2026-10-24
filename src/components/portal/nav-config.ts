@@ -1,5 +1,5 @@
 import type { Role } from "@/generated/prisma/enums";
-import { managerMayOpen } from "@/server/auth/rbac";
+import { DEFAULT_TEAM_LEAD_SECTIONS, managerMayOpen, teamLeadMayOpen } from "@/server/auth/rbac";
 
 export type NavIcon =
   | "home" | "list" | "building" | "calendar" | "file" | "message" | "graduation" | "user" | "key" | "card" | "settings"
@@ -63,7 +63,8 @@ const ADMIN_NAV_ALL: NavItem[] = [
   { href: "/admin/settings", label: "adminSettings", icon: "settings", group: "system" },
 ];
 
-export function adminNavFor(role: Role): NavItem[] {
+export function adminNavFor(role: Role, sections: readonly string[] = DEFAULT_TEAM_LEAD_SECTIONS): NavItem[] {
   if (role === "ADMIN") return ADMIN_NAV_ALL;
+  if (role === "TEAM_LEAD") return ADMIN_NAV_ALL.filter((i) => teamLeadMayOpen(i.href, sections));
   return ADMIN_NAV_ALL.filter((i) => managerMayOpen(i.href));
 }

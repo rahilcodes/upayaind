@@ -69,7 +69,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             <span>
               {e.code} · {e.title ?? tr(e.user.role)}
             </span>
-            {e.user.role === "MANAGER" ? <Badge tone="violet">{tr("MANAGER")}</Badge> : null}
+            {e.user.role === "MANAGER" || e.user.role === "TEAM_LEAD" ? <Badge tone="violet">{tr(e.user.role)}</Badge> : null}
             {e.user.status === "INVITED" ? <Badge tone="amber">{te("invited")}</Badge> : null}
             {e.user.status === "DEACTIVATED" ? <Badge tone="grey">{te("deactivated")}</Badge> : null}
             {!e.accepting && e.user.status === "ACTIVE" ? <Badge tone="slate">{te("notAccepting")}</Badge> : null}
@@ -83,7 +83,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 <EmployeeFormDialog
                   options={options}
                   canManageManagers={isAdmin}
-                  value={{ employeeId: e.id, name: e.user.name, email: e.user.email, phone: e.user.phone, title: e.title, marketIds: e.marketIds, maxStudents: e.maxStudents, managerId: e.managerId, timezone: e.user.timezone, schedule: e.schedule, role: e.user.role === "MANAGER" ? "MANAGER" : "EMPLOYEE", acceptingNewStudents: e.accepting }}
+                  value={{ employeeId: e.id, name: e.user.name, email: e.user.email, phone: e.user.phone, title: e.title, marketIds: e.marketIds, maxStudents: e.maxStudents, managerId: e.managerId, timezone: e.user.timezone, schedule: e.schedule, role: e.user.role === "MANAGER" || e.user.role === "TEAM_LEAD" || e.user.role === "COACH" ? e.user.role : "EMPLOYEE", acceptingNewStudents: e.accepting }}
                 />
               ) : null}
               {isAdmin && e.user.status === "ACTIVE" && e.user.totpEnabled ? <ResetTwoFactorButton employeeId={e.id} name={e.user.name} /> : null}

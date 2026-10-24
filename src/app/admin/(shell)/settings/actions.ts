@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { requireAction } from "@/server/auth/guards";
 import { safeAction } from "@/server/errors";
 import { saveReferralSettings, type referralSettingsSchema } from "@/server/services/referrals";
-import { saveAlertWebhooks, saveBusinessInfo, saveGeneralSettings, savePublicSiteSettings, saveTemplateOverride, type businessEntrySchema, type generalSettingsSchema, type publicSiteSchema, type templateOverrideSchema } from "@/server/services/admin-settings";
+import { saveAlertWebhooks, saveBusinessInfo, saveGeneralSettings, savePublicSiteSettings, saveTeamLeadAccess, saveTemplateOverride, type businessEntrySchema, type generalSettingsSchema, type publicSiteSchema, type teamLeadAccessSchema, type templateOverrideSchema } from "@/server/services/admin-settings";
 import { sendTestAlert, type AlertWebhook } from "@/server/services/alerts";
 import { UserError } from "@/server/errors";
 
@@ -48,6 +48,14 @@ export async function savePublicSiteAction(input: z.input<typeof publicSiteSchem
     const user = await requireAction("settings.manage");
     return savePublicSiteSettings(user.id, input);
   }, t("publicSiteSaved"));
+}
+
+export async function saveTeamLeadAccessAction(input: z.input<typeof teamLeadAccessSchema>) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("settings.manage");
+    return saveTeamLeadAccess(user.id, input);
+  }, t("teamLeadAccessSaved"));
 }
 
 export async function saveAlertWebhooksAction(hooks: AlertWebhook[]) {

@@ -50,7 +50,7 @@ export async function listLeads(raw: Record<string, string | undefined>, viewerI
   const [counts, sources, owners, notes] = await Promise.all([
     db.lead.groupBy({ by: ["status"], _count: { _all: true } }),
     db.lead.findMany({ distinct: ["source"], select: { source: true }, orderBy: { source: "asc" } }),
-    db.user.findMany({ where: { role: { in: ["MANAGER", "ADMIN"] }, status: "ACTIVE", deletedAt: null }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: { role: { in: ["MANAGER", "TEAM_LEAD", "ADMIN"] }, status: "ACTIVE", deletedAt: null }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     leadNotes(page.map((p) => p.id)),
   ]);
   return {
@@ -94,7 +94,7 @@ export async function updateLead(actorId: string, raw: z.input<typeof leadUpdate
   const before = await db.lead.findUnique({ where: { id: input.id }, select: { status: true, ownerId: true, nextFollowUpAt: true } });
   if (!before) throw new UserError("Lead not found.");
   if (input.ownerId) {
-    const o = await db.user.findFirst({ where: { id: input.ownerId, role: { in: ["MANAGER", "ADMIN"] }, deletedAt: null }, select: { id: true } });
+    const o = await db.user.findFirst({ where: { id: input.ownerId, role: { in: ["MANAGER", "TEAM_LEAD", "ADMIN"] }, deletedAt: null }, select: { id: true } });
     if (!o) throw new UserError("Pick a manager or admin as owner.", "ownerId");
   }
   const next = input.nextFollowUpAt ? new Date(`${input.nextFollowUpAt}T09:00:00Z`) : null;

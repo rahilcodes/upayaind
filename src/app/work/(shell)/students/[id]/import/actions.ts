@@ -4,7 +4,7 @@ import { requireRole } from "@/server/auth/guards";
 import { safeAction } from "@/server/errors";
 import { commitCsvImport, previewCsvImport } from "@/server/services/applications";
 
-const STAFF = ["EMPLOYEE", "MANAGER", "ADMIN"] as const;
+const STAFF = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "ADMIN"] as const;
 const Input = z.object({ studentId: z.string().min(1).max(64), csv: z.string().min(1, "Choose a CSV file first.").max(2_000_000, "The CSV is too large (max 2 MB).") });
 
 export async function previewImportAction(studentId: string, csv: string) {

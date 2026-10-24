@@ -10,7 +10,7 @@ import { fetchJobPosting } from "@/server/services/job-fetch";
 import { rememberWorkspaceDefaults } from "@/server/services/workspace-prefs";
 import type { ApplicationStatus } from "@/generated/prisma/enums";
 
-const STAFF = ["EMPLOYEE", "MANAGER", "ADMIN"] as const;
+const STAFF = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "ADMIN"] as const;
 const id = z.string().min(1).max(64);
 
 export async function checkDuplicatesAction(input: { studentId: string; jobUrl?: string; companyName?: string; jobTitle?: string }) {

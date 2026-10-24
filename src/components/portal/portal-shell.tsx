@@ -6,6 +6,7 @@ import { MobileNav, Sidebar, type Badges } from "./sidebar";
 import { NotificationBell } from "./notification-bell";
 import { UserMenu } from "./user-menu";
 import { adminNavFor, COACH_NAV, STUDENT_NAV, WORK_NAV } from "./nav-config";
+import { isManagerial } from "@/server/auth/rbac";
 import { CommandPalette } from "./command-palette";
 import { ViewAsBanner } from "./view-as-banner";
 import { getViewAs } from "@/server/auth/view-as";
@@ -26,7 +27,7 @@ export async function PortalShell({
   topbarExtra,
 }: {
   portal: "app" | "work" | "admin" | "coach";
-  user: { name: string; role: Role };
+  user: { name: string; role: Role; sections?: string[] };
   badges?: Badges;
   subtitle?: string;
   children: React.ReactNode;
@@ -35,11 +36,11 @@ export async function PortalShell({
   const t = await getTranslations();
   const allMessages = await getMessages();
   const viewAs = portal === "app" ? await getViewAs() : null; // read-only admin impersonation (D-120)
-  const items = portal === "app" ? STUDENT_NAV : portal === "work" ? WORK_NAV : portal === "coach" ? COACH_NAV : adminNavFor(user.role);
+  const items = portal === "app" ? STUDENT_NAV : portal === "work" ? WORK_NAV : portal === "coach" ? COACH_NAV : adminNavFor(user.role, user.sections);
   const root = `/${portal}`;
   const roleLabel = subtitle ?? t(`role.${user.role}`);
   const switchTo =
-    (portal === "work" || portal === "coach") && (user.role === "MANAGER" || user.role === "ADMIN")
+    (portal === "work" || portal === "coach") && isManagerial(user.role)
       ? [{ href: "/admin", label: t("nav.adminPortal") }]
       : portal === "admin"
         ? [{ href: "/work", label: t("nav.workPortal") }]

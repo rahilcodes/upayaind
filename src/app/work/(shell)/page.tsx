@@ -15,6 +15,7 @@ import { formatInTz } from "@/lib/format";
 import { tzLabel as tzAbbrev } from "@/components/work/tz";
 import { firstName } from "@/lib/utils";
 import { clockAction } from "./actions";
+import { isManagerial } from "@/server/auth/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function TodayPage() {
   const tz = user.timezone;
   const hour = Number(formatInTz(now, tz, "H"));
   const greeting = hour < 12 ? t("greetMorning") : hour < 17 ? t("greetAfternoon") : t("greetEvening");
-  const isManager = user.role === "MANAGER" || user.role === "ADMIN";
+  const isManager = isManagerial(user.role);
 
   const [today, dash] = employee ? await Promise.all([getMyToday(user, now), getTodayDashboard(user, now)]) : [null, null];
   const d = today?.day;
