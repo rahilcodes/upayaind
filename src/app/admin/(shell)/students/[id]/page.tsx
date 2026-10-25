@@ -494,7 +494,7 @@ export default async function Student360Page({ params, searchParams }: { params:
                 { label: t("account.lastLogin"), value: s.user.lastLoginAt ? formatInTz(s.user.lastLoginAt, tz) : tc("never") },
               ]}
             />
-            {canManage ? <AccountAccessActions studentId={s.id} status={s.user.status} emailVerified={Boolean(s.user.emailVerified)} /> : null}
+            {canManage ? <AccountAccessActions studentId={s.id} status={s.user.status} emailVerified={Boolean(s.user.emailVerified)} name={s.user.name} /> : null}
           </Section>
         <Section id="vault" title={t("vaultTitle")} description={t("vaultDescription")}>
           {s.credentials.length ? (

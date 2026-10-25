@@ -270,3 +270,23 @@ describe("account actions", () => {
     await expect(updateStudentLinks(admin, s.student.id, {})).rejects.toThrow(/deleted/);
   });
 });
+
+describe("setStudentPassword (D-153)", () => {
+  it("activates an invited student, hashes the password, revokes links and ends other sessions", async () => {
+    const m = await makeMarket();
+    const r = await createStudent(admin, input({ mode: "invite" }));
+    const { setStudentPassword } = await import("@/server/services/admin-student-accounts");
+    await expect(setStudentPassword(employee, r.studentId, { password: "Harbor-Lotus-4821!" })).rejects.toThrow();
+    await expect(setStudentPassword(manager, r.studentId, { password: "short" })).rejects.toThrow();
+    const res = await setStudentPassword(manager, r.studentId, { password: "Harbor-Lotus-4821!" });
+    expect(res.status).toBe("ACTIVE");
+    const u = await db.user.findUniqueOrThrow({ where: { id: r.userId }, select: { status: true, passwordHash: true, emailVerified: true, sessionVersion: true } });
+    expect(u.status).toBe("ACTIVE");
+    expect(u.passwordHash).toMatch(/^\$argon2/);
+    expect(u.emailVerified).not.toBeNull();
+    expect(u.sessionVersion).toBe(1);
+    expect(await db.authToken.count({ where: { userId: r.userId, consumedAt: null } })).toBe(0);
+    expect(await db.auditLog.count({ where: { action: "student.password_set", entityId: r.studentId } })).toBe(1);
+    void m;
+  });
+});

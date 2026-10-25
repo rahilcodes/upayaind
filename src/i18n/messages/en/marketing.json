@@ -399,14 +399,14 @@
       "intervalLabel": "Billing period",
       "interval": {
         "MONTHLY": "Monthly",
-        "QUARTERLY": "3 months",
+        "QUARTERLY": "90 days",
         "HALF_YEARLY": "6 months",
         "YEARLY": "Yearly",
         "ONE_TIME": "One-time"
       },
       "per": {
         "MONTHLY": "/ month",
-        "QUARTERLY": "/ 3 months",
+        "QUARTERLY": "/ 90 days",
         "HALF_YEARLY": "/ 6 months",
         "YEARLY": "/ year",
         "ONE_TIME": "one-time"
@@ -456,7 +456,7 @@
       ],
       "perMonthApprox": "≈ {amount} a month",
       "interviews": "Interview promise: {promise}",
-      "inNote": "All plans run for 3 months. Materials, application customisation and tailored support are provided for both IT and non-IT profiles."
+      "inNote": "Each package is valid for 90 days from payment. Materials, application customisation and tailored support are provided for both IT and non-IT profiles."
     },
     "prep": {
       "eyebrow": "Beyond applications",
@@ -1033,7 +1033,7 @@
         },
         "pricing": {
           "title": "3-month Career Success Packages",
-          "sub": "Prices in INR. One payment covers 3 months of applications and support — IT and non-IT profiles.",
+          "sub": "Prices in INR. One payment covers 90 days of applications and support — IT and non-IT profiles.",
           "finalisingTitle": "Plans for India are being finalised",
           "finalisingBody": "Talk to us on WhatsApp or book a call — we’ll confirm the price in rupees before you pay anything, and reserve a specialist for you."
         },

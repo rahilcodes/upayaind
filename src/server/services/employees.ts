@@ -2,11 +2,13 @@ import "server-only";
 import { z } from "zod";
 import type { Role } from "@/generated/prisma/enums";
 import { db, type Tx } from "@/server/db";
-import { emailSchema, phoneSchema } from "@/lib/schemas/auth";
+import { emailSchema, passwordSchema, phoneSchema } from "@/lib/schemas/auth";
+import { hashPassword } from "@/server/auth/password";
 import { addDayKey, dateOnly, dayKey, dayRangeInTz, keyFromDateOnly, startOfDayInTz } from "@/lib/dates";
 import { absoluteUrl } from "@/lib/utils";
 import { UserError } from "@/server/errors";
 import { emit } from "@/server/jobs";
+import { checkPasswordPolicy } from "./accounts";
 import { audit } from "./audit";
 import { issueToken } from "./auth-tokens";
 import { sendEmail } from "./email";
@@ -97,7 +99,11 @@ export const employeeInputSchema = z.object({
   schedule: scheduleSchema,
   role: z.enum(["EMPLOYEE", "MANAGER", "TEAM_LEAD", "COACH"]).default("EMPLOYEE"),
   acceptingNewStudents: z.boolean().default(true),
+  /** "invite": emailed link to choose a password (default). "password": the admin sets one now (D-153). */
+  mode: z.enum(["invite", "password"]).default("invite"),
+  password: z.string().max(128).optional().nullable(),
 });
+export const setStaffPasswordSchema = z.object({ password: z.string().max(128), signOutOthers: z.boolean().default(true) });
 export type EmployeeInput = z.input<typeof employeeInputSchema>;
 
 async function sendInviteEmail(userId: string) {
@@ -133,13 +139,41 @@ async function validateRefs(input: z.infer<typeof employeeInputSchema>, selfEmpl
   }
 }
 
-/** Create an employee (User INVITED + EmployeeProfile) and email the invite link. */
+/** Password mode: tell the person where to log in (the password itself is never emailed). */
+async function sendStaffLoginDetailsEmail(userId: string) {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+  if (!user) return;
+  await sendEmail({
+    to: user.email,
+    subject: "Your UpayaInd staff account is ready",
+    content: {
+      preview: "Log in with the email and password your admin gave you.",
+      heading: `Welcome to UpayaInd, ${user.name.split(/\s+/)[0]}`,
+      paragraphs: [
+        `Your staff account for ${user.email} is ready. Log in with the password your admin shared with you; you may be asked to set up two-step verification on first login.`,
+        "You can change your password any time from your profile.",
+      ],
+      cta: { label: "Log in", href: absoluteUrl("/login?team=1") },
+      footnote: "If you weren't expecting this email, you can ignore it.",
+    },
+  }).catch((e) => console.error("[employees] login details email failed", e));
+}
+
+async function hashNewPassword(raw: string | null | undefined, inputs: string[]) {
+  const pw = passwordSchema.safeParse(raw ?? "");
+  if (!pw.success) throw new EmployeeAdminError(pw.error.issues[0]?.message ?? "Enter a password.", "password");
+  await checkPasswordPolicy(pw.data, inputs);
+  return hashPassword(pw.data);
+}
+
+/** Create an employee (EmployeeProfile + User): INVITED with an emailed link, or ACTIVE with a password the admin set (D-153). */
 export async function createEmployee(actor: Actor, raw: EmployeeInput) {
   const input = employeeInputSchema.parse(raw);
   if ((input.role === "MANAGER" || input.role === "TEAM_LEAD") && actor.role !== "ADMIN") throw new EmployeeAdminError("Only an admin can create a manager or team lead.", "role");
   await validateRefs(input);
   const exists = await db.user.findUnique({ where: { email: input.email }, select: { id: true } });
   if (exists) throw new EmployeeAdminError("An account with this email already exists.", "email");
+  const passwordHash = input.mode === "password" ? await hashNewPassword(input.password, [input.name, input.email]) : null;
   // Interview coaches never take application load (D-140).
   const coach = input.role === "COACH";
   const maxStudents = coach ? 0 : (input.maxStudents ?? (await getSetting("defaultMaxStudents")));
@@ -153,7 +187,9 @@ export async function createEmployee(actor: Actor, raw: EmployeeInput) {
         name: input.name,
         phone: input.phone ?? null,
         role: input.role,
-        status: "INVITED",
+        status: passwordHash ? "ACTIVE" : "INVITED",
+        passwordHash,
+        emailVerified: passwordHash ? new Date() : null,
         timezone: input.timezone,
         employee: {
           create: {
@@ -170,11 +206,31 @@ export async function createEmployee(actor: Actor, raw: EmployeeInput) {
       },
       select: { id: true, employee: { select: { id: true, employeeCode: true } } },
     });
-    await audit({ actorId: actor.id, action: "employee.create", entity: "EmployeeProfile", entityId: user.employee!.id, after: { email: input.email, name: input.name, role: input.role, employeeCode, marketIds: input.marketIds, maxStudents, workSchedule: input.schedule } }, tx);
+    await audit({ actorId: actor.id, action: "employee.create", entity: "EmployeeProfile", entityId: user.employee!.id, after: { email: input.email, name: input.name, role: input.role, employeeCode, marketIds: input.marketIds, maxStudents, workSchedule: input.schedule, mode: input.mode } }, tx);
     return { userId: user.id, employeeId: user.employee!.id, employeeCode };
   });
-  await sendInviteEmail(created.userId);
-  return created;
+  if (passwordHash) await sendStaffLoginDetailsEmail(created.userId);
+  else await sendInviteEmail(created.userId);
+  return { ...created, mode: input.mode };
+}
+
+/** Set or replace a staff member's password (D-153). Managers may do it for specialists/coaches; managers and team leads need an ADMIN. */
+export async function setEmployeePassword(actor: Actor, employeeId: string, raw: z.input<typeof setStaffPasswordSchema>) {
+  const v = setStaffPasswordSchema.parse(raw);
+  const e = await db.employeeProfile.findUnique({ where: { id: employeeId }, select: { userId: true, user: { select: { role: true, status: true, name: true, email: true, emailVerified: true } } } });
+  if (!e) throw new EmployeeAdminError("Employee not found.");
+  if (e.user.role === "ADMIN" || ((e.user.role === "MANAGER" || e.user.role === "TEAM_LEAD") && actor.role !== "ADMIN")) throw new EmployeeAdminError("Only an admin can set this account's password.");
+  if (e.user.status === "DEACTIVATED") throw new EmployeeAdminError("Reactivate the account first.");
+  if (e.userId === actor.id) throw new EmployeeAdminError("Change your own password from your profile.");
+  const passwordHash = await hashNewPassword(v.password, [e.user.name, e.user.email]);
+  const now = new Date();
+  const status = e.user.status === "INVITED" ? "ACTIVE" : e.user.status;
+  await db.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: e.userId }, data: { passwordHash, status, emailVerified: e.user.emailVerified ?? now, ...(v.signOutOthers ? { sessionVersion: { increment: 1 } } : {}) } });
+    await tx.authToken.updateMany({ where: { userId: e.userId, consumedAt: null, type: { in: ["RESET_PASSWORD", "INVITE"] } }, data: { consumedAt: now } });
+    await audit({ actorId: actor.id, action: "employee.password_set", entity: "EmployeeProfile", entityId: employeeId, before: { status: e.user.status }, after: { status, sessionsRevoked: v.signOutOthers } }, tx);
+  });
+  return { ok: true, status };
 }
 
 export async function resendInvite(actor: Actor, employeeId: string) {

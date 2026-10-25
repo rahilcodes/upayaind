@@ -47,9 +47,10 @@ export async function PlanCard({ plan, price, market, compact = false }: { plan:
               <span className="font-display text-[44px] font-semibold leading-none tabular">{formatPrice(price.amountMinor, price.currency, market.locale)}</span>
               <span className="opacity-75">{t(`per.${interval}`)}</span>
             </p>
-            {interval !== "MONTHLY" && interval !== "ONE_TIME" ? (
+            {/* India's 90-day packages are sold as one price: no "a month" breakdown (client request, D-153). */}
+            {interval !== "MONTHLY" && interval !== "ONE_TIME" && interval !== "QUARTERLY" ? (
               <p className={cn("mt-2 text-sm", featured ? "text-[#EEF4FF]" : "text-[#5A6585]")}>
-                {t(interval === "QUARTERLY" ? "perMonthApprox" : "perMonth", { amount: formatPrice(price.perMonthMinor, price.currency, market.locale) })}
+                {t("perMonth", { amount: formatPrice(price.perMonthMinor, price.currency, market.locale) })}
               </p>
             ) : null}
           </>

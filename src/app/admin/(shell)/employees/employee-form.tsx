@@ -6,6 +6,7 @@ import { useServerAction } from "@/components/portal/action-form";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox, Field, Input, Select, fieldA11y } from "@/components/ui/input";
+import { PasswordInput } from "@/components/auth/password-input";
 import { createEmployeeAction, updateEmployeeAction } from "./actions";
 
 export type EmployeeFormOptions = { markets: { id: string; code: string; name: string }[]; managers: { id: string; name: string }[]; defaultMax: number };
@@ -55,6 +56,8 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
   const { pending, fieldErrors } = editing ? update : create;
   const err = (k: string) => fieldErrors[k] ?? fieldErrors[`schedule.${k}`];
   const managerLocked = (value?.role === "MANAGER" || value?.role === "TEAM_LEAD") && !canManageManagers;
+  const [mode, setMode] = React.useState<"invite" | "password">("invite");
+  const tp = useTranslations("admin.setPassword");
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -77,6 +80,8 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
       },
       role: (String(fd.get("role") ?? "EMPLOYEE") as "EMPLOYEE" | "MANAGER" | "TEAM_LEAD" | "COACH"),
       acceptingNewStudents: fd.get("accepting") === "on",
+      mode: editing ? ("invite" as const) : mode,
+      password: editing || mode !== "password" ? null : String(fd.get("password") ?? ""),
     };
     if (value) update.run({ ...payload, employeeId: value.employeeId });
     else create.run(payload);
@@ -161,6 +166,19 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
               <option value="COACH">{t("roleCoach")}</option>
             </Select>
           </Field>
+          {!editing ? (
+            <Field id="emp-mode" label={t("mode")} error={err("mode")}>
+              <Select {...fieldA11y("emp-mode", err("mode"))} name="mode" value={mode} onChange={(e) => setMode(e.target.value as "invite" | "password")}>
+                <option value="invite">{t("modeInvite")}</option>
+                <option value="password">{t("modePassword")}</option>
+              </Select>
+            </Field>
+          ) : null}
+          {!editing && mode === "password" ? (
+            <Field id="emp-password" label={t("password")} hint={t("passwordHint")} error={err("password")}>
+              <PasswordInput {...fieldA11y("emp-password", err("password"))} name="password" autoComplete="new-password" minLength={10} required showLabel={tp("show")} hideLabel={tp("hide")} />
+            </Field>
+          ) : null}
           <Field id="emp-tz" label={t("timezone")} error={err("timezone")}>
             <Select {...fieldA11y("emp-tz", err("timezone"))} name="timezone" defaultValue={value?.timezone ?? "Asia/Kolkata"}>
               {[...new Set([value?.timezone ?? "Asia/Kolkata", ...TIMEZONES])].map((z) => (
@@ -227,7 +245,7 @@ export function EmployeeFormDialog({ options, value, canManageManagers }: { opti
               {tc("cancel")}
             </Button>
             <Button type="submit" loading={pending}>
-              {editing ? tc("saveChanges") : t("createSubmit")}
+              {editing ? tc("saveChanges") : mode === "password" ? t("createSubmitPassword") : t("createSubmit")}
             </Button>
           </div>
         </form>

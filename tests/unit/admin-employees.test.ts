@@ -138,3 +138,29 @@ describe("deactivateEmployee", () => {
     await expect(deactivateEmployee({ id: mgr.user.id, role: "ADMIN" }, mgr.employee.id, "x")).rejects.toThrow(/your own/);
   });
 });
+
+describe("employees with a password (D-153)", () => {
+  it("creates an ACTIVE, verified account with the admin's password and sends login details, not an invite", async () => {
+    const m = await makeMarket();
+    const r = await createEmployee(admin, input(m.id, { mode: "password", password: "Granite-Orbit-7731!" }));
+    expect(r.mode).toBe("password");
+    const u = await db.user.findUniqueOrThrow({ where: { id: r.userId }, select: { status: true, passwordHash: true, emailVerified: true } });
+    expect(u.status).toBe("ACTIVE");
+    expect(u.passwordHash).toMatch(/^\$argon2/);
+    expect(u.emailVerified).not.toBeNull();
+    expect(devOutbox.at(-1)?.subject).toMatch(/staff account is ready/);
+    expect(devOutbox.at(-1)?.text).not.toContain("Granite-Orbit");
+    await expect(createEmployee(admin, input(m.id, { mode: "password", password: "weak" }))).rejects.toThrow();
+  });
+  it("lets a manager set a specialist's password but only an admin set a manager's", async () => {
+    const m = await makeMarket();
+    const { setEmployeePassword } = await import("@/server/services/employees");
+    const e = await createEmployee(manager, input(m.id));
+    const res = await setEmployeePassword(manager, e.employeeId, { password: "Maple-Zenith-1190!" });
+    expect(res.status).toBe("ACTIVE");
+    expect(await db.authToken.count({ where: { userId: e.userId, consumedAt: null } })).toBe(0);
+    const mgr = await createEmployee(admin, input(m.id, { role: "MANAGER" }));
+    await expect(setEmployeePassword(manager, mgr.employeeId, { password: "Maple-Zenith-1190!" })).rejects.toThrow(/admin/);
+    await expect(setEmployeePassword(admin, mgr.employeeId, { password: "Maple-Zenith-1190!" })).resolves.toMatchObject({ ok: true });
+  });
+});

@@ -3,6 +3,7 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Ban, KeyRound, LogOut, MailCheck, Pencil, Play, Send } from "lucide-react";
 import { ConfirmAction } from "@/components/admin/confirm-action";
+import { SetPasswordDialog } from "@/components/admin/set-password-dialog";
 import { useServerAction } from "@/components/portal/action-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
   resendStudentInviteAction,
   resendStudentVerificationAction,
   sendStudentPasswordResetAction,
+  setStudentPasswordAction,
   signOutStudentEverywhereAction,
   suspendStudentAction,
   updateStudentAccountAction,
@@ -182,8 +184,9 @@ export function LinksEditDialog({ studentId, value }: { studentId: string; value
 }
 
 /** Access tab: status + verification at a glance, and the account actions (D-147). */
-export function AccountAccessActions({ studentId, status, emailVerified }: { studentId: string; status: AccountValue["status"]; emailVerified: boolean }) {
+export function AccountAccessActions({ studentId, status, emailVerified, name }: { studentId: string; status: AccountValue["status"]; emailVerified: boolean; name: string }) {
   const t = useTranslations("admin.student360.account");
+  const setPassword = React.useCallback((input: { password: string; signOutOthers: boolean }) => setStudentPasswordAction(studentId, input), [studentId]);
   const reset = React.useCallback(() => sendStudentPasswordResetAction(studentId), [studentId]);
   const invite = React.useCallback(() => resendStudentInviteAction(studentId), [studentId]);
   const verify = useServerAction(resendStudentVerificationAction);
@@ -194,6 +197,7 @@ export function AccountAccessActions({ studentId, status, emailVerified }: { stu
   const deactivated = status === "DEACTIVATED";
   return (
     <div className="flex flex-wrap gap-2">
+      {!deactivated ? <SetPasswordDialog action={setPassword} name={name} /> : null}
       {!deactivated ? (
         <ConfirmAction trigger={<><KeyRound className="h-4 w-4" aria-hidden="true" />{t("sendReset")}</>} title={t("sendResetTitle")} description={t("sendResetBody")} confirmLabel={t("confirm")} confirmVariant="primary" action={reset} />
       ) : null}

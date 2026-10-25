@@ -270,7 +270,13 @@
         "windowTimezoneHint": "The window is fixed in this zone, whatever zone the employee picks for themselves.",
         "enforceWindow": "Enforce window",
         "enforceWindowHint": "The employee can only clock in and log applications inside it. Open sessions are closed automatically when it ends.",
-        "accepting": "Accepting new students"
+        "accepting": "Accepting new students",
+        "mode": "Sign-in setup",
+        "modeInvite": "Email them an invite link to choose a password",
+        "modePassword": "I'll set a password now (share it with them)",
+        "password": "Password",
+        "passwordHint": "At least 10 characters. Never emailed — share it with the person directly.",
+        "createSubmitPassword": "Create account"
       },
       "reset2fa": "Reset 2FA",
       "reset2faFor": "Reset two-step verification for {name}",
@@ -719,7 +725,10 @@
       "studentSuspended": "Student suspended and signed out everywhere",
       "studentReactivated": "Student reactivated",
       "signedOutEverywhere": "Signed out on every device",
-      "teamLeadAccessSaved": "Team lead access saved"
+      "teamLeadAccessSaved": "Team lead access saved",
+      "employeeCreatedPassword": "Employee created with the password you set",
+      "employeePasswordSet": "Password set. Share it with them directly.",
+      "studentPasswordSet": "Password set. Share it with the student directly."
     },
     "reassign": {
       "assign": "Assign",
@@ -1165,6 +1174,19 @@
         "open": "open",
         "close": "close"
       }
+    },
+    "setPassword": {
+      "trigger": "Set password",
+      "triggerFor": "Set a password for {name}",
+      "title": "Set a password for {name}",
+      "description": "Type the password once. It is stored hashed and never emailed — share it with the person directly. An invited account becomes active.",
+      "password": "New password",
+      "passwordHint": "At least 10 characters; avoid their name or email.",
+      "signOutOthers": "Sign them out of other devices",
+      "cancel": "Cancel",
+      "submit": "Save password",
+      "show": "Show password",
+      "hide": "Hide password"
     }
   }
 }

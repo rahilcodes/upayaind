@@ -142,16 +142,16 @@ const PLANS = [
 
 /**
  * India sells 3-month packages (client sheet, Oct 2026): Basic ₹12,999 and
- * Premium ₹14,999 (1 interview a week), QUARTERLY only, no Standard tier.
+ * Premium ₹14,999 (3–4 interviews a month), each valid 90 days (QUARTERLY), no Standard tier.
  * They are separate Plan rows priced only in IN, so the US/UK monthly plans
  * are untouched and getPricing("IN") shows exactly these two.
  */
 const INDIA_PLANS = [
   {
-    code: "in_basic", name: "Basic", isFeatured: false, sortOrder: 11, dailyTarget: 8, amountMinor: 1299900, interviewsPromise: "1–2 interviews a month",
+    code: "in_basic", name: "Basic", isFeatured: false, sortOrder: 11, dailyTarget: 10, amountMinor: 1299900, interviewsPromise: "1–2 interviews a month",
     description: "Steady, targeted applications with a career consultant behind you.",
     features: [
-      "5–10 applications a day, matched to your profile",
+      "10 applications a day, matched to your profile",
       "Career consultant guidance on resume improvements",
       "LinkedIn profile guidance",
       "Guidance on identifying relevant opportunities",
@@ -161,7 +161,7 @@ const INDIA_PLANS = [
     ],
   },
   {
-    code: "in_premium", name: "Premium", isFeatured: true, sortOrder: 12, dailyTarget: 18, amountMinor: 1499900, interviewsPromise: "1 interview a week",
+    code: "in_premium", name: "Premium", isFeatured: true, sortOrder: 12, dailyTarget: 18, amountMinor: 1499900, interviewsPromise: "3–4 interviews a month",
     description: "Maximum reach with a dedicated HR executive as your personal partner.",
     features: [
       "Everything in Basic",

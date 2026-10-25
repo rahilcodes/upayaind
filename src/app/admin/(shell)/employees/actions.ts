@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { requireAction, requireRole } from "@/server/auth/guards";
 import { adminResetTwoFactor } from "@/server/services/accounts";
 import { safeAction } from "@/server/errors";
-import { createEmployee, deactivateEmployee, reactivateEmployee, resendInvite, updateEmployee, type EmployeeInput } from "@/server/services/employees";
+import { createEmployee, deactivateEmployee, reactivateEmployee, resendInvite, setEmployeePassword, updateEmployee, type EmployeeInput } from "@/server/services/employees";
 
 /** Employee management (MANAGER + ADMIN; only ADMIN may create/edit managers — enforced in the service). */
 
@@ -13,7 +13,15 @@ export async function createEmployeeAction(input: EmployeeInput) {
   return safeAction(async () => {
     const user = await requireAction("employee.manage");
     return createEmployee(user, input);
-  }, t("employeeCreated"));
+  }, input.mode === "password" ? t("employeeCreatedPassword") : t("employeeCreated"));
+}
+
+export async function setEmployeePasswordAction(employeeId: string, input: { password: string; signOutOthers: boolean }) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("employee.manage");
+    return setEmployeePassword(user, z.string().min(1).parse(employeeId), input);
+  }, t("employeePasswordSet"));
 }
 
 export async function updateEmployeeAction(input: EmployeeInput & { employeeId: string }) {

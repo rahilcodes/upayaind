@@ -5,7 +5,14 @@ import { Mail, Power, RotateCcw, ShieldOff } from "lucide-react";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { useServerAction } from "@/components/portal/action-form";
 import { Button } from "@/components/ui/button";
-import { deactivateEmployeeAction, reactivateEmployeeAction, resendInviteAction, resetTwoFactorAction } from "./actions";
+import { SetPasswordDialog } from "@/components/admin/set-password-dialog";
+import { deactivateEmployeeAction, reactivateEmployeeAction, resendInviteAction, resetTwoFactorAction, setEmployeePasswordAction } from "./actions";
+
+/** Admin/manager sets the person's password directly (D-153). */
+export function SetEmployeePasswordButton({ employeeId, name }: { employeeId: string; name: string }) {
+  const action = React.useCallback((input: { password: string; signOutOthers: boolean }) => setEmployeePasswordAction(employeeId, input), [employeeId]);
+  return <SetPasswordDialog action={action} name={name} />;
+}
 
 export function ResendInviteButton({ employeeId, name }: { employeeId: string; name: string }) {
   const t = useTranslations("admin.employees");

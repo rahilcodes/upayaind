@@ -64,6 +64,10 @@ export const updateStudentAccountSchema = z.object({
 });
 export type UpdateStudentAccountInput = z.input<typeof updateStudentAccountSchema>;
 
+/** Admin-set password (D-153): the team shares it with the student out of band; it is never emailed. */
+export const setPasswordSchema = z.object({ password: z.string().max(128), signOutOthers: z.boolean().default(true) });
+export type SetPasswordInput = z.input<typeof setPasswordSchema>;
+
 /** Markets + dialling codes for the create / account dialogs. */
 export async function studentFormOptions() {
   const markets = await db.market.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { code: true, name: true, defaultTimezone: true } });
@@ -329,6 +333,33 @@ export async function reactivateStudent(actor: Actor, studentId: string) {
   await db.user.update({ where: { id: s.userId }, data: { status } });
   await audit({ actorId: actor.id, action: "student.reactivate", entity: "StudentProfile", entityId: s.id, before: { status: "SUSPENDED" }, after: { status } });
   return { status };
+}
+
+/**
+ * Set (or replace) the student's password from the admin panel (D-153). Activates
+ * an INVITED account, treats the email as confirmed (the team is talking to the
+ * person), revokes unused reset/invite links and, by default, ends other sessions.
+ */
+export async function setStudentPassword(actor: Actor, studentId: string, raw: SetPasswordInput) {
+  assertManage(actor);
+  const s = await loadStudent(studentId);
+  if (s.user.status === "DEACTIVATED") throw new StudentAdminError("This account is deactivated.");
+  const v = setPasswordSchema.parse(raw);
+  const pw = passwordSchema.safeParse(v.password);
+  if (!pw.success) throw new StudentAdminError(pw.error.issues[0]?.message ?? "Enter a password.", "password");
+  await checkPasswordPolicy(pw.data, [s.user.name, s.user.email]);
+  const passwordHash = await hashPassword(pw.data);
+  const now = new Date();
+  const status = s.user.status === "INVITED" ? "ACTIVE" : s.user.status;
+  await db.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: s.userId },
+      data: { passwordHash, status, emailVerified: s.user.emailVerified ?? now, ...(v.signOutOthers ? { sessionVersion: { increment: 1 } } : {}) },
+    });
+    await tx.authToken.updateMany({ where: { userId: s.userId, consumedAt: null, type: { in: ["RESET_PASSWORD", "INVITE"] } }, data: { consumedAt: now } });
+    await audit({ actorId: actor.id, action: "student.password_set", entity: "StudentProfile", entityId: s.id, before: { status: s.user.status }, after: { status, sessionsRevoked: v.signOutOthers, emailVerified: true } }, tx);
+  });
+  return { ok: true, status };
 }
 
 /** Drop every session on every device (the student can sign in again right away). */

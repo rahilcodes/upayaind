@@ -27,6 +27,8 @@ import {
   updateStudentPreferences,
   type CreateStudentInput,
   type UpdateStudentAccountInput,
+  setStudentPassword,
+  type SetPasswordInput,
 } from "@/server/services/admin-student-accounts";
 import type { LinksInput, PreferencesInput } from "@/lib/schemas/student";
 
@@ -168,6 +170,14 @@ export async function sendStudentPasswordResetAction(studentId: string) {
     const user = await requireAction("students.manage");
     return sendStudentPasswordReset(user, id.parse(studentId));
   }, t("passwordResetSent"));
+}
+
+export async function setStudentPasswordAction(studentId: string, input: SetPasswordInput) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("students.manage");
+    return setStudentPassword(user, id.parse(studentId), input);
+  }, t("studentPasswordSet"));
 }
 
 export async function resendStudentInviteAction(studentId: string) {
