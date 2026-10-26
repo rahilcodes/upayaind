@@ -1,7 +1,11 @@
 /**
  * Email existing students their "account is ready" onboarding message.
  *
- *   pnpm tsx --conditions=react-server scripts/send-login-details.ts emails.json
+ *   npx tsx --require ./stub-server-only.cjs scripts/send-login-details.ts emails.json
+ *
+ * Not `--conditions=react-server`: the email renderer (react-dom/server) refuses that
+ * mode. The stub only maps the "server-only" guard to an empty module, e.g.
+ *   const M=require("module");const o=M._resolveFilename;M._resolveFilename=(r,...a)=>r==="server-only"?require.resolve("./empty.cjs"):o.call(M,r,...a);
  *
  * emails.json: ["a@x.com", "b@y.com"]  — each must already be a student account.
  * The password is never emailed (the team shares it directly); the email says
