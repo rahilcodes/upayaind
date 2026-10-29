@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { GEN_STEPS, type GenStep } from "./types";
+import { useServerAction } from "@/components/portal/action-form";
+import { Input } from "@/components/ui/input";
+import { confirmSkillAction } from "./actions";
 
 /** "Base 54 → Tailored 86" with breakdown tooltip (§9.5). */
 export function ScoreChip({ base, tailored }: { base: AtsBreakdown | null; tailored: AtsBreakdown | null }) {
@@ -55,8 +58,38 @@ export function ScoreChip({ base, tailored }: { base: AtsBreakdown | null; tailo
   );
 }
 
+/** "Add as confirmed skill" (D-154): the specialist records how the student confirmed it; the profile is updated and the student notified. */
+function ConfirmSkill({ studentId, skill, onDone }: { studentId: string; skill: string; onDone: () => void }) {
+  const t = useTranslations("workspace.keywords");
+  const [open, setOpen] = React.useState(false);
+  const [note, setNote] = React.useState("");
+  const { run, pending, fieldErrors } = useServerAction(confirmSkillAction, { onSuccess: () => { setOpen(false); setNote(""); onDone(); } });
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="ml-1 rounded-full border border-[#E3C98F] bg-white px-2 py-0.5 text-[11px] font-semibold text-[#7A4E0E] hover:bg-[#FBEBC8]" aria-label={t("confirmFor", { skill })}>
+        {t("confirm")}
+      </button>
+    );
+  }
+  return (
+    <form
+      className="mt-1 flex w-full flex-wrap items-center gap-2 rounded-[10px] border border-[#E3C98F] bg-white p-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run({ studentId, skill, note });
+      }}
+    >
+      <span className="text-[12.5px] font-semibold">{t("confirmTitle", { skill })}</span>
+      <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("confirmNotePlaceholder")} aria-label={t("confirmNote")} className="h-9 min-w-[220px] flex-1 text-[13px]" aria-invalid={Boolean(fieldErrors.note)} />
+      <Button type="submit" size="sm" loading={pending}>{t("confirmSave")}</Button>
+      <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>{t("confirmCancel")}</Button>
+      {fieldErrors.note ? <p role="alert" className="w-full text-[12px] text-danger">{fieldErrors.note[0]}</p> : null}
+    </form>
+  );
+}
+
 /** JD keywords covered ✅ / missing ⚠️ — missing ones are suggestions only (never auto-inserted). */
-export function KeywordPanel({ ats, profileSkills }: { ats: AtsBreakdown | null; profileSkills: string[] }) {
+export function KeywordPanel({ ats, profileSkills, studentId, onProfileChanged }: { ats: AtsBreakdown | null; profileSkills: string[]; studentId?: string; onProfileChanged?: () => void }) {
   const t = useTranslations("workspace.keywords");
   if (!ats) return null;
   const has = new Set(profileSkills.map((s) => s.toLowerCase()));
@@ -90,9 +123,11 @@ export function KeywordPanel({ ats, profileSkills }: { ats: AtsBreakdown | null;
           </p>
           <ul className="flex flex-wrap gap-1.5">
             {missing.map((k) => (
-              <li key={k.keyword} className="inline-flex items-center gap-1 rounded-full bg-[#FDF3E1] px-2.5 py-1 text-[13px] font-medium text-[#7A4E0E]" title={has.has(k.keyword.toLowerCase()) ? t("inProfile") : t("notInProfile")}>
+              <li key={k.keyword} className="inline-flex flex-wrap items-center gap-1 rounded-full bg-[#FDF3E1] px-2.5 py-1 text-[13px] font-medium text-[#7A4E0E]" title={has.has(k.keyword.toLowerCase()) ? t("inProfile") : t("notInProfile")}>
                 <span aria-hidden="true">⚠️</span> {k.keyword}
+                {k.partial ? <span className="text-[11px] opacity-70">· {t("partial", { pct: Math.round(k.partial * 100) })}</span> : null}
                 {has.has(k.keyword.toLowerCase()) ? <span className="text-[11px] font-semibold">· {t("inProfileShort")}</span> : null}
+                {studentId && !has.has(k.keyword.toLowerCase()) && k.kind !== "keyword" ? <ConfirmSkill studentId={studentId} skill={k.keyword} onDone={() => onProfileChanged?.()} /> : null}
               </li>
             ))}
           </ul>

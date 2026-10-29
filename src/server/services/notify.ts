@@ -55,6 +55,13 @@ export const TEMPLATES = {
     body: (p) => `${s(p.amount)} for ${s(p.plan)}. Reason: ${s(p.reason) || "unknown"}.`,
     link: (p) => `/admin/students/${s(p.studentId)}`,
   },
+  skill_added_by_specialist: {
+    title: (p) => `"${s(p.skill)}" was added to your profile`,
+    body: (p) => `Your specialist added "${s(p.skill)}" to your skills after you confirmed it, so it can appear on tailored resumes. If that's not right, remove it from your profile.`,
+    link: () => "/app/profile",
+    cta: () => "Review profile",
+    mandatory: true,
+  },
   assigned_student: {
     whatsapp: true,
     title: (p) => `Your specialist is ${s(p.employeeFirstName)}`,

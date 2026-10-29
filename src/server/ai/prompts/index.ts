@@ -57,6 +57,13 @@ ${TRUTHFULNESS_RULES}
 ${styleRules(input.style)}
 Write strong, specific bullets that start with action verbs. Put the most relevant experience bullets and skills first. Keep ids of experience entries and bullets from MASTER_PROFILE (new bullet ids may be "<expId>_t1", "<expId>_t2"...).
 Set meta.sectionOrder to the section order above.
+ATS MAXIMISATION (do all of these, within the truthfulness rules):
+- Go through EVERY item of JD_ANALYSIS.requiredSkills, niceToHaveSkills and keywords. For each one the student genuinely has or has done, make sure the exact JD phrase appears in the resume: in the skills section, in a bullet, or in the summary. Aim for every matching term to appear at least once.
+- First skills group: name it "Key skills" and list the JD-matching skills first, in the JD's wording, followed by the student's other relevant skills.
+- Headline: use the job title (or the closest truthful variant of it) when the student's experience matches the role; otherwise the student's own title.
+- Summary: 2–3 sentences that read like the role's own description, built only from the student's real experience, naming the top required skills and the domain.
+- Bullets: where a bullet describes work that used a JD skill or keyword, rewrite it to name that skill/keyword explicitly (same wording as the JD).
+- Do not stuff: each term should appear where it is true, in natural sentences. Never list a skill the student lacks.
 ${DATA_NOTE}`,
     user: `${fenced("master_profile", JSON.stringify(input.master))}
 
@@ -64,7 +71,7 @@ JOB: ${input.job.title} at ${input.job.company}${input.job.location ? `, ${input
 JD_ANALYSIS: ${JSON.stringify(input.analysis)}
 ${fenced("jd", input.jd)}
 
-Task: produce a tailored resume JSON that maximises relevant keyword coverage truthfully.${retry}`,
+Task: produce a tailored resume JSON that maximises keyword coverage of JD_ANALYSIS truthfully — every JD term the student can honestly claim must appear, in the JD's wording.${retry}`,
   };
 }
 

@@ -1,7 +1,7 @@
 import "server-only";
 import type { Role } from "@/generated/prisma/enums";
 import { db, Prisma } from "@/server/db";
-import { ForbiddenError } from "@/server/auth/access";
+import { assertEmployeeCanAccessStudent, ForbiddenError } from "@/server/auth/access";
 import { UserError } from "@/server/errors";
 import { ResumeJSON, emptyResume, type ResumeData } from "@/resume/schema";
 import { linksSchema, personalSchema, preferencesSchema, SPONSORSHIP_AUTH, type LinksInput, type PersonalInput, type PreferencesInput } from "@/lib/schemas/student";
@@ -11,6 +11,7 @@ import { extractText, getLatestParse, parseMaster } from "./resumes";
 import { LIMITS, storeUpload } from "./files";
 import { audit } from "./audit";
 import { enforceRateLimit } from "./ratelimit";
+import { notify } from "./notify";
 
 /**
  * Student-owned profile data (SPEC F3 + /app/profile): personal info, job
@@ -303,4 +304,40 @@ export async function getParseStatus(user: Actor, fileId: string) {
 /** The most recent uploaded resume (for "Your uploaded file" links). */
 export async function getLatestUpload(studentId: string) {
   return db.fileObject.findFirst({ where: { studentId, purpose: "resume", key: { contains: "/uploads/" } }, orderBy: { createdAt: "desc" }, select: { id: true, filename: true, createdAt: true, size: true } });
+}
+
+/** Skills group that holds JD skills the student confirmed to their specialist (D-154). */
+export const CONFIRMED_SKILLS_GROUP = "Additional skills";
+
+/**
+ * A specialist adds a JD skill to the student's master profile after the
+ * student confirmed they have it (D-154). This is the only way a skill the
+ * profile lacks can enter a resume: the student attests, the action is audited
+ * with the specialist's note, and the student is notified so they can remove
+ * it from their profile if it is wrong. Staff only, scoped by assignment.
+ */
+export async function addConfirmedSkill(user: Actor, studentId: string, raw: { skill: string; note: string }) {
+  if (user.role === "STUDENT") throw new ForbiddenError();
+  await assertEmployeeCanAccessStudent(user, studentId);
+  const skill = raw.skill.normalize("NFKC").replace(/\s+/g, " ").trim();
+  const note = raw.note.trim();
+  if (skill.length < 1 || skill.length > 60) throw new StudentProfileError("Enter a skill of at most 60 characters.", "skill");
+  if (note.length < 5 || note.length > 300) throw new StudentProfileError("Say how the student confirmed it (e.g. 'confirmed on WhatsApp 26 Oct').", "note");
+  const s = await db.studentProfile.findUnique({ where: { id: studentId }, select: { masterProfile: true, userId: true } });
+  if (!s) throw new ForbiddenError();
+  const { master } = parseMaster(s.masterProfile);
+  if (!master) throw new StudentProfileError("The student's master profile isn't complete yet.");
+  const existing = new Set([...master.skills.flatMap((g) => g.items), ...master.experience.flatMap((e) => e.technologies ?? [])].map((x) => x.trim().toLowerCase()));
+  if (existing.has(skill.toLowerCase())) throw new StudentProfileError("This skill is already in the student's profile.", "skill");
+  const groups = master.skills.map((g) => ({ ...g, items: [...g.items] }));
+  const target = groups.find((g) => g.group.toLowerCase() === CONFIRMED_SKILLS_GROUP.toLowerCase());
+  if (target) target.items.push(skill);
+  else groups.push({ group: CONFIRMED_SKILLS_GROUP, items: [skill] });
+  const content = { ...master, skills: groups };
+  await db.$transaction(async (tx) => {
+    await tx.studentProfile.update({ where: { id: studentId }, data: { masterProfile: content as unknown as Prisma.InputJsonValue } });
+    await audit({ actorId: user.id, action: "student.skill_confirmed", entity: "StudentProfile", entityId: studentId, after: { skill, note, group: CONFIRMED_SKILLS_GROUP } }, tx);
+  });
+  await notify(s.userId, "skill_added_by_specialist", { skill }).catch(() => undefined);
+  return { skill, group: CONFIRMED_SKILLS_GROUP };
 }

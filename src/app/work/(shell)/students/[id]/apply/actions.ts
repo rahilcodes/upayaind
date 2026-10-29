@@ -8,6 +8,7 @@ import * as resumes from "@/server/services/resumes";
 import { suggestEdit, type EditRequestT } from "@/server/services/resume-edits";
 import { fetchJobPosting } from "@/server/services/job-fetch";
 import { rememberWorkspaceDefaults } from "@/server/services/workspace-prefs";
+import { addConfirmedSkill } from "@/server/services/student-profile";
 import type { ApplicationStatus } from "@/generated/prisma/enums";
 
 const STAFF = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "ADMIN"] as const;
@@ -19,6 +20,15 @@ export async function checkDuplicatesAction(input: { studentId: string; jobUrl?:
     const data = z.object({ studentId: id, jobUrl: z.string().max(2000).optional(), companyName: z.string().max(200).optional(), jobTitle: z.string().max(200).optional() }).parse(input);
     return apps.checkDuplicates(user, data);
   });
+}
+
+/** D-154: add a JD skill the student has confirmed to their master profile (audited, student notified). */
+export async function confirmSkillAction(input: { studentId: string; skill: string; note: string }) {
+  return safeAction(async () => {
+    const user = await requireRole(STAFF);
+    const data = z.object({ studentId: id, skill: z.string().min(1).max(60), note: z.string().min(5).max(300) }).parse(input);
+    return addConfirmedSkill(user, data.studentId, data);
+  }, "Skill added to the applicant's profile. Generate again to use it.");
 }
 
 export async function saveVersionAction(versionId: string, content: unknown, jobTitle?: string) {

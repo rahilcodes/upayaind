@@ -151,8 +151,37 @@ export function stemToken(t: string): string {
 }
 
 export function stemmedTokens(text: string, opts: { dropStopwords?: boolean } = {}): string[] {
-  const toks = tokenize(text);
+  const toks = tokenize(normalizeAliases(text));
   return (opts.dropStopwords ? toks.filter((t) => !STOP.has(t)) : toks).map(stemToken);
+}
+
+/**
+ * Equivalent spellings / abbreviations an ATS treats as one skill. Applied to
+ * both the JD terms and the resume text before stemming, so "JavaScript" in the
+ * JD matches "JS" in a resume (and vice versa). Lower-case, longest form first.
+ */
+const ALIASES: [string, string][] = [
+  ["javascript", "js"], ["typescript", "ts"], ["postgresql", "postgres"], ["microsoft excel", "excel"], ["ms excel", "excel"], ["microsoft office", "ms office"],
+  ["microsoft power bi", "power bi"], ["powerbi", "power bi"], ["machine learning", "ml"], ["artificial intelligence", "ai"], ["ai/ml", "ai ml"], ["ml/ai", "ai ml"],
+  ["natural language processing", "nlp"], ["kubernetes", "k8s"], ["google cloud platform", "gcp"], ["google cloud", "gcp"], ["amazon web services", "aws"],
+  ["microsoft azure", "azure"], ["reactjs", "react.js"], ["nodejs", "node.js"], ["vuejs", "vue.js"], ["nextjs", "next.js"],
+  ["ci/cd", "cicd"], ["ci cd", "cicd"], ["continuous integration", "cicd"], ["rest api", "rest"], ["restful api", "rest"], ["restful", "rest"], ["user experience", "ux"],
+  ["user interface", "ui"], ["quality assurance", "qa"], ["business intelligence", "bi"], ["customer relationship management", "crm"], ["search engine optimization", "seo"],
+  ["search engine optimisation", "seo"], ["structured query language", "sql"], ["ms sql", "sql server"], ["mssql", "sql server"], ["microsoft sql server", "sql server"],
+  ["servicenow", "service now"], ["github actions", "github"], ["a/b testing", "ab testing"], ["a/b test", "ab testing"], ["e-commerce", "ecommerce"],
+  ["selenium webdriver", "selenium"], ["test automation", "automation testing"], ["automated testing", "automation testing"], ["unit testing", "unit tests"],
+  ["etl pipelines", "etl"], ["data pipelines", "etl"], ["object oriented programming", "oop"], ["object-oriented", "oop"], ["scikit-learn", "sklearn"], ["scikit learn", "sklearn"],
+  ["tensorflow", "tf"], ["pytorch", "torch"], ["large language models", "llm"], ["llms", "llm"], ["generative ai", "genai"], ["gen ai", "genai"],
+];
+
+/** Replace every alias by its canonical short form (longest alias first so "microsoft excel" wins over "excel"). */
+export function normalizeAliases(text: string): string {
+  let out = ` ${text.toLowerCase()} `;
+  for (const [from, to] of ALIASES.slice().sort((a, b) => b[0].length - a[0].length)) {
+    const esc = from.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+    out = out.replace(new RegExp(`(?<![a-z0-9])${esc}(?![a-z0-9])`, "g"), to);
+  }
+  return out.trim();
 }
 
 /** Does `phrase` occur (as consecutive stemmed tokens) in the haystack token list? */
@@ -163,4 +192,19 @@ export function containsPhrase(haystack: string[], phrase: string[]): boolean {
     return true;
   }
   return false;
+}
+
+/**
+ * Coverage of a multi-word phrase: 1 when the whole phrase occurs, otherwise
+ * the share of its distinct tokens that occur anywhere (only for phrases of 3+
+ * tokens, and only when at least half are present — e.g. "data visualization
+ * dashboards" with "dashboards" and "data" present scores 0.67).
+ */
+export function phraseCoverage(haystack: string[], phrase: string[]): number {
+  if (containsPhrase(haystack, phrase)) return 1;
+  if (phrase.length < 3) return 0;
+  const set = new Set(haystack);
+  const distinct = [...new Set(phrase)];
+  const hit = distinct.filter((t) => set.has(t)).length;
+  return hit * 2 >= distinct.length ? Math.round((hit / distinct.length) * 100) / 100 : 0;
 }

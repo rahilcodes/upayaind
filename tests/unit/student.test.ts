@@ -421,3 +421,27 @@ describe("prep", () => {
     expect((await db.mockInterview.findUniqueOrThrow({ where: { id: slot.id } })).status).toBe("OPEN");
   });
 });
+
+describe("confirmed skills (D-154)", () => {
+  it("lets the assigned specialist add a skill the student confirmed, audited and notified; students and strangers cannot", async () => {
+    const { addConfirmedSkill, CONFIRMED_SKILLS_GROUP } = await import("@/server/services/student-profile");
+    const m = await makeMarket();
+    const c = await makeStudent(m.id);
+    await db.studentProfile.update({ where: { id: c.student.id }, data: { masterProfile: { ...MASTER, basics: { ...MASTER.basics, email: c.user.email } } as never } });
+    const e = await makeEmployee(m.id);
+    const other = await makeEmployee(m.id);
+    await db.assignment.create({ data: { studentId: c.student.id, employeeId: e.employee.id, type: "PRIMARY", source: "MANUAL", isActive: true } });
+    const emp = { id: e.user.id, role: "EMPLOYEE" as const };
+    await expect(addConfirmedSkill({ id: c.user.id, role: "STUDENT" }, c.student.id, { skill: "Power BI", note: "self" })).rejects.toThrow();
+    await expect(addConfirmedSkill({ id: other.user.id, role: "EMPLOYEE" }, c.student.id, { skill: "Power BI", note: "confirmed on call" })).rejects.toThrow();
+    await expect(addConfirmedSkill(emp, c.student.id, { skill: "Power BI", note: "ok" })).rejects.toThrow(/confirmed/);
+    const r = await addConfirmedSkill(emp, c.student.id, { skill: "Power BI", note: "Confirmed on WhatsApp 26 Oct" });
+    expect(r.group).toBe(CONFIRMED_SKILLS_GROUP);
+    const s = await db.studentProfile.findUniqueOrThrow({ where: { id: c.student.id }, select: { masterProfile: true } });
+    const groups = (s.masterProfile as { skills: { group: string; items: string[] }[] }).skills;
+    expect(groups.find((g) => g.group === CONFIRMED_SKILLS_GROUP)?.items).toEqual(["Power BI"]);
+    await expect(addConfirmedSkill(emp, c.student.id, { skill: "power bi", note: "Confirmed again" })).rejects.toThrow(/already/);
+    expect(await db.auditLog.count({ where: { action: "student.skill_confirmed", entityId: c.student.id } })).toBe(1);
+    expect(await db.notification.count({ where: { userId: c.user.id, type: "skill_added_by_specialist" } })).toBe(1);
+  });
+});

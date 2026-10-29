@@ -164,7 +164,15 @@
       "inProfile": "This is in the applicant's profile — consider surfacing it.",
       "notInProfile": "Not in the applicant's profile. Don't add it.",
       "inProfileShort": "in profile",
-      "missingHint": "Never add skills the applicant doesn't have. If a missing keyword is genuinely in their experience, rephrase a bullet to mention it."
+      "missingHint": "Never add a skill the applicant doesn't have. If a missing keyword is genuinely in their experience, rephrase a bullet to mention it in the JD's wording. If the applicant tells you they do have a missing skill, use “Add after confirming” — it goes into their profile (they're notified) and the next generation can use it.",
+      "partial": "{pct}% of the phrase",
+      "confirm": "Add after confirming",
+      "confirmFor": "Add {skill} to the applicant's profile after they confirm it",
+      "confirmTitle": "Add “{skill}” — how did the applicant confirm it?",
+      "confirmNote": "How the applicant confirmed",
+      "confirmNotePlaceholder": "e.g. confirmed on WhatsApp, 26 Oct",
+      "confirmSave": "Add to profile",
+      "confirmCancel": "Cancel"
     },
     "cover": {
       "emptyTitle": "No cover letter yet",

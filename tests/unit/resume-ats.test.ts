@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { normalizeAliases, phraseCoverage } from "@/server/ai/stem";
 import { computeAtsScore, titleSimilarity, ATS_WEIGHTS } from "@/server/ai/ats-score";
 import { porterStem, stemmedTokens } from "@/server/ai/stem";
 import { heuristicJdAnalysis } from "@/server/ai/jd-heuristic";
@@ -76,5 +77,31 @@ describe("heuristic JD analysis (no API key)", () => {
     expect(a.requiredSkills).not.toContain("Airflow");
     expect(a.seniority).toBe("Senior");
     expect(a.method).toBe("heuristic");
+  });
+});
+
+describe("ATS aliases and partial credit (D-154)", () => {
+  it("treats equivalent spellings as one term on both sides", () => {
+    expect(normalizeAliases("Microsoft Excel, JavaScript and PostgreSQL on AWS")).toBe("excel, js and postgres on aws");
+    const r = clone(MASTER);
+    r.skills = [{ group: "Core", items: ["JS", "Postgres", "MS Excel", "Machine Learning", "k8s"] }];
+    const analysis = { ...ANALYSIS, requiredSkills: ["JavaScript", "PostgreSQL", "Microsoft Excel", "ML", "Kubernetes"], niceToHaveSkills: [], keywords: [] };
+    const score = computeAtsScore({ resume: r, analysis, jobTitle: "Data Analyst" });
+    expect(score.keywords.every((k) => k.covered)).toBe(true);
+    expect(score.keywordCoverage).toBe(100);
+    expect(score.skillsOverlap).toBe(100);
+  });
+  it("gives partial credit for long phrases whose words appear separately, never for short ones", () => {
+    const hay = ["data", "visual", "report", "weekli", "dashboard"];
+    expect(phraseCoverage(hay, ["data", "visual", "dashboard"])).toBe(1); // all words present, scattered
+    expect(phraseCoverage(["data", "visual", "report"], ["data", "visual", "dashboard"])).toBe(0.67);
+    expect(phraseCoverage(["data", "report"], ["data", "visual", "dashboard"])).toBe(0); // under half
+    expect(phraseCoverage(hay, ["stakehold", "manag"])).toBe(0); // short phrases: all or nothing
+    expect(phraseCoverage(["data", "visual", "dashboard"], ["data", "visual", "dashboard"])).toBe(1);
+  });
+  it("still weights required ×2 and never exceeds 100", () => {
+    const r = computeAtsScore({ resume: MASTER, analysis: ANALYSIS, jobTitle: "Data Analyst", maxPages: 1, pageCount: 1 });
+    expect(r.keywordCoverage).toBeLessThanOrEqual(100);
+    expect(r.score).toBeLessThanOrEqual(100);
   });
 });

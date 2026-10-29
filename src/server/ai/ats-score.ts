@@ -1,6 +1,6 @@
 import type { ResumeData } from "@/resume/schema";
 import type { JdAnalysisData } from "./schemas";
-import { containsPhrase, stemmedTokens } from "./stem";
+import { containsPhrase, phraseCoverage, stemmedTokens } from "./stem";
 
 /**
  * Deterministic ATS match score (SPEC §9.5) — a guide for employees, not a promise.
@@ -8,7 +8,7 @@ import { containsPhrase, stemmedTokens } from "./stem";
  * All components are 0–100. Same input → same output (no randomness, no AI).
  */
 
-export type KeywordHit = { keyword: string; kind: "required" | "nice" | "keyword"; covered: boolean };
+export type KeywordHit = { keyword: string; kind: "required" | "nice" | "keyword"; covered: boolean; /** 0–1: partial credit for long phrases whose words appear separately. */ partial?: number };
 
 export type AtsBreakdown = {
   score: number;
@@ -128,11 +128,12 @@ export function computeAtsScore(input: {
   let hitW = 0;
   const keywords: KeywordHit[] = terms.map((t) => {
     const phrase = stemmedTokens(t.keyword, { dropStopwords: true });
-    const covered = containsPhrase(haystack, phrase);
+    const cov = phraseCoverage(haystack, phrase);
+    const covered = cov === 1;
     const w = t.kind === "required" ? 2 : 1;
     totalW += w;
-    if (covered) hitW += w;
-    return { keyword: t.keyword, kind: t.kind, covered };
+    hitW += w * cov;
+    return { keyword: t.keyword, kind: t.kind, covered, ...(cov > 0 && cov < 1 ? { partial: cov } : {}) };
   });
   const keywordCoverage = totalW ? Math.round((hitW / totalW) * 100) : 0;
 

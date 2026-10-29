@@ -381,7 +381,7 @@ export function ApplyWorkspace(props: Props) {
   ) : (
     <EmptyState icon={<Pencil className="h-5 w-5" aria-hidden="true" />} title={t("editor.emptyTitle")} body={t("editor.emptyBody")} className="bg-surface" />
   );
-  const keywordsPane = tailor ? <KeywordPanel ats={liveScore} profileSkills={props.profileSkills} /> : <EmptyState title={t("keywords.emptyTitle")} body={t("keywords.emptyBody")} className="bg-surface" />;
+  const keywordsPane = tailor ? <KeywordPanel ats={liveScore} profileSkills={props.profileSkills} studentId={props.student.id} onProfileChanged={() => router.refresh()} /> : <EmptyState title={t("keywords.emptyTitle")} body={t("keywords.emptyBody")} className="bg-surface" />;
   const coverPane = tailor ? (
     <CoverLetterPanel value={cover} onChange={onCoverChange} onGenerate={generateCover} generating={coverGenerating} aiEnabled={props.aiEnabled} locked={tailor.locked || disabled} saving={coverSaving} />
   ) : (

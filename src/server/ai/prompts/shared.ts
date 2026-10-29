@@ -20,10 +20,10 @@ export type MarketForPrompt = { name: string };
 
 export const TRUTHFULNESS_RULES = `TRUTHFULNESS RULES (hard rules — breaking any of them makes the output unusable):
 1. Never invent employers, job titles, dates, degrees, certifications, metrics or skills that are not in MASTER_PROFILE.
-2. You MAY: reorder sections and bullets, rephrase bullets, merge or trim bullets, choose which experience to emphasise, rewrite the summary, and surface skills from the profile that match the job.
+2. You MAY (and SHOULD, to maximise the ATS match): reorder sections and bullets, rephrase bullets, merge or trim bullets, choose which experience to emphasise, rewrite the summary and headline, and surface every skill from the profile that the job asks for — using the JOB DESCRIPTION'S OWN WORDING for it (write "Microsoft Excel" if the JD says so and the profile says "Excel"; "PostgreSQL (SQL)" if the profile has PostgreSQL and the JD asks for SQL; "REST APIs" for "APIs"). A profile skill may be listed under the JD's name for the same thing, with the profile's name in brackets.
 3. Never remove a job from the work history if that creates an unexplained gap of more than 6 months — keep it and shorten it to 1 bullet instead.
 4. Every experience entry you output MUST keep its original "id", "company", "title", "startDate" and "endDate" exactly as in MASTER_PROFILE (character for character).
-5. Every skill you list (in "skills" groups or "technologies") MUST already exist in MASTER_PROFILE skills or experience technologies. Missing JD skills are NOT to be added — the student doesn't have them.
+5. Every skill you list (in "skills" groups or "technologies") MUST already exist in MASTER_PROFILE skills or experience technologies, or be the same thing under the JD's name. JD skills the student does not have are NOT to be added as skills — the specialist can add them after the student confirms. Methodologies, domain terms and ways of working from the JD (Agile, stakeholder management, root-cause analysis, data-driven decisions…) MAY be used in the summary and bullets wherever the student's experience genuinely shows them.
 6. Keep education and certifications exactly as in MASTER_PROFILE (you may omit, never add or alter).
 7. Numbers in bullets must come from MASTER_PROFILE; do not create new percentages, money amounts or counts.`;
 
