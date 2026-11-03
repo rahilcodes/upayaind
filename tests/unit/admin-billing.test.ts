@@ -203,6 +203,22 @@ describe("recordManualPayment", () => {
     expect(log.after).toMatchObject({ method: "bank", reference: "UTR123", note: "Received", amountMinor: 29900 });
   });
 
+  it("a cash payment against a pending STRIPE checkout converts it to a MANUAL plan and activates it", async () => {
+    const { pp, s, admin } = await setup();
+    const pending = await db.subscription.create({ data: { studentId: s.student.id, planPriceId: pp.id, status: "PENDING_PAYMENT", provider: "STRIPE", remindersSent: [] } });
+    const paidAt = new Date("2026-05-05T12:00:00Z");
+    const r = await recordManualPayment(admin, { studentId: s.student.id, subscriptionId: pending.id, amountMinor: 29900, currency: "USD", paidAt, method: "cash" });
+    const sub = await db.subscription.findUniqueOrThrow({ where: { id: pending.id } });
+    expect(sub).toMatchObject({ status: "ACTIVE", provider: "MANUAL" });
+    expect(sub.currentPeriodStart!.toISOString()).toBe(paidAt.toISOString());
+    expect(sub.currentPeriodEnd!.toISOString()).toBe("2026-06-05T12:00:00.000Z");
+    expect(r.subscriptionId).toBe(pending.id);
+    expect(await db.auditLog.count({ where: { action: "subscription.convert_manual", entityId: pending.id } })).toBe(1);
+    // A pending row that already exists in the gateway is refused.
+    const gw = await db.subscription.create({ data: { studentId: s.student.id, planPriceId: pp.id, status: "PENDING_PAYMENT", provider: "STRIPE", providerSubId: "sub_live_1", remindersSent: [] } });
+    await expect(recordManualPayment(admin, { studentId: s.student.id, subscriptionId: gw.id, amountMinor: 29900, currency: "USD", paidAt, method: "cash" })).rejects.toThrow(/already exists in the gateway/);
+  });
+
   it("renews the plan: a running plan gets one more period, an expired one restarts from the payment date (D-155)", async () => {
     const { pp, s, admin } = await setup();
     const g = await grantPlan(admin, { studentId: s.student.id, planPriceId: pp.id, startsAt: new Date("2026-03-01T00:00:00Z"), periodEnd: new Date("2026-04-01T00:00:00Z") });

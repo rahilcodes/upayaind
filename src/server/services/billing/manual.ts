@@ -247,7 +247,14 @@ export async function recordManualPayment(actor: Actor, raw: z.input<typeof manu
   let period: { start: Date | null; end: Date | null } = { start: null, end: null };
   let renewedUntil: Date | null = null;
   if (sub && sub.status === "PENDING_PAYMENT") {
-    if (sub.provider !== "MANUAL") throw new BillingError(`This ${sub.provider} checkout hasn’t completed. Record the payment without a subscription, or grant a manual plan.`, "subscriptionId");
+    if (sub.provider !== "MANUAL") {
+      // The student chose a plan on the site but paid offline (cash/UPI/bank) instead of completing checkout:
+      // the pending gateway row becomes a MANUAL plan (no gateway subscription exists yet to conflict with).
+      const live = await db.subscription.findUnique({ where: { id: sub.id }, select: { providerSubId: true } });
+      if (live?.providerSubId) throw new BillingError(`This ${sub.provider} subscription already exists in the gateway. Record the payment without a subscription, or complete it in ${sub.provider}.`, "subscriptionId");
+      await db.subscription.update({ where: { id: sub.id }, data: { provider: "MANUAL", providerCustomerId: null } });
+      await audit({ actorId: actor.id, action: "subscription.convert_manual", entity: "Subscription", entityId: sub.id, before: { provider: sub.provider }, after: { provider: "MANUAL", reason: `offline ${v.method} payment` } });
+    }
     const start = sub.currentPeriodStart ?? v.paidAt;
     const end = sub.currentPeriodEnd && sub.currentPeriodEnd > start ? sub.currentPeriodEnd : periodEndFor(start, sub.planPrice.interval);
     period = { start, end };
