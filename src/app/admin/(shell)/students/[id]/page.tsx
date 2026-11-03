@@ -21,6 +21,7 @@ import { formatDate, formatInTz, formatMoney, fromMinor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CoachAssign, DeletionControls, NotesEditor, PauseControls, StudentReassign } from "./student-actions";
 import { AccountAccessActions, AccountEditDialog, AccountStatusBadge, LinksEditDialog } from "./account-dialogs";
+import { BillingControls } from "./billing-controls";
 import { PreferencesEditDialog } from "./preferences-dialog";
 import { studentFormOptions } from "@/server/services/admin-student-accounts";
 import { listCoachOptions } from "@/server/services/coach";
@@ -354,6 +355,10 @@ export default async function Student360Page({ params, searchParams }: { params:
 
       {tab === "billing" ? (
         <div className="grid gap-6">
+          {/* Grant plans and record cash / UPI / bank payments (D-147b, D-155): ADMIN only, never on a deleted account. */}
+          {can(user.role, "billing.manage") && deletionState !== "deleted" ? (
+            <BillingControls studentId={s.id} marketId={s.market.id} currency={s.market.currency} locale={s.market.locale} tz={tz} subscriptions={s.subscriptions} />
+          ) : null}
           <Section id="subs" title={t("subscriptionsTitle")}>
             {s.subscriptions.length ? (
               <TableWrap className="border-0">
