@@ -27,12 +27,13 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
     { href: "/about", label: t("nav.about") },
     { href: "/blog", label: t("nav.blog") },
   ];
+  // Header shows the compact "US · USD" form so the nav never wraps; the footer keeps the full country name.
   const marketButton = (
     <PerMarket items={markets} as="span">
       {(m) => (
-        <span>
+        <span className="whitespace-nowrap">
           <span className="sr-only">{t("market.button", { country: m.name })} </span>
-          <span aria-hidden="true">{t("market.short", { country: m.name, currency: m.currency })}</span>
+          <span aria-hidden="true">{t("market.compact", { code: m.code, currency: m.currency })}</span>
         </span>
       )}
     </PerMarket>
@@ -48,22 +49,22 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
 
   return (
     <header className="relative z-30 border-b border-sand bg-white/80 backdrop-blur">
-      <div className={cn(container, "flex items-center gap-4 px-4 py-4 sm:px-6 lg:gap-6")}>
+      <div className="mx-auto flex w-full max-w-[1360px] items-center gap-3 px-4 py-3 sm:px-6 lg:gap-5 xl:gap-6">
         <Link href="/" aria-label={t("nav.home")} className="rounded-md">
           <Brand />
         </Link>
         <nav aria-label={t("nav.mainNav")} className="hidden flex-1 justify-center lg:flex">
-          <ul className="flex items-center gap-7 text-[15px] font-medium">
+          <ul className="flex items-center gap-5 whitespace-nowrap text-[15px] font-medium xl:gap-7">
             {links.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="inline-flex min-h-11 items-center text-ink no-underline hover:text-royal">
+              <li key={l.href} className="flex-none">
+                <Link href={l.href} className="inline-flex min-h-11 items-center whitespace-nowrap text-ink no-underline hover:text-royal">
                   {l.label}
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
-        <div className="ml-auto flex items-center gap-2 sm:gap-3 lg:ml-0">
+        <div className="ml-auto flex flex-none items-center gap-2 sm:gap-3 lg:ml-0">
           <div className="hidden sm:block">{switcher}</div>
           <PerMarket items={markets} as="span">
             {(m) =>
@@ -74,23 +75,24 @@ export async function SiteHeader({ markets }: { markets: MarketInfo[] }) {
                   rel={m.whatsapp ? "noopener noreferrer" : undefined}
                   aria-label={t("nav.callWhatsapp", { phone: m.phoneDisplay })}
                   {...trackAttrs("cta_book_call", { location: "header_phone", market: m.code })}
-                  className="hidden h-11 items-center gap-1.5 whitespace-nowrap text-[15px] font-semibold text-ink no-underline tabular hover:text-royal xl:inline-flex"
+                  title={m.phoneDisplay}
+                  className="hidden h-11 items-center gap-1.5 whitespace-nowrap rounded-[10px] px-2 text-[15px] font-semibold text-ink no-underline tabular hover:bg-[#EAF1FE] hover:text-royal xl:inline-flex"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6.2 6.2l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
                   </svg>
-                  {m.phoneDisplay}
+                  <span className="hidden 2xl:inline">{m.phoneDisplay}</span>
                 </a>
               ) : null
             }
           </PerMarket>
-          <Link href="/login" className="hidden h-11 items-center rounded-[10px] border-[1.5px] border-royal bg-white px-5 text-[15px] font-semibold text-royal no-underline hover:bg-[#EAF1FE] lg:inline-flex">
+          <Link href="/login" className="hidden h-11 items-center whitespace-nowrap rounded-[10px] border-[1.5px] border-royal bg-white px-4 text-[15px] font-semibold text-royal no-underline hover:bg-[#EAF1FE] lg:inline-flex">
             {t("nav.login")}
           </Link>
           <Link
             href="/pricing"
             {...trackAttrs("cta_get_started", { location: "header" })}
-            className="hidden h-11 items-center rounded-[10px] bg-royal px-5 text-[15px] font-semibold text-white no-underline hover:bg-royal-600 hover:text-white sm:inline-flex"
+            className="hidden h-11 items-center whitespace-nowrap rounded-[10px] bg-royal px-4 text-[15px] font-semibold text-white no-underline hover:bg-royal-600 hover:text-white sm:inline-flex"
           >
             {t("nav.getStarted")}
           </Link>

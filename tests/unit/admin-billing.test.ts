@@ -203,6 +203,31 @@ describe("recordManualPayment", () => {
     expect(log.after).toMatchObject({ method: "bank", reference: "UTR123", note: "Received", amountMinor: 29900 });
   });
 
+  it("renews the plan: a running plan gets one more period, an expired one restarts from the payment date (D-155)", async () => {
+    const { pp, s, admin } = await setup();
+    const g = await grantPlan(admin, { studentId: s.student.id, planPriceId: pp.id, startsAt: new Date("2026-03-01T00:00:00Z"), periodEnd: new Date("2026-04-01T00:00:00Z") });
+    const paidAt = new Date("2026-03-20T12:00:00Z");
+    const r = await recordManualPayment(admin, { studentId: s.student.id, subscriptionId: g.subscriptionId, amountMinor: 29900, currency: "USD", paidAt, method: "cash" });
+    expect(r.renewedUntil?.toISOString()).toBe("2026-05-01T00:00:00.000Z");
+    let sub = await db.subscription.findUniqueOrThrow({ where: { id: g.subscriptionId } });
+    expect(sub.status).toBe("ACTIVE");
+    expect(sub.currentPeriodStart!.toISOString()).toBe("2026-03-01T00:00:00.000Z"); // start untouched
+    expect(sub.currentPeriodEnd!.toISOString()).toBe("2026-05-01T00:00:00.000Z");
+    // Untick "renew": only the money is recorded.
+    await recordManualPayment(admin, { studentId: s.student.id, subscriptionId: g.subscriptionId, amountMinor: 1000, currency: "USD", paidAt, method: "upi", renew: false });
+    sub = await db.subscription.findUniqueOrThrow({ where: { id: g.subscriptionId } });
+    expect(sub.currentPeriodEnd!.toISOString()).toBe("2026-05-01T00:00:00.000Z");
+    // Expired plan + cash → restarts from the payment date.
+    await db.subscription.update({ where: { id: g.subscriptionId }, data: { status: "EXPIRED" } });
+    const later = new Date("2026-06-10T12:00:00Z");
+    const r2 = await recordManualPayment(admin, { studentId: s.student.id, subscriptionId: g.subscriptionId, amountMinor: 29900, currency: "USD", paidAt: later, method: "bank" });
+    sub = await db.subscription.findUniqueOrThrow({ where: { id: g.subscriptionId } });
+    expect(sub.status).toBe("ACTIVE");
+    expect(sub.currentPeriodStart!.toISOString()).toBe(later.toISOString());
+    expect(sub.currentPeriodEnd!.toISOString()).toBe(r2.renewedUntil!.toISOString());
+    expect(sub.currentPeriodEnd!.toISOString()).toBe("2026-07-10T12:00:00.000Z");
+  });
+
   it("works without a subscription and refuses a currency mismatch, a future date and a non-positive amount", async () => {
     const { s, admin } = await setup();
     const r = await recordManualPayment(admin, { studentId: s.student.id, amountMinor: 5000, currency: "USD", paidAt: new Date(), method: "cash" });

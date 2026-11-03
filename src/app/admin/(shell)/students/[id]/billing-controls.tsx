@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Dropdown, DropdownContent, DropdownItem, DropdownLabel, DropdownSeparator, DropdownTrigger } from "@/components/ui/dropdown";
-import { Field, Input, Select, Textarea, fieldA11y } from "@/components/ui/input";
+import { Checkbox, Field, Input, Select, Textarea, fieldA11y } from "@/components/ui/input";
 import { periodEndFor } from "@/lib/billing-period";
 import { formatDate, formatMoney, fromMinor, minorDigits, toMinor } from "@/lib/format";
 import { cancelAtPeriodEndAction, changePlanAction, grantPlanAction, listGrantablePricesAction, recordManualPaymentAction, setSubscriptionPeriodAction, setSubscriptionStatusAction } from "../billing-actions";
@@ -125,7 +125,7 @@ export function BillingControls({ studentId, marketId, currency, locale, tz, sub
       ) : null}
 
       <GrantPlanDialog open={grantOpen} onOpenChange={setGrantOpen} studentId={studentId} prices={prices} locale={locale} />
-      <RecordPaymentDialog open={payOpen} onOpenChange={setPayOpen} studentId={studentId} currency={currency} locale={locale} subscriptions={subscriptions} />
+      <RecordPaymentDialog open={payOpen} onOpenChange={setPayOpen} studentId={studentId} currency={currency} locale={locale} tz={tz} subscriptions={subscriptions} />
       {row?.kind === "change" ? <ChangePlanDialog sub={row.sub} prices={prices} locale={locale} onClose={() => setRow(null)} /> : null}
       {row?.kind === "period" ? <EditPeriodDialog sub={row.sub} onClose={() => setRow(null)} /> : null}
       {row?.kind === "status" ? <SetStatusDialog sub={row.sub} onClose={() => setRow(null)} /> : null}
@@ -277,11 +277,12 @@ function GrantPlanDialog({ open, onOpenChange, studentId, prices, locale }: { op
 
 // ───────────────────────────── record payment ─────────────────────────────
 
-function RecordPaymentDialog({ open, onOpenChange, studentId, currency, locale, subscriptions }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; currency: string; locale: string; subscriptions: BillingSubscription[] }) {
+function RecordPaymentDialog({ open, onOpenChange, studentId, currency, locale, tz, subscriptions }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; currency: string; locale: string; tz: string; subscriptions: BillingSubscription[] }) {
   const t = useTranslations("admin.student360.billingAdmin");
   const ti = useTranslations("interval");
   const id = React.useId().replace(/:/g, "");
-  const linkable = subscriptions.filter((s) => s.status !== "CANCELED" && s.status !== "EXPIRED");
+  // Ended MANUAL plans stay linkable: a cash/UPI payment restarts them (D-155). Gateway plans renew through the gateway.
+  const linkable = subscriptions.filter((s) => (s.status !== "CANCELED" && s.status !== "EXPIRED") || s.provider === "MANUAL");
   const defaultSub = linkable.find((s) => s.status === "ACTIVE" || s.status === "PAUSED" || s.status === "PAST_DUE") ?? linkable.find((s) => s.status === "PENDING_PAYMENT") ?? null;
   const [subId, setSubId] = React.useState(defaultSub?.id ?? "");
   const [amount, setAmount] = React.useState("");
@@ -289,8 +290,13 @@ function RecordPaymentDialog({ open, onOpenChange, studentId, currency, locale, 
   const [method, setMethod] = React.useState("bank");
   const [reference, setReference] = React.useState("");
   const [note, setNote] = React.useState("");
+  const [renew, setRenew] = React.useState(true);
   const { run, pending, fieldErrors } = useServerAction(recordManualPaymentAction, { onSuccess: () => onOpenChange(false) });
   const linked = linkable.find((s) => s.id === subId);
+  const renewable = Boolean(linked && linked.provider === "MANUAL" && ["ACTIVE", "PAST_DUE", "EXPIRED", "CANCELED"].includes(linked.status));
+  const paidAtDate = fromDayInput(paidOn || todayInput());
+  const running = Boolean(linked && linked.status === "ACTIVE" && linked.currentPeriodEnd && new Date(linked.currentPeriodEnd) > paidAtDate);
+  const renewEnd = linked ? periodEndFor(running ? new Date(linked.currentPeriodEnd!) : paidAtDate, linked.planPrice.interval) : null;
   const cur = linked?.planPrice.currency ?? currency;
   const digits = minorDigits(cur);
   const step = digits ? `0.${"0".repeat(digits - 1)}1` : "1";
@@ -302,6 +308,7 @@ function RecordPaymentDialog({ open, onOpenChange, studentId, currency, locale, 
     setMethod("bank");
     setReference("");
     setNote("");
+    setRenew(true);
   };
 
   return (
@@ -319,7 +326,7 @@ function RecordPaymentDialog({ open, onOpenChange, studentId, currency, locale, 
             e.preventDefault();
             const n = Number(amount);
             if (!Number.isFinite(n) || n <= 0) return;
-            run({ studentId, subscriptionId: subId || null, amountMinor: toMinor(n, cur), currency: cur, paidAt: fromDayInput(paidOn), method: method as "bank", reference: reference || undefined, note: note || undefined });
+            run({ studentId, subscriptionId: subId || null, amountMinor: toMinor(n, cur), currency: cur, paidAt: fromDayInput(paidOn), method: method as "bank", reference: reference || undefined, note: note || undefined, renew: renewable ? renew : false });
           }}
         >
           <Field id={`p-sub-${id}`} label={t("linkSubscription")} hint={t("linkSubscriptionHint")} error={fieldErrors.subscriptionId}>
@@ -366,6 +373,15 @@ function RecordPaymentDialog({ open, onOpenChange, studentId, currency, locale, 
             <Textarea {...fieldA11y(`p-note-${id}`, fieldErrors.note, true)} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} className="min-h-20" />
           </Field>
           {linked?.status === "PENDING_PAYMENT" ? <p className="text-[13px] text-muted-foreground">{t("willActivate")}</p> : null}
+          {renewable && renewEnd ? (
+            <label className="flex items-start gap-2 rounded-[10px] border border-border bg-surface-muted/40 p-3 text-sm">
+              <Checkbox checked={renew} onChange={(e) => setRenew(e.target.checked)} className="mt-0.5" />
+              <span>
+                <span className="font-semibold">{running ? t("renewExtend", { interval: ti(linked!.planPrice.interval) }) : t("renewRestart", { interval: ti(linked!.planPrice.interval) })}</span>
+                <span className="block text-[12.5px] text-muted-foreground">{t("renewUntil", { date: formatDate(renewEnd, tz) })}</span>
+              </span>
+            </label>
+          ) : null}
           {amount && Number(amount) > 0 ? <p className="text-sm font-semibold">{t("paymentSummary", { amount: formatMoney(toMinor(Number(amount), cur), cur, locale) })}</p> : null}
           <DialogButtons pending={pending} label={t("recordPayment")} onCancel={() => onOpenChange(false)} disabled={!amount} />
         </form>

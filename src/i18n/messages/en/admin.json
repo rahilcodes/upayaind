@@ -1087,7 +1087,7 @@
         "note": "Internal note",
         "noteHint": "Kept in the audit log; not shown to the student.",
         "paymentTitle": "Record a payment",
-        "paymentBody": "Logs an offline payment as succeeded, issues the next invoice number and emails the invoice to the student.",
+        "paymentBody": "Logs an offline payment (cash, UPI, bank transfer…) as succeeded, issues the next invoice number and emails the invoice to the student. Linked to a plan, it also extends or restarts that plan.",
         "linkSubscription": "Subscription",
         "linkSubscriptionHint": "Linking to a plan that is awaiting payment activates it.",
         "noSubscription": "— Not linked to a plan —",
@@ -1124,7 +1124,10 @@
         "cancelAtEndTitle": "Cancel at period end?",
         "cancelAtEndBody": "The plan stays active until {date} and then expires. You can undo this until then.",
         "keepTitle": "Keep this plan?",
-        "keepBody": "Clears the cancellation. The plan still expires on {date} unless you extend the period."
+        "keepBody": "Clears the cancellation. The plan still expires on {date} unless you extend the period.",
+        "renewExtend": "Extend the plan by one period ({interval})",
+        "renewRestart": "Restart the plan from the payment date ({interval})",
+        "renewUntil": "The plan will run until {date}. Untick to only record the money."
       },
       "paymentMethod": "Paid via"
     },

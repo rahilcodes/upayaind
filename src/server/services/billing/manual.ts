@@ -61,6 +61,8 @@ export const manualPaymentSchema = z.object({
   method: z.enum(MANUAL_PAYMENT_METHODS),
   reference: z.string().trim().max(120).optional(),
   note,
+  /** Extend / reactivate the linked MANUAL plan by one billing period (D-155). Default on: a cash or UPI payment is a renewal. */
+  renew: z.boolean().default(true),
 });
 
 const PRICE_SELECT = {
@@ -243,12 +245,21 @@ export async function recordManualPayment(actor: Actor, raw: z.input<typeof manu
   if (v.paidAt.getTime() > Date.now() + 86_400_000) throw new BillingError("The payment date can’t be in the future.", "paidAt");
 
   let period: { start: Date | null; end: Date | null } = { start: null, end: null };
+  let renewedUntil: Date | null = null;
   if (sub && sub.status === "PENDING_PAYMENT") {
     if (sub.provider !== "MANUAL") throw new BillingError(`This ${sub.provider} checkout hasn’t completed. Record the payment without a subscription, or grant a manual plan.`, "subscriptionId");
     const start = sub.currentPeriodStart ?? v.paidAt;
     const end = sub.currentPeriodEnd && sub.currentPeriodEnd > start ? sub.currentPeriodEnd : periodEndFor(start, sub.planPrice.interval);
     period = { start, end };
     await activate(sub.id, { periodStart: start, periodEnd: end, actorId: actor.id });
+  } else if (sub && v.renew && sub.provider === "MANUAL" && (sub.status === "ACTIVE" || sub.status === "PAST_DUE" || sub.status === "EXPIRED" || sub.status === "CANCELED")) {
+    // Renewal (D-155): a running plan gets one more period after its current end; an ended plan restarts from the payment date.
+    const running = sub.status === "ACTIVE" && sub.currentPeriodEnd && sub.currentPeriodEnd > v.paidAt;
+    const base = running ? sub.currentPeriodEnd! : v.paidAt;
+    const end = periodEndFor(base, sub.planPrice.interval);
+    period = { start: base, end };
+    renewedUntil = end;
+    await activate(sub.id, { periodStart: running ? null : base, periodEnd: end, cancelAtPeriodEnd: false, actorId: actor.id });
   } else if (sub) {
     period = { start: sub.currentPeriodStart, end: sub.currentPeriodEnd };
   }
@@ -274,9 +285,9 @@ export async function recordManualPayment(actor: Actor, raw: z.input<typeof manu
     action: "payment.manual",
     entity: "Payment",
     entityId: pay.paymentId,
-    after: { studentId: student.id, subscriptionId: sub?.id ?? null, amountMinor: v.amountMinor, currency: v.currency, paidAt: v.paidAt, method: v.method, reference: v.reference ?? null, note: v.note ?? null, providerPaymentId },
+    after: { studentId: student.id, subscriptionId: sub?.id ?? null, amountMinor: v.amountMinor, currency: v.currency, paidAt: v.paidAt, method: v.method, reference: v.reference ?? null, note: v.note ?? null, providerPaymentId, renewedUntil },
   });
   await afterPayment(pay.paymentId, { discountMinor: 0, periodStart: period.start, periodEnd: period.end });
   const row = await db.payment.findUniqueOrThrow({ where: { id: pay.paymentId }, select: { id: true, invoiceNumber: true } });
-  return { paymentId: row.id, invoiceNumber: row.invoiceNumber, subscriptionId: sub?.id ?? null };
+  return { paymentId: row.id, invoiceNumber: row.invoiceNumber, subscriptionId: sub?.id ?? null, renewedUntil };
 }

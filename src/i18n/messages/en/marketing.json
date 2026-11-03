@@ -48,7 +48,8 @@
       "button": "Market: {country}",
       "short": "{country} · {currency}",
       "title": "Choose your country",
-      "current": "Current"
+      "current": "Current",
+      "compact": "{code} · {currency}"
     },
     "footer": {
       "about": "Done-for-you job applications, with a resume tailored to every role.",
