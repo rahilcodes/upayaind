@@ -18,7 +18,7 @@ import {
 } from "@/server/services/applications";
 import { tailorResume, updateVersionContent, getOrCreateBaseVersion, analyzeJd, jdHash, parseUploadedResume, saveParsedMasterProfile, canAccessVersion, ensureRendered } from "@/server/services/resumes";
 import { makeEmployee, makeMarket, makeStudent, resetDb } from "../setup/db";
-import { ANALYSIS, JD_TEXT, MASTER, clone } from "./resume-fixtures";
+import { ANALYSIS, JD_TEXT, MASTER, PATCH, clone } from "./resume-fixtures";
 
 vi.mock("@/server/services/email", () => ({ sendEmail: vi.fn(async () => undefined) }));
 
@@ -169,7 +169,7 @@ describe("access control", () => {
 describe("tailoring pipeline (mocked AI)", () => {
   it("analyses (cached), tailors, validates, scores and saves an unlocked TAILORED version", async () => {
     const c = await setup();
-    const tailored = clone(MASTER);
+    const tailored = clone(PATCH);
     tailored.summary = "Data analyst who builds Looker and Tableau dashboards and SQL data pipelines.";
     tailored.skills = [{ group: "Analytics", items: ["SQL", "Tableau", "Looker", "Python", "dbt"] }];
     const calls = mockAi(ANALYSIS, tailored);
@@ -183,6 +183,14 @@ describe("tailoring pipeline (mocked AI)", () => {
     expect(calls[0]!.tools[0]!.input_schema).toHaveProperty("properties.requiredSkills");
     expect(calls[1]!.system).toContain("TRUTHFULNESS RULES");
     expect(calls[1]!.system).toContain("at most 1 page");
+    // Token-lean contract (D-156): compact profile in, patch out, stable prefix first, cache key per student.
+    expect(calls[1]!.messages[0]!.content).not.toContain("priya@example.com");
+    expect(calls[1]!.messages[0]!.content.indexOf("<master_profile>")).toBeLessThan(calls[1]!.messages[0]!.content.indexOf("<jd>"));
+    expect(calls[1]!.tools[0]!.input_schema).not.toHaveProperty("properties.basics");
+    expect(calls[1]!.cache_key).toBe(c.studentId);
+    expect(r.content.basics.email).toBe(MASTER.basics.email);
+    expect(r.content.experience.map((e) => e.company)).toEqual(MASTER.experience.map((e) => e.company));
+    expect(r.content.summary).toBe(tailored.summary);
     const v = await db.resumeVersion.findUniqueOrThrow({ where: { id: r.versionId } });
     expect(v).toMatchObject({ kind: "TAILORED", lockedAt: null, jdHash: jdHash(JD_TEXT), atsScore: r.tailored.score, atsScoreBase: r.base.score });
     expect(await db.aiUsage.count({ where: { studentId: c.studentId } })).toBe(2);
@@ -193,16 +201,31 @@ describe("tailoring pipeline (mocked AI)", () => {
     expect(calls).toHaveLength(2);
   });
 
+  it("drops JD skills the student lacks in code instead of a second generation (D-156)", async () => {
+    const c = await setup();
+    const bad = clone(PATCH);
+    bad.skills[0]!.items.push("Kubernetes", "Microsoft Excel (Advanced Excel)");
+    bad.experience[0]!.technologies!.push("Airflow");
+    const calls = mockAi(ANALYSIS, bad);
+    const r = await tailorResume(c.actor, { studentId: c.studentId, jd: JD_TEXT, company: "Northstar Bank", title: "Data Analyst" });
+    expect(calls).toHaveLength(2); // analysis + tailor, no retry
+    expect(r.validation.ok).toBe(true);
+    expect(r.validation.attempts).toBe(1);
+    expect(r.content.skills[0]!.items).toEqual(["SQL", "Python", "Tableau", "Excel", "Microsoft Excel (Advanced Excel)"]);
+    expect(r.content.experience[0]!.technologies).toEqual(MASTER.experience[0]!.technologies);
+    expect(r.validation.warnings.filter((w) => w.code === "skill_removed").map((w) => w.actual)).toEqual(["Kubernetes", "Airflow"]);
+    await expect(markApplied(c.actor, { ...job(c), resumeVersionId: r.versionId })).resolves.toHaveProperty("applicationId");
+  });
+
   it("retries once with the validator errors, then blocks Mark as applied if still invalid", async () => {
     const c = await setup();
-    const bad = clone(MASTER);
-    bad.experience[0]!.company = "Google";
-    bad.skills[0]!.items.push("Kubernetes");
+    const bad = clone(PATCH);
+    bad.experience = bad.experience.filter((e) => e.id !== "exp_2"); // 19-month gap
     const calls = mockAi(ANALYSIS, bad, bad);
     const r = await tailorResume(c.actor, { studentId: c.studentId, jd: JD_TEXT, company: "Northstar Bank", title: "Data Analyst" });
     expect(calls).toHaveLength(3); // analysis + tailor + retry
     expect(calls[2]!.messages[0]!.content).toContain("PREVIOUS ATTEMPT WAS REJECTED");
-    expect(calls[2]!.messages[0]!.content).toContain('Company changed from "Northwind Analytics" to "Google"');
+    expect(calls[2]!.messages[0]!.content).toContain("Removing Junior Data Analyst at Contoso Retail leaves a 20-month gap");
     expect(r.validation.ok).toBe(false);
     expect(r.validation.attempts).toBe(2);
     await expect(markApplied(c.actor, { ...job(c), resumeVersionId: r.versionId })).rejects.toMatchObject({ code: "validation_failed" });
@@ -212,13 +235,17 @@ describe("tailoring pipeline (mocked AI)", () => {
     await expect(markApplied(c.actor, { ...job(c), resumeVersionId: r.versionId })).resolves.toHaveProperty("applicationId");
   });
 
-  it("re-asserts the student's identity even if the model changes contact details", async () => {
+  it("ignores invented employers and keeps identity, dates and education from the master", async () => {
     const c = await setup();
-    const out = clone(MASTER);
-    out.basics.email = "hacker@evil.test";
+    const out = clone(PATCH);
+    out.experience.unshift({ id: "exp_google", bullets: ["Led search quality at Google."] });
+    (out as unknown as { basics: unknown }).basics = { email: "hacker@evil.test" };
     mockAi(ANALYSIS, out);
     const r = await tailorResume(c.actor, { studentId: c.studentId, jd: JD_TEXT, company: "N", title: "Data Analyst" });
+    expect(r.validation.ok).toBe(true);
     expect(r.content.basics.email).toBe(MASTER.basics.email);
+    expect(r.content.experience.map((e) => e.id)).toEqual(["exp_1", "exp_2", "exp_3"]);
+    expect(r.content.education).toEqual(MASTER.education);
   });
 
   it("without an API key: heuristic analysis + base resume, flagged", async () => {
@@ -239,7 +266,7 @@ describe("tailoring pipeline (mocked AI)", () => {
 describe("markApplied (F4 logging)", () => {
   it("creates APPLIED + event, locks the version, stores metadata and updates StudentDay", async () => {
     const c = await setup();
-    mockAi(ANALYSIS, clone(MASTER));
+    mockAi(ANALYSIS, clone(PATCH));
     const t = await tailorResume(c.actor, { studentId: c.studentId, jd: JD_TEXT, company: "Northstar Bank", title: "Data Analyst" });
     const r = await markApplied(c.actor, { ...job(c), resumeVersionId: t.versionId, jdText: JD_TEXT, coverLetter: "Dear Hiring Team, …", proofText: "Thanks for applying!" });
     const app = await db.jobApplication.findUniqueOrThrow({ where: { id: r.applicationId }, include: { events: true } });
@@ -255,7 +282,7 @@ describe("markApplied (F4 logging)", () => {
 
   it("locked versions refuse edits afterwards", async () => {
     const c = await setup();
-    mockAi(ANALYSIS, clone(MASTER));
+    mockAi(ANALYSIS, clone(PATCH));
     const t = await tailorResume(c.actor, { studentId: c.studentId, jd: JD_TEXT, company: "N", title: "Data Analyst" });
     await markApplied(c.actor, { ...job(c), resumeVersionId: t.versionId });
     const edited = clone(MASTER);

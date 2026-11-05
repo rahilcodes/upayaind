@@ -11,7 +11,8 @@ import { heuristicParseResume } from "@/resume/parse-heuristic";
 import { AiNotConfiguredError, AiOutputError, aiConfigured, callTool } from "@/server/ai/client";
 import { CoverLetterOutput, JdAnalysis, ParsedResume, TailorOutput, type JdAnalysisData } from "@/server/ai/schemas";
 import { analyzeJdPrompt, coverLetterPrompt, parseResumePrompt, tailorResumePrompt, type StyleForPrompt } from "@/server/ai/prompts";
-import { errorsForPrompt, numbersIn, validateTailored, type ValidationResult } from "@/server/ai/validators";
+import { applyTailorPatch } from "@/server/ai/tailor-patch";
+import { errorsForPrompt, numbersIn, removedSkillWarnings, stripUnknownSkills, validateTailored, type ValidationResult } from "@/server/ai/validators";
 import { computeAtsScore, type AtsBreakdown } from "@/server/ai/ats-score";
 import { heuristicJdAnalysis } from "@/server/ai/jd-heuristic";
 import { enforceRateLimit } from "./ratelimit";
@@ -384,20 +385,21 @@ async function generateTailored(ctx: StudentResumeContext & { master: ResumeData
     task: "tailor_resume",
     schema: TailorOutput,
     toolName: "save_tailored_resume",
-    toolDescription: "Save the tailored resume JSON (same schema as the master profile).",
+    toolDescription: "Save the tailoring patch: headline, summary, skill groups, bullets per role (by id), optional project text and section order. The server merges it onto the master profile.",
     system: p.system,
     messages: [{ role: "user", content: p.user }],
-    maxTokens: 8000,
+    maxTokens: 6000,
     temperature: 0.3,
     userId: user.id,
     studentId: ctx.studentId,
   });
-  return pinIdentity(data, ctx.master, ctx.style);
+  return pinIdentity(applyTailorPatch(ctx.master, data), ctx.master, ctx.style);
 }
 
 /**
- * JD → analysis (cached) → tailor → validate (+1 retry with the error list) →
- * ATS base vs tailored → render (page count) → save an unlocked TAILORED version.
+ * JD → analysis (cached) → tailor → validate → (skill repair, D-156) →
+ * (+1 retry with the error list) → ATS base vs tailored → render (page count)
+ * → save an unlocked TAILORED version.
  * Without an API key, the JD is analysed heuristically and the base resume is
  * used as the starting point (flagged `aiUnavailable`) so work can continue.
  */
@@ -419,6 +421,7 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
   let content: ResumeData;
   let attempts = 0;
   let validation: ValidationResult;
+  let removedSkills: string[] = [];
   if (!ai) {
     content = pinIdentity(master, master, ctx.style);
     await onStep("validating");
@@ -435,6 +438,13 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
     }
     await onStep("validating");
     validation = candidate ? validateTailored(master, candidate) : { ok: false, errors: [], warnings: [], checkedAt: new Date().toISOString() };
+    if (candidate && !validation.ok && validation.errors.every((e) => e.code === "unknown_skill")) {
+      // Only skills the student lacks: drop them in code instead of paying for a second generation (D-156).
+      const fixed = stripUnknownSkills(master, candidate);
+      candidate = fixed.resume;
+      removedSkills = fixed.removed;
+      validation = validateTailored(master, candidate);
+    }
     if (!candidate || !validation.ok) {
       // Auto-retry once with the error list (SPEC §9.4).
       attempts = 2;
@@ -456,6 +466,7 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
   const { renderResumePdf } = await import("@/resume/render-pdf");
   const { pages } = await renderResumePdf({ resume: content, style: ctx.style, template: ctx.templateCode });
   validation = validateTailored(master, content, { maxPages: ctx.style.maxPages, pageCount: pages });
+  if (removedSkills.length) validation = { ...validation, warnings: [...validation.warnings, ...removedSkillWarnings(removedSkills)] };
   const basePdf = await renderResumePdf({ resume: master, style: ctx.style, template: ctx.templateCode });
   const base = computeAtsScore({ resume: master, analysis, jobTitle: input.title, maxPages: ctx.style.maxPages, pageCount: basePdf.pages, includePhoto: ctx.style.includePhoto });
   const tailored = computeAtsScore({ resume: content, analysis, jobTitle: input.title, maxPages: ctx.style.maxPages, pageCount: pages, includePhoto: ctx.style.includePhoto });

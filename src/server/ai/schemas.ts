@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { ResumeJSON } from "@/resume/schema";
 
 /** JD analysis (SPEC F4 step 1). Cached by sha256(jd) for 30 days. */
 export const JdAnalysis = z.object({
@@ -12,8 +11,8 @@ export const JdAnalysis = z.object({
 });
 export type JdAnalysisData = z.infer<typeof JdAnalysis>;
 
-/** The tailoring tool returns a full resume JSON (same schema as the master profile). */
-export const TailorOutput = ResumeJSON;
+/** The tailoring tool returns a patch merged onto the master profile (D-156, src/server/ai/tailor-patch.ts). */
+export { TailorPatch as TailorOutput } from "./tailor-patch";
 
 export const CoverLetterOutput = z.object({
   coverLetter: z.string().min(50).describe("Plain-text cover letter, ≤ 250 words, paragraphs separated by blank lines, no placeholders"),

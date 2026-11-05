@@ -9,7 +9,7 @@ import { getWorkspaceDefaults, listCompanySuggestions, rememberWorkspaceDefaults
 import { runInterviewReminders } from "@/server/services/interview-reminders";
 import { googleCalendarUrl, interviewCalendarEvent } from "@/lib/ics";
 import { makeEmployee, makeMarket, makeStudent, resetDb } from "../setup/db";
-import { ANALYSIS, JD_TEXT, MASTER, clone } from "./resume-fixtures";
+import { ANALYSIS, JD_TEXT, MASTER, PATCH } from "./resume-fixtures";
 
 vi.mock("@/server/services/email", () => ({ sendEmail: vi.fn(async () => ({ id: "email_test" })) }));
 
@@ -39,7 +39,7 @@ function mockAi(...outputs: unknown[]) {
 
 /** A tailored, unlocked version to edit (AI mocked to return the master + analysis). */
 async function tailored(c: Awaited<ReturnType<typeof setup>>) {
-  mockAi(ANALYSIS, clone(MASTER));
+  mockAi(ANALYSIS, PATCH);
   const r = await tailorResume(c.actor, { studentId: c.studentId, jd: JD_TEXT, company: "Northstar Bank", title: "Data Analyst" });
   setAiTransport(null);
   return r;

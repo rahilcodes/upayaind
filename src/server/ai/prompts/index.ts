@@ -1,5 +1,6 @@
 import type { ResumeData } from "@/resume/schema";
 import type { JdAnalysisData } from "../schemas";
+import { masterForPrompt, trimJdForPrompt } from "../tailor-patch";
 import { DATA_NOTE, TRUTHFULNESS_RULES, fenced, spellingRule, styleRules, type MarketForPrompt, type StyleForPrompt } from "./shared";
 
 export type { StyleForPrompt, MarketForPrompt } from "./shared";
@@ -34,11 +35,16 @@ export function analyzeJdPrompt(input: { jd: string; title?: string; company?: s
 - titleKeywords: the meaningful words of the job title (lowercase, no seniority words like senior/junior/ii).
 - Keep the JD's own wording. Do not invent requirements.
 ${DATA_NOTE}`,
-    user: `JOB: ${input.title ?? "(title not given)"}${input.company ? ` at ${input.company}` : ""}\n\n${fenced("jd", input.jd)}`,
+    user: `JOB: ${input.title ?? "(title not given)"}${input.company ? ` at ${input.company}` : ""}\n\n${fenced("jd", trimJdForPrompt(input.jd, 12_000))}`,
   };
 }
 
-/** Master profile + JD → tailored resume (SPEC §9.4 skeleton). */
+/**
+ * Master profile + JD → tailoring patch (SPEC §9.4, D-156). The model sees a
+ * compact profile and returns only what it may change; the server merges it
+ * (`applyTailorPatch`). The stable part (system prompt, tool, profile) comes
+ * first so the provider's prompt cache hits across jobs for the same student.
+ */
 export function tailorResumePrompt(input: {
   style: StyleForPrompt;
   market: MarketForPrompt;
@@ -53,25 +59,28 @@ export function tailorResumePrompt(input: {
     : "";
   return {
     system: `You are an expert ${input.style.name} writer for the ${input.market.name} job market. Output ONLY via the provided tool.
-${TRUTHFULNESS_RULES}
+TRUTHFULNESS RULES (hard rules — breaking any of them makes the output unusable):
+1. Never invent employers, job titles, dates, degrees, certifications, metrics or skills. Everything must come from MASTER_PROFILE; numbers in bullets must already appear there.
+2. You MAY reorder and rephrase bullets, merge or trim them, choose which experience to emphasise, rewrite the summary and headline, and surface every profile skill the job asks for — in the JOB DESCRIPTION'S OWN WORDING ("Microsoft Excel" if the JD says so and the profile says "Excel"; "PostgreSQL (SQL)" when the profile has PostgreSQL and the JD asks for SQL). A profile skill may be listed under the JD's name with the profile's name in brackets.
+3. Skills (groups and technologies): only skills that exist in MASTER_PROFILE, or the same thing under the JD's name. NEVER add a JD skill the student lacks — the specialist adds those after the student confirms. Methodologies, domain terms and ways of working from the JD (Agile, stakeholder management, root-cause analysis…) may appear in the summary and bullets wherever the experience genuinely shows them.
+4. Keep every role (use its id from MASTER_PROFILE). A role you leave out is dropped — only allowed when that creates no gap of more than 6 months; otherwise keep it with one bullet.
+Contact details, dates, employers, titles, education and certifications are filled in from the profile by the server: do not output them.
 ${styleRules(input.style)}
-Write strong, specific bullets that start with action verbs. Put the most relevant experience bullets and skills first. Keep ids of experience entries and bullets from MASTER_PROFILE (new bullet ids may be "<expId>_t1", "<expId>_t2"...).
-Set meta.sectionOrder to the section order above.
-ATS MAXIMISATION (do all of these, within the truthfulness rules):
-- Go through EVERY item of JD_ANALYSIS.requiredSkills, niceToHaveSkills and keywords. For each one the student genuinely has or has done, make sure the exact JD phrase appears in the resume: in the skills section, in a bullet, or in the summary. Aim for every matching term to appear at least once.
-- First skills group: name it "Key skills" and list the JD-matching skills first, in the JD's wording, followed by the student's other relevant skills.
-- Headline: use the job title (or the closest truthful variant of it) when the student's experience matches the role; otherwise the student's own title.
-- Summary: 2–3 sentences that read like the role's own description, built only from the student's real experience, naming the top required skills and the domain.
-- Bullets: where a bullet describes work that used a JD skill or keyword, rewrite it to name that skill/keyword explicitly (same wording as the JD).
-- Do not stuff: each term should appear where it is true, in natural sentences. Never list a skill the student lacks.
+ATS MAXIMISATION (within the rules above):
+- Go through EVERY item of JD_ANALYSIS.requiredSkills, niceToHaveSkills and keywords. Each one the student genuinely has or has done must appear at least once, in the JD's exact phrase: in a skills group, a bullet or the summary.
+- First skills group: "Key skills" — the JD-matching skills first, in the JD's wording, then the student's other relevant skills.
+- Headline: the job title (or its closest truthful variant) when the experience matches the role; otherwise the student's own title.
+- Summary: 2–3 sentences that read like the role's own description, built only from real experience, naming the top required skills and the domain.
+- Bullets: strong, specific, action-verb first; where a bullet describes work that used a JD skill or keyword, name it explicitly in the JD's wording. Most relevant bullets and roles first.
+- Do not stuff: each term appears where it is true, in natural sentences.
 ${DATA_NOTE}`,
-    user: `${fenced("master_profile", JSON.stringify(input.master))}
+    user: `${fenced("master_profile", JSON.stringify(masterForPrompt(input.master)))}
 
 JOB: ${input.job.title} at ${input.job.company}${input.job.location ? `, ${input.job.location}` : ""}.
 JD_ANALYSIS: ${JSON.stringify(input.analysis)}
-${fenced("jd", input.jd)}
+${fenced("jd", trimJdForPrompt(input.jd))}
 
-Task: produce a tailored resume JSON that maximises keyword coverage of JD_ANALYSIS truthfully — every JD term the student can honestly claim must appear, in the JD's wording.${retry}`,
+Task: return the tailoring patch (headline, summary, skills, bullets per role) that maximises keyword coverage of JD_ANALYSIS truthfully — every JD term the student can honestly claim must appear, in the JD's wording.${retry}`,
   };
 }
 
@@ -92,10 +101,10 @@ ${TRUTHFULNESS_RULES}
 - Mention only experience, skills and achievements present in RESUME.
 - ${spellingRule(input.style.spelling)}
 ${DATA_NOTE}`,
-    user: `${fenced("master_profile", JSON.stringify(input.resume))}
+    user: `${fenced("master_profile", JSON.stringify(masterForPrompt(input.resume)))}
 
 JOB: ${input.job.title} at ${input.job.company}${input.job.location ? `, ${input.job.location}` : ""}.
-${input.analysis ? `JD_ANALYSIS: ${JSON.stringify(input.analysis)}\n` : ""}${fenced("jd", input.jd)}
+${input.analysis ? `JD_ANALYSIS: ${JSON.stringify(input.analysis)}\n` : ""}${fenced("jd", trimJdForPrompt(input.jd, 5000))}
 
 Write the cover letter.`,
   };

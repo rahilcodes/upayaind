@@ -1,5 +1,6 @@
 import type { ResumeData } from "@/resume/schema";
 import type { JdAnalysisData } from "@/server/ai/schemas";
+import type { TailorPatchData } from "@/server/ai/tailor-patch";
 
 /** Shared fixtures for resume/applications tests (not a test file: no `.test.`). */
 
@@ -64,6 +65,17 @@ export const MASTER: ResumeData = {
 };
 
 export const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+/** The tailoring patch (D-156) that reproduces a resume unchanged: what a well-behaved model returns. */
+export function patchFrom(r: ResumeData): TailorPatchData {
+  return {
+    headline: r.basics.headline,
+    summary: r.summary ?? "",
+    skills: clone(r.skills),
+    experience: r.experience.map((e) => ({ id: e.id, bullets: e.bullets.map((b) => b.text), technologies: [...(e.technologies ?? [])] })),
+  };
+}
+export const PATCH: TailorPatchData = patchFrom(MASTER);
 
 export const ANALYSIS: JdAnalysisData = {
   requiredSkills: ["SQL", "Python", "Tableau", "Looker"],

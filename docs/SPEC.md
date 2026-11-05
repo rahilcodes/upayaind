@@ -818,7 +818,7 @@ Adding a market = insert a `Market` row + pick/create a `ResumeStyle`. **No code
         JOB: {title} at {company}, {location}. JD_ANALYSIS: {json}. JD: {text}
         Task: produce a tailored resume JSON that maximises relevant keyword coverage truthfully.
   ```
-- **Cost and limits:** log every call in `AiUsage`. Rate limit 60 generations/hour per employee and 300/day per student (admin setting). Cache JD analysis by hash for 30 days. Use the configured model for tailoring and parsing. A cheaper model (env `ANTHROPIC_MODEL_FAST`) may be used for JD analysis.
+- **Cost and limits:** log every call in `AiUsage`. Rate limit 60 generations/hour per employee and 300/day per student (admin setting). Cache JD analysis by hash for 30 days. Use the configured model for tailoring and parsing. A cheaper model (env `ANTHROPIC_MODEL_FAST` / `OPENAI_MODEL_FAST`) is used for JD analysis and editor assists. Tailoring returns a patch merged onto the master profile and sends a compact profile + trimmed JD (D-156).
 
 ### 9.5 ATS score (deterministic, no AI)
 `score = 0.5 × keywordCoverage + 0.2 × titleSimilarity + 0.2 × skillsOverlap + 0.1 × formatChecks`

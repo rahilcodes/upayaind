@@ -51,8 +51,16 @@ describe("OpenAI transport mapping (D-136)", () => {
   it("parses tool-call arguments into a tool_use block with usage", () => {
     const res = fromOpenAiResponse(completion('{"a":"x"}'));
     expect(res.content).toEqual([{ type: "tool_use", name: "submit_resume", input: { a: "x" } }]);
-    expect(res.usage).toEqual({ input_tokens: 1200, output_tokens: 340 });
+    expect(res.usage).toEqual({ input_tokens: 1200, output_tokens: 340, cache_read_input_tokens: 0 });
     expect(res.model).toBe("gpt-5.5-2026-07-01");
+  });
+
+  it("splits prompt-cache reads out of prompt_tokens and forwards the cache key (D-156)", () => {
+    const c = completion('{"a":"x"}');
+    c.usage = { prompt_tokens: 4472, completion_tokens: 1200, prompt_tokens_details: { cached_tokens: 3712 } } as typeof c.usage;
+    expect(fromOpenAiResponse(c).usage).toEqual({ input_tokens: 760, output_tokens: 1200, cache_read_input_tokens: 3712 });
+    expect(toOpenAiRequest({ ...REQ, cache_key: "student_1" })).toMatchObject({ prompt_cache_key: "student_1" });
+    expect(toOpenAiRequest(REQ)).not.toHaveProperty("prompt_cache_key");
   });
 
   it("leaves input undefined on truncated JSON and reports max_tokens", () => {

@@ -29,6 +29,8 @@ export type TransportRequest = {
   tools: { name: string; description: string; input_schema: Record<string, unknown> }[];
   tool_choice: { type: "tool"; name: string; disable_parallel_tool_use?: boolean };
   temperature?: number;
+  /** Prompt-cache routing key (e.g. the student id); transports that don't support it ignore it. */
+  cache_key?: string;
 };
 export type TransportResponse = {
   model: string;
@@ -84,7 +86,7 @@ function transport(): AiTransport {
   if (!live && aiProvider === "openai") live = openAiTransport({ apiKey: key, baseUrl: env.OPENAI_BASE_URL, maxRetries: 2, timeoutMs: 90_000 });
   if (!live) {
     const client = new Anthropic({ apiKey: key, maxRetries: 2, timeout: 90_000 });
-    live = async (req) => {
+    live = async ({ cache_key: _cacheKey, ...req }) => {
       const r = await client.messages.create(req as unknown as Anthropic.MessageCreateParamsNonStreaming);
       return r as unknown as TransportResponse;
     };
@@ -96,19 +98,24 @@ function transport(): AiTransport {
  * Cost estimate in micro-USD. Prices are NOT hard-coded (they change and differ
  * per model): set <PROVIDER>_PRICE_INPUT_PER_MTOK / <PROVIDER>_PRICE_OUTPUT_PER_MTOK
  * (PROVIDER = ANTHROPIC or OPENAI; USD per million tokens, from the provider's
- * pricing page) and optionally the *_FAST variants for the fast model.
- * Unset → cost 0 (tokens are still logged).
+ * pricing page), optionally <PROVIDER>_PRICE_CACHED_INPUT_PER_MTOK (unset: 10%
+ * of the input price, both providers' published cache-read discount), and the
+ * *_FAST variants for the fast model. Unset → cost 0 (tokens are still logged).
+ * `cachedTokens` is the part of `inputTokens` served from the prompt cache.
  */
-export function estimateCostMicros(tier: ModelTier, inputTokens: number, outputTokens: number) {
+export function estimateCostMicros(tier: ModelTier, inputTokens: number, outputTokens: number, cachedTokens = 0) {
   const num = (k: string) => {
     const v = Number(process.env[k]);
     return Number.isFinite(v) && v > 0 ? v : null;
   };
   const p = aiProvider === "openai" ? "OPENAI" : "ANTHROPIC";
-  const inP = (tier === "fast" ? num(`${p}_PRICE_INPUT_PER_MTOK_FAST`) : null) ?? num(`${p}_PRICE_INPUT_PER_MTOK`) ?? 0;
-  const outP = (tier === "fast" ? num(`${p}_PRICE_OUTPUT_PER_MTOK_FAST`) : null) ?? num(`${p}_PRICE_OUTPUT_PER_MTOK`) ?? 0;
+  const price = (kind: string) => (tier === "fast" ? num(`${p}_PRICE_${kind}_PER_MTOK_FAST`) : null) ?? num(`${p}_PRICE_${kind}_PER_MTOK`);
+  const inP = price("INPUT") ?? 0;
+  const outP = price("OUTPUT") ?? 0;
+  const cachedP = price("CACHED_INPUT") ?? inP * 0.1;
+  const cached = Math.min(Math.max(cachedTokens, 0), inputTokens);
   // $/MTok == micro-$ per token.
-  return Math.round(inputTokens * inP + outputTokens * outP);
+  return Math.round((inputTokens - cached) * inP + cached * cachedP + outputTokens * outP);
 }
 
 /** JSON Schema for a tool input (zod v4 → draft 2020-12, `input` view so defaults are optional). */
@@ -134,10 +141,12 @@ export type CallToolInput<S extends z.ZodType> = {
   temperature?: number;
   userId: string;
   studentId?: string | null;
+  /** Prompt-cache routing key; defaults to the student id. */
+  cacheKey?: string;
 };
 
 /** One structured call. Returns the zod-validated tool input. */
-export async function callTool<S extends z.ZodType>(input: CallToolInput<S>): Promise<{ data: z.infer<S>; usage: { inputTokens: number; outputTokens: number; model: string } }> {
+export async function callTool<S extends z.ZodType>(input: CallToolInput<S>): Promise<{ data: z.infer<S>; usage: { inputTokens: number; outputTokens: number; cachedTokens: number; model: string } }> {
   const send = transport();
   const tier = input.tier ?? "main";
   const model = modelFor(tier);
@@ -151,6 +160,7 @@ export async function callTool<S extends z.ZodType>(input: CallToolInput<S>): Pr
       tools: [{ name: input.toolName, description: input.toolDescription, input_schema: toolSchema(input.schema) }],
       tool_choice: { type: "tool", name: input.toolName, disable_parallel_tool_use: true },
       temperature: input.temperature ?? 0.2,
+      cache_key: input.cacheKey ?? input.studentId ?? undefined,
     });
   } catch (e) {
     if (e instanceof UserError) throw e;
@@ -161,7 +171,8 @@ export async function callTool<S extends z.ZodType>(input: CallToolInput<S>): Pr
     throw new UserError("The AI service didn't respond. Please try again.");
   }
 
-  const inputTokens = (res.usage?.input_tokens ?? 0) + (res.usage?.cache_creation_input_tokens ?? 0) + (res.usage?.cache_read_input_tokens ?? 0);
+  const cachedTokens = res.usage?.cache_read_input_tokens ?? 0;
+  const inputTokens = (res.usage?.input_tokens ?? 0) + (res.usage?.cache_creation_input_tokens ?? 0) + cachedTokens;
   const outputTokens = res.usage?.output_tokens ?? 0;
   await db.aiUsage
     .create({
@@ -172,7 +183,8 @@ export async function callTool<S extends z.ZodType>(input: CallToolInput<S>): Pr
         model: res.model ?? model,
         inputTokens,
         outputTokens,
-        costMicros: estimateCostMicros(tier, inputTokens, outputTokens),
+        cachedTokens,
+        costMicros: estimateCostMicros(tier, inputTokens, outputTokens, cachedTokens),
       },
     })
     .catch((e) => console.error("[ai] usage log failed", e));
@@ -181,5 +193,5 @@ export async function callTool<S extends z.ZodType>(input: CallToolInput<S>): Pr
   if (!block) throw new AiOutputError("The AI didn't return structured output.", ["no tool_use block"], res.content);
   const parsed = input.schema.safeParse(block.input);
   if (!parsed.success) throw new AiOutputError("The AI output didn't match the schema.", formatIssues(parsed.error), block.input);
-  return { data: parsed.data, usage: { inputTokens, outputTokens, model: res.model ?? model } };
+  return { data: parsed.data, usage: { inputTokens, outputTokens, cachedTokens, model: res.model ?? model } };
 }

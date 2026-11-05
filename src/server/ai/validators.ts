@@ -1,4 +1,5 @@
 import { ResumeJSON, allProfileSkills, type ResumeData } from "@/resume/schema";
+import { normalizeAliases, stemmedTokens } from "./stem";
 
 /**
  * Post-generation truthfulness validator (SPEC §9.4) — code, not AI.
@@ -23,6 +24,7 @@ export type IssueCode =
   | "unknown_language"
   | "gap_created"
   | "new_number"
+  | "skill_removed"
   | "too_long";
 
 export type ValidationIssue = {
@@ -165,12 +167,12 @@ export function validateTailored(masterInput: unknown, outputInput: unknown, opt
     }
   });
 
-  // Skills: every skill must exist in master skills or technologies (case-insensitive).
-  const known = new Set(allProfileSkills(master).map(key));
+  // Skills: every skill must exist in master skills or technologies (case-insensitive, alias-aware).
+  const known = knownSkillMatcher(master);
   const reported = new Set<string>();
   const checkSkill = (s: string, path: string) => {
     const k = key(s);
-    if (!k || known.has(k) || reported.has(k)) return;
+    if (!k || known(s) || reported.has(k)) return;
     reported.add(k);
     errors.push({ code: "unknown_skill", severity: "error", path, message: `Skill "${norm(s)}" isn't in the student's profile.`, actual: norm(s) });
   };
@@ -241,6 +243,78 @@ export function validateTailored(masterInput: unknown, outputInput: unknown, opt
   }
 
   return done();
+}
+
+/** Canonical form of a skill for matching: aliases unified ("Microsoft Excel" ≡ "Excel", "JS" ≡ "JavaScript"), stemmed, stop words dropped. */
+function skillKey(s: string): string {
+  return stemmedTokens(normalizeAliases(key(s)), { dropStopwords: true }).join(" ");
+}
+
+/**
+ * Is `skill` one the student has? Exact (case-insensitive) match, a known
+ * alias/spelling of a profile skill, or the "JD name (profile name)" form the
+ * tailor prompt allows (D-154) — where the bracketed part, or the part before
+ * the bracket, must itself be a profile skill ("PostgreSQL (SQL)" with
+ * PostgreSQL in the profile; "SQL (PostgreSQL)" too). "Advanced Excel" and
+ * "reporting skills" are NOT accepted: a longer phrase is a different claim.
+ */
+export function knownSkillMatcher(master: Pick<ResumeData, "skills" | "experience">): (skill: string) => boolean {
+  const exact = new Set<string>();
+  const canon = new Set<string>();
+  for (const s of allProfileSkills(master)) {
+    exact.add(key(s));
+    const c = skillKey(s);
+    if (c) canon.add(c);
+  }
+  const plain = (s: string) => {
+    const k = key(s);
+    if (!k) return false;
+    if (exact.has(k)) return true;
+    const c = skillKey(k);
+    return c.length > 0 && canon.has(c);
+  };
+  return (skill: string) => {
+    if (plain(skill)) return true;
+    const m = /^(.+?)\s*[(\[]([^()[\]]+)[)\]]\s*$/.exec(norm(skill));
+    if (!m) return false;
+    const outer = m[1]!;
+    // "X (Y)" / "X (Y / Z)": any bracketed name that is a profile skill proves the claim; so does X itself.
+    return plain(outer) || m[2]!.split(/[\/,;]|\s+or\s+/).some((part) => plain(part));
+  };
+}
+
+/**
+ * Deterministic repair (SPEC §9.4, cost rule): remove every skill the student
+ * doesn't have from the skills groups and the per-role technologies, instead
+ * of paying for a second generation. Returns the cleaned resume and the
+ * removed names (shown to the specialist, who can "Add after confirming").
+ * Everything else is left untouched, so other validator errors still surface.
+ */
+export function stripUnknownSkills(master: ResumeData, out: ResumeData): { resume: ResumeData; removed: string[] } {
+  const known = knownSkillMatcher(master);
+  const removed: string[] = [];
+  const seen = new Set<string>();
+  const keep = (s: string) => {
+    if (!norm(s)) return false;
+    if (known(s)) return true;
+    const k = key(s);
+    if (!seen.has(k)) {
+      seen.add(k);
+      removed.push(norm(s));
+    }
+    return false;
+  };
+  const resume: ResumeData = {
+    ...out,
+    skills: out.skills.map((g) => ({ ...g, items: g.items.filter(keep) })).filter((g) => g.items.length > 0),
+    experience: out.experience.map((e) => ({ ...e, technologies: (e.technologies ?? []).filter(keep) })),
+  };
+  return { resume, removed };
+}
+
+/** Warnings to attach after a repair, so the specialist sees what was dropped. */
+export function removedSkillWarnings(removed: string[]): ValidationIssue[] {
+  return removed.map((s) => ({ code: "skill_removed", severity: "warning", path: "skills", message: `"${s}" was removed: it isn't in the student's profile. If they do have it, add it after confirming.`, actual: s }));
 }
 
 /** Compact list for the retry prompt. */

@@ -911,6 +911,8 @@ model AiUsage {
   model        String
   inputTokens  Int
   outputTokens Int
+  /// Part of inputTokens served from the provider's prompt cache (D-156).
+  cachedTokens Int      @default(0)
   costMicros   Int
   createdAt    DateTime @default(now())
 

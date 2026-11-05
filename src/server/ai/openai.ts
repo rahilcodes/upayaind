@@ -18,7 +18,7 @@ type ChatCompletion = {
     finish_reason?: string | null;
     message: { content?: string | null; tool_calls?: Array<{ type: string; function: { name: string; arguments: string } }> };
   }>;
-  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  usage?: { prompt_tokens?: number; completion_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } };
 };
 
 /** Reasoning models (gpt-5*, o-series) reject a custom temperature and spend completion tokens on reasoning. */
@@ -37,6 +37,8 @@ export function toOpenAiRequest(req: TransportRequest) {
     tools: req.tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } })),
     tool_choice: { type: "function", function: { name: req.tool_choice.name } },
     parallel_tool_calls: false,
+    // Routes requests with the same key to the same cache shard (per student), raising prompt-cache hits.
+    ...(req.cache_key ? { prompt_cache_key: req.cache_key } : {}),
     max_completion_tokens: req.max_tokens + (reasoning ? REASONING_HEADROOM : 0),
     // No reasoning_effort: Chat Completions rejects function tools combined with a
     // reasoning effort on gpt-5.5 ("set reasoning_effort to 'none'"); the default works.
@@ -46,6 +48,7 @@ export function toOpenAiRequest(req: TransportRequest) {
 
 export function fromOpenAiResponse(res: ChatCompletion): TransportResponse {
   const choice = res.choices?.[0];
+  const cached = res.usage?.prompt_tokens_details?.cached_tokens ?? 0;
   const content: TransportResponse["content"] = [];
   if (choice?.message?.content) content.push({ type: "text", text: choice.message.content });
   for (const call of choice?.message?.tool_calls ?? []) {
@@ -62,8 +65,8 @@ export function fromOpenAiResponse(res: ChatCompletion): TransportResponse {
   return {
     model: res.model,
     content,
-    // prompt_tokens already includes cached tokens.
-    usage: { input_tokens: res.usage?.prompt_tokens ?? 0, output_tokens: res.usage?.completion_tokens ?? 0 },
+    // prompt_tokens includes cached tokens; split them out (Messages-API shape: input_tokens excludes cache reads).
+    usage: { input_tokens: (res.usage?.prompt_tokens ?? 0) - cached, output_tokens: res.usage?.completion_tokens ?? 0, cache_read_input_tokens: cached },
     stop_reason: choice?.finish_reason === "length" ? "max_tokens" : (choice?.finish_reason ?? null),
   };
 }

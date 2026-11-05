@@ -7,7 +7,7 @@ import { ResumeJSON, allProfileSkills, type ResumeData } from "@/resume/schema";
 import { AiNotConfiguredError, AiOutputError, aiConfigured, callTool } from "@/server/ai/client";
 import { BulletRewriteOutput, JdAnalysis, SummaryRewriteOutput, type JdAnalysisData } from "@/server/ai/schemas";
 import { bulletEditPrompt, summaryRewritePrompt, type BulletEditMode } from "@/server/ai/prompts/edits";
-import { numbersIn, validateTailored } from "@/server/ai/validators";
+import { knownSkillMatcher, numbersIn, validateTailored } from "@/server/ai/validators";
 import { ResumeError, enforceAiLimits, getStudentResumeContext } from "./resumes";
 
 /**
@@ -55,15 +55,16 @@ function masterNumbers(master: ResumeData) {
 export function textProblems(input: { text: string; original: string; master: ResumeData; skillsMentioned: string[]; analysis: JdAnalysisData | null }): string[] {
   const problems: string[] = [];
   const profile = new Set(allProfileSkills(input.master).map(key));
+  const known = knownSkillMatcher(input.master);
   for (const s of input.skillsMentioned) {
-    if (s.trim() && !profile.has(key(s))) problems.push(`"${s.trim()}" isn't in the student's profile — remove it.`);
+    if (s.trim() && !known(s)) problems.push(`"${s.trim()}" isn't in the student's profile — remove it.`);
   }
   // JD hard skills the student doesn't have must not appear (the classic "invented skill").
   // Generic `keywords` (e.g. "dashboards", "stakeholder management") are legitimate wording and aren't scanned.
   if (input.analysis) {
     const jdTerms = [...new Set([...input.analysis.requiredSkills, ...input.analysis.niceToHaveSkills].map((t) => t.trim()).filter((t) => t.length >= 2))];
     for (const term of jdTerms) {
-      if (profile.has(key(term))) continue;
+      if (profile.has(key(term)) || known(term)) continue;
       if (containsTerm(input.original, term)) continue; // was already there (employee wrote it)
       if (containsTerm(input.text, term)) problems.push(`"${term}" comes from the job description but isn't in the student's profile — remove it.`);
     }
