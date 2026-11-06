@@ -60,7 +60,7 @@ async function load(subscriptionId: string) {
 }
 
 function gatewayFor(s: { provider: string; providerSubId: string | null; student: { market: { paymentProvider: string | null } } }) {
-  if (s.provider === "MANUAL" || !s.providerSubId || s.providerSubId.includes("_sim_")) return null;
+  if (s.provider === "MANUAL" || s.provider === "RAZORPAY" || !s.providerSubId || s.providerSubId.includes("_sim_")) return null; // Razorpay: one-off payments, nothing to pause at the gateway (D-159)
   const p = providerFor(s.student.market.paymentProvider ?? s.provider);
   return p.isConfigured() ? p : null;
 }

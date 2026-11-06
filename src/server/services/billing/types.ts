@@ -38,6 +38,8 @@ export type CheckoutSessionInput = {
     interval: BillingInterval;
   };
   providerCouponId?: string | null;
+  /** Coupon discount in minor units; providers without coupon objects (Razorpay) subtract it from the amount. */
+  discountMinor?: number;
   successUrl: string;
   cancelUrl: string;
   metadata: Record<string, string>;

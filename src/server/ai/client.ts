@@ -167,6 +167,9 @@ export async function callTool<S extends z.ZodType>(input: CallToolInput<S>): Pr
     const status = (e as { status?: number }).status;
     console.error(`[ai] ${input.task} failed`, status, (e as Error).message);
     if (status === 401 || status === 403) throw new UserError(`The AI service rejected our API key. Ask an admin to check the ${aiProvider === "openai" ? "OpenAI" : "Anthropic"} configuration.`);
+    if (status === 429 && /insufficient_quota|credit_balance_exhausted|no credits/i.test((e as Error).message)) {
+      throw new UserError(`The ${aiProvider === "openai" ? "OpenAI" : "Anthropic"} account has run out of credits, so resumes can't be tailored. Ask an admin to top up the AI billing.`);
+    }
     if (status === 429 || status === 529) throw new UserError("The AI service is busy right now. Please try again in a minute.");
     throw new UserError("The AI service didn't respond. Please try again.");
   }

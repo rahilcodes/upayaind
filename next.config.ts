@@ -17,12 +17,12 @@ const httpsOrigin = (process.env.NEXT_PUBLIC_APP_URL ?? "https://").startsWith("
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms https://app.cal.com`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://checkout.razorpay.com https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms https://app.cal.com`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.r2.cloudflarestorage.com https://www.google-analytics.com https://*.clarity.ms https://icons.duckduckgo.com https://www.google.com https://*.gstatic.com https://lh3.googleusercontent.com",
+  "img-src 'self' data: blob: https://*.r2.cloudflarestorage.com https://www.google-analytics.com https://*.clarity.ms https://icons.duckduckgo.com https://www.google.com https://*.gstatic.com https://lh3.googleusercontent.com https://*.razorpay.com",
   "font-src 'self' data:",
-  `connect-src 'self'${isDev ? " ws: http://localhost:*" : ""} https://*.r2.cloudflarestorage.com https://api.stripe.com https://www.google-analytics.com https://*.analytics.google.com https://*.clarity.ms https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://app.cal.com`,
-  "frame-src https://js.stripe.com https://checkout.stripe.com https://app.cal.com https://cal.com https://www.youtube-nocookie.com https://player.vimeo.com 'self'",
+  `connect-src 'self'${isDev ? " ws: http://localhost:*" : ""} https://*.r2.cloudflarestorage.com https://api.stripe.com https://api.razorpay.com https://lumberjack.razorpay.com https://lumberjack-cx.razorpay.com https://www.google-analytics.com https://*.analytics.google.com https://*.clarity.ms https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://app.cal.com`,
+  "frame-src https://js.stripe.com https://checkout.stripe.com https://api.razorpay.com https://checkout.razorpay.com https://app.cal.com https://cal.com https://www.youtube-nocookie.com https://player.vimeo.com 'self'",
   "frame-ancestors 'none'",
   "form-action 'self' https://checkout.stripe.com https://accounts.google.com",
   "base-uri 'self'",

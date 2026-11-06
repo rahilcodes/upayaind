@@ -4,6 +4,7 @@ import type { BillingInterval } from "@/generated/prisma/enums";
 import { absoluteUrl } from "@/lib/utils";
 import { db } from "@/server/db";
 import { trackEvent } from "@/server/services/events";
+import { applyMarketCopy } from "@/server/services/catalog";
 import { syncCouponToProvider, validateCoupon, type CouponCheck } from "./coupons";
 import { providerFor, simulationEnabled } from "./provider";
 import { simulateCheckoutPayment } from "./simulate";
@@ -55,7 +56,7 @@ export async function getCheckoutQuote(s: Student, planPriceId: string, couponCo
       interviewsPromise: true,
       isActive: true,
       marketId: true,
-      plan: { select: { name: true, description: true, features: true, isActive: true, deletedAt: true } },
+      plan: { select: { name: true, description: true, features: true, isActive: true, deletedAt: true, marketCopies: { select: { marketId: true, name: true, description: true, features: true } } } },
       market: { select: { name: true, isActive: true, minPriceMinor: true, locale: true, currency: true } },
     },
   });
@@ -68,11 +69,12 @@ export async function getCheckoutQuote(s: Student, planPriceId: string, couponCo
   if (student.marketId !== pp.marketId) throw new BillingError(`This plan is for ${pp.market.name}. Choose a plan for ${student.market.name} on the pricing page.`);
 
   const coupon = couponCode ? await validateCoupon(couponCode, { id: pp.id, amountMinor: pp.amountMinor, currency: pp.currency }) : null;
+  const copy = applyMarketCopy(pp.plan, pp.plan.marketCopies.find((c) => c.marketId === pp.marketId));
   return {
     planPriceId: pp.id,
-    planName: pp.plan.name,
-    planDescription: pp.plan.description,
-    features: pp.plan.features,
+    planName: copy.name,
+    planDescription: copy.description,
+    features: copy.features,
     interval: pp.interval,
     amountMinor: pp.amountMinor,
     currency: pp.currency,
@@ -132,7 +134,8 @@ export async function startCheckout(s: Student & { email: string }, raw: z.input
   if (simulate) return { kind: "simulate", subscriptionId: sub.id };
 
   let providerCouponId = quote.coupon?.providerCouponId ?? null;
-  if (quote.coupon && !providerCouponId) providerCouponId = (await syncCouponToProvider(null, quote.coupon.id)).providerCouponId;
+  // Stripe needs a coupon object; Razorpay (D-159) gets the discounted amount instead.
+  if (quote.coupon && !providerCouponId && provider.code === "STRIPE") providerCouponId = (await syncCouponToProvider(null, quote.coupon.id)).providerCouponId;
 
   const prior = await db.subscription.findFirst({
     where: { studentId: s.studentId, providerCustomerId: { not: null }, provider: provider.code },
@@ -149,10 +152,13 @@ export async function startCheckout(s: Student & { email: string }, raw: z.input
     customerEmail: s.email,
     line: { providerPriceId: pp.providerPriceId, amountMinor: quote.amountMinor, currency: quote.currency, productName: `UpayaInd ${quote.planName}`, interval: quote.interval },
     providerCouponId,
+    discountMinor: quote.coupon ? Math.max(0, quote.amountMinor - quote.totalMinor) : 0,
     successUrl: absoluteUrl("/app/onboarding?paid=1"),
     cancelUrl: absoluteUrl(`/pricing?canceled=1`),
     metadata,
   });
+  // Razorpay: the order id is how the webhook / success callback find this row (D-159).
+  if (provider.code === "RAZORPAY") await db.subscription.update({ where: { id: sub.id }, data: { providerSubId: session.id } });
   return { kind: "redirect", url: session.url };
 }
 

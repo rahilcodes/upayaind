@@ -38,8 +38,9 @@ describe("ATS score (§9.5)", () => {
     const covered = Object.fromEntries(r.keywords.map((k) => [k.keyword, k.covered]));
     // "dashboards" matches "dashboards"; "A/B testing" matches "A/B test" (stemmed).
     expect(covered).toMatchObject({ SQL: true, Python: true, Tableau: true, Looker: true, dbt: true, Airflow: false, dashboards: true, "A/B testing": true, "stakeholder management": false });
-    // required: 4×2 = 8 (all hit); nice: dbt hit, Airflow miss; keywords: 2 of 4 → (8+1+2)/(8+2+4) = 11/14
-    expect(r.keywordCoverage).toBe(Math.round((11 / 14) * 100));
+    // D-160 weights: required ×2 (4 hit → 8/8), nice ×1 (dbt hit → 1/2), generic keywords ×0.5 (2 full hits → 1,
+    // "stakeholder management" has one of its two words → half credit 0.25, 1 miss) → 10.25 / 12 ≈ 85.
+    expect(r.keywordCoverage).toBe(85);
     expect(r.format).toEqual({ headings: true, noTablesOrImages: true, length: true, contact: true });
     expect(r.formatChecks).toBe(100);
   });

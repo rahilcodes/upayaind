@@ -130,12 +130,13 @@ export function computeAtsScore(input: {
     const phrase = stemmedTokens(t.keyword, { dropStopwords: true });
     const cov = phraseCoverage(haystack, phrase);
     const covered = cov === 1;
-    const w = t.kind === "required" ? 2 : 1;
+    // Required skills ×2, nice-to-have ×1, generic JD keywords ×0.5 (D-160): a resume is judged mostly on the hard requirements.
+    const w = t.kind === "required" ? 2 : t.kind === "nice" ? 1 : 0.5;
     totalW += w;
     hitW += w * cov;
     return { keyword: t.keyword, kind: t.kind, covered, ...(cov > 0 && cov < 1 ? { partial: cov } : {}) };
   });
-  const keywordCoverage = totalW ? Math.round((hitW / totalW) * 100) : 0;
+  const keywordCoverage = totalW ? Math.min(100, Math.round((hitW / totalW) * 100)) : 0;
 
   const title = titleSimilarity(input.jobTitle, resume);
 

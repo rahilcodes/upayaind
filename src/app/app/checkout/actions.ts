@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireStudent } from "@/server/auth/guards";
 import { safeAction } from "@/server/errors";
 import { completeSimulatedCheckout, getCheckoutQuote, startCheckout } from "@/server/services/billing";
+import { confirmRazorpayPayment, type confirmSchema } from "@/server/services/billing/razorpay-confirm";
 
 const couponSchema = z.object({ planPriceId: z.string().min(1).max(64), coupon: z.string().trim().min(1, "Enter a coupon code").max(40) });
 
@@ -30,5 +31,13 @@ export async function simulatePaymentAction(subscriptionId: string, coupon: stri
     const { user, student } = await requireStudent();
     const r = await completeSimulatedCheckout({ userId: user.id, studentId: student.id }, { subscriptionId, coupon: coupon ?? undefined });
     return { status: r.status };
+  });
+}
+
+/** Razorpay success callback (D-159): verify the signature server-side and activate through the shared processor. */
+export async function confirmRazorpayPaymentAction(input: z.input<typeof confirmSchema>) {
+  return safeAction(async () => {
+    const { student } = await requireStudent();
+    return confirmRazorpayPayment({ studentId: student.id }, input);
   });
 }

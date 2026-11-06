@@ -125,6 +125,7 @@ export const integrations = {
   storage: Boolean(env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET),
   ai: Boolean(aiProvider === "openai" ? env.OPENAI_API_KEY : env.ANTHROPIC_API_KEY),
   stripe: Boolean(env.STRIPE_SECRET_KEY),
+  razorpay: Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET),
   email: Boolean(env.RESEND_API_KEY) || Boolean(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS),
   redis: Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN),
   google: Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET),

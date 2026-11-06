@@ -72,6 +72,8 @@ ATS MAXIMISATION (within the rules above):
 - Headline: the job title (or its closest truthful variant) when the experience matches the role; otherwise the student's own title.
 - Summary: 2–3 sentences that read like the role's own description, built only from real experience, naming the top required skills and the domain.
 - Bullets: strong, specific, action-verb first; where a bullet describes work that used a JD skill or keyword, name it explicitly in the JD's wording. Most relevant bullets and roles first.
+- Freshers and junior profiles: treat academic projects, internships, coursework, certifications and training as experience — frame each one in the JD's language (the problem, the tools, the outcome) so the resume reads like the role's own description. Don't leave project sections thin when the JD is demanding.
+- Reframe, don't inflate: describe what the student actually did using the JD's terminology and priorities; never add responsibilities, employers, titles, years or tools they didn't have.
 - Do not stuff: each term appears where it is true, in natural sentences.
 ${DATA_NOTE}`,
     user: `${fenced("master_profile", JSON.stringify(masterForPrompt(input.master)))}

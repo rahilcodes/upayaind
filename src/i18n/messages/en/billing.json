@@ -40,7 +40,7 @@
       "pay": "Continue to secure payment",
       "redirecting": "Taking you to secure payment…",
       "changePlan": "Change plan",
-      "secureNote": "Payments are processed by Stripe. We never see or store your card details.",
+      "secureNote": "Payments are processed by our payment partner (Stripe, or Razorpay in India). We never see or store your card details.",
       "legal": "By continuing you agree to our <terms>Terms</terms> and <refund>Refund policy</refund>.",
       "missingPlan": "Choose a plan first",
       "missingPlanBody": "Pick the plan that suits you on the pricing page, then come back here to pay.",
@@ -62,6 +62,19 @@
         "HALF_YEARLY": "every 6 months",
         "YEARLY": "every year",
         "ONE_TIME": "once"
+      },
+      "razorpay": {
+        "title": "Pay securely with Razorpay",
+        "sub": "UPI, cards, net banking and wallets. Your plan starts as soon as the payment is confirmed.",
+        "pay": "Pay {amount}",
+        "loading": "Loading secure payment…",
+        "verifying": "Confirming your payment…",
+        "success": "Payment confirmed — taking you to onboarding…",
+        "failed": "The payment didn’t go through. You can try again.",
+        "scriptFailed": "We couldn’t load the payment window. Check your connection and reload the page.",
+        "note": "Payments are processed by Razorpay. We never see or store your card or UPI details. If money is deducted but this page doesn’t confirm, your plan is activated automatically within a few minutes.",
+        "notFoundTitle": "This payment link isn’t valid",
+        "notFoundBody": "Start again from the pricing page and we’ll create a fresh order."
       }
     },
     "page": {
@@ -169,6 +182,20 @@
           "providerPriceId": "Stripe price id",
           "providerPriceIdHint": "Leave empty and use “Create in Stripe”, or paste an existing price_… id. Changing the amount clears it.",
           "priceActive": "Price is active (purchasable)"
+        },
+        "copy": {
+          "customise": "Text for {market}",
+          "customised": "Custom text · {market}",
+          "openFor": "Edit the {plan} plan text shown in {market}",
+          "title": "{plan} — text for {market}",
+          "description": "What this market's visitors see for this plan. Leave a field empty to keep the shared text. Other markets are not affected.",
+          "name": "Name",
+          "descriptionField": "Short description",
+          "features": "Features",
+          "featuresHint": "One per line, in display order (up to 12). Leave empty to use the shared features.",
+          "sharedIs": "Shared text: {value}",
+          "useShared": "Use shared text",
+          "save": "Save for this market"
         }
       },
       "markets": {
@@ -330,7 +357,9 @@
         "couponSaved": "Coupon saved",
         "couponToggled": "Coupon updated",
         "couponSynced": "Coupon created in Stripe",
-        "refunded": "Refund issued"
+        "refunded": "Refund issued",
+        "planCopySaved": "Plan text saved for this market",
+        "planCopyCleared": "Back to the shared plan text"
       }
     },
     "toasts": {

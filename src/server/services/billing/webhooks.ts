@@ -1,4 +1,5 @@
 import "server-only";
+import type { RazorpayPayment } from "./razorpay";
 import type Stripe from "stripe";
 import type { Prisma } from "@/generated/prisma/client";
 import type { SubscriptionStatus } from "@/generated/prisma/enums";
@@ -38,6 +39,7 @@ const LEASE_PREFIX = "processing:";
 const LEASE_MS = 5 * 60_000;
 
 const HANDLED = new Set([
+  "payment.captured", // Razorpay (D-159)
   "checkout.session.completed",
   "checkout.session.async_payment_succeeded",
   "invoice.paid",
@@ -108,6 +110,8 @@ async function dispatch(event: ProviderEvent): Promise<string> {
     case "customer.subscription.updated":
     case "customer.subscription.deleted":
       return onSubscriptionChanged(obj as Stripe.Subscription, event.type === "customer.subscription.deleted");
+    case "payment.captured":
+      return onRazorpayPaymentCaptured(obj as RazorpayPayment);
     default:
       return "unhandled";
   }
@@ -306,6 +310,43 @@ export async function afterPayment(paymentId: string, ctx: { discountMinor: numb
 }
 
 // ───────────────────────────── handlers ─────────────────────────────
+
+/**
+ * Razorpay `payment.captured` (D-159): one payment = one period of the plan
+ * (India's 90-day packages). Reached from the webhook and from the browser's
+ * signed success callback; the Payment row's unique providerPaymentId and the
+ * event id keep it idempotent.
+ */
+async function onRazorpayPaymentCaptured(p: RazorpayPayment): Promise<string> {
+  if (p.status !== "captured") return `payment ${p.status}`;
+  const notes = (p.notes ?? {}) as Record<string, string>;
+  const local = await findLocalSubscription({ providerSubId: p.order_id, localId: notes.subscriptionId ?? null });
+  if (!local) return "no local subscription";
+  const already = await db.payment.findUnique({ where: { providerPaymentId: p.id }, select: { status: true } });
+  if (already?.status === "SUCCEEDED" || already?.status === "REFUNDED" || already?.status === "PARTIALLY_REFUNDED") return "duplicate payment";
+  const sub = await db.subscription.findUniqueOrThrow({ where: { id: local.id }, select: { planPrice: { select: { interval: true } } } });
+  const paidAt = new Date(p.created_at * 1000);
+  const periodStart = local.status === "ACTIVE" && local.currentPeriodEnd && local.currentPeriodEnd > paidAt ? local.currentPeriodEnd : paidAt;
+  const periodEnd = addMonths(periodStart, INTERVAL_MONTHS[sub.planPrice.interval]);
+  await activate(local.id, { periodStart, periodEnd, providerSubId: p.order_id ?? undefined });
+  const discountMinor = Math.max(0, Number(notes.discountMinor ?? 0) || 0);
+  const pay = await recordSuccessfulPayment({
+    subscriptionId: local.id,
+    studentId: local.studentId,
+    providerPaymentId: p.id,
+    provider: "RAZORPAY",
+    amountMinor: p.amount,
+    currency: p.currency,
+    taxMinor: 0,
+    discountMinor,
+    paidAt,
+    periodStart,
+    periodEnd,
+    method: p.method ?? null,
+  });
+  if (pay.created) await afterPayment(pay.paymentId, { discountMinor, periodStart, periodEnd, couponId: notes.couponId });
+  return pay.created ? "razorpay payment recorded" : "payment already recorded";
+}
 
 async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<string> {
   const meta = (session.metadata ?? {}) as Record<string, string>;

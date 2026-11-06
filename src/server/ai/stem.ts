@@ -202,7 +202,7 @@ export function containsPhrase(haystack: string[], phrase: string[]): boolean {
  */
 export function phraseCoverage(haystack: string[], phrase: string[]): number {
   if (containsPhrase(haystack, phrase)) return 1;
-  if (phrase.length < 3) return 0;
+  if (phrase.length < 2) return 0;
   const set = new Set(haystack);
   const distinct = [...new Set(phrase)];
   const hit = distinct.filter((t) => set.has(t)).length;

@@ -123,7 +123,8 @@ export async function runSubscriptionStatusSweep(now = new Date()) {
   for (const s of ended) {
     const graceOver = s.currentPeriodEnd!.getTime() + RENEWAL_GRACE_DAYS * DAY <= now.getTime();
     let to: "EXPIRED" | "CANCELED" | "PAST_DUE" | null = null;
-    if (s.planPrice.interval === "ONE_TIME" || s.provider === "MANUAL" || !s.providerSubId) to = "EXPIRED";
+    // MANUAL and RAZORPAY (D-159) plans are paid per period: they end at the period end unless paid again.
+    if (s.planPrice.interval === "ONE_TIME" || s.provider === "MANUAL" || s.provider === "RAZORPAY" || !s.providerSubId) to = "EXPIRED";
     else if (graceOver) to = s.cancelAtPeriodEnd ? "CANCELED" : "PAST_DUE";
     if (!to) continue;
     const n = await db.subscription.updateMany({ where: { id: s.id, status: "ACTIVE" }, data: { status: to, ...(to !== "PAST_DUE" ? { cancelAtPeriodEnd: false } : {}) } });
