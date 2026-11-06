@@ -255,6 +255,7 @@ model Market {
 
   resumeStyle ResumeStyle      @relation(fields: [resumeStyleId], references: [id])
   plans       PlanPrice[]
+  planCopies  PlanMarketCopy[]
   students    StudentProfile[]
 }
 
@@ -295,6 +296,22 @@ model Plan {
   isActive    Boolean     @default(true)
   deletedAt   DateTime?
   prices      PlanPrice[]
+  marketCopies PlanMarketCopy[]
+}
+
+/// Per-market override of a plan's marketing text (D-157): the UK can describe "Standard" differently from the US.
+model PlanMarketCopy {
+  id          String   @id @default(cuid())
+  planId      String
+  marketId    String
+  name        String?
+  description String?
+  features    String[] @default([])
+  updatedAt   DateTime @updatedAt
+  plan   Plan   @relation(fields: [planId], references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+
+  @@unique([planId, marketId])
 }
 
 model PlanPrice {

@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableWrap, Table, THead, TH, TR, TD } from "@/components/ui/table";
 import { formatMoney, fromMinor, minorDigits, toMinor } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { archivePlanAction, createStripePriceAction, savePlanAction, savePriceAction, togglePriceAction } from "./actions";
+import { archivePlanAction, clearPlanCopyAction, createStripePriceAction, savePlanAction, savePlanCopyAction, savePriceAction, togglePriceAction } from "./actions";
 
 type Price = {
   id: string;
@@ -26,7 +26,8 @@ type Price = {
   providerPriceId: string | null;
   isActive: boolean;
 };
-type Plan = { id: string; code: string; name: string; description: string | null; features: string[]; isFeatured: boolean; sortOrder: number; isActive: boolean; prices: Price[] };
+type MarketCopy = { marketId: string; name: string | null; description: string | null; features: string[] };
+type Plan = { id: string; code: string; name: string; description: string | null; features: string[]; isFeatured: boolean; sortOrder: number; isActive: boolean; prices: Price[]; marketCopies: MarketCopy[] };
 type Market = { id: string; code: string; name: string; currency: string; locale: string; minPriceMinor: number; isActive: boolean; paymentProvider: string };
 
 // ───────────────────────────── Plan dialog ─────────────────────────────
@@ -287,6 +288,64 @@ function PriceCell({ plan, market, interval, price, stripeReady }: { plan: Plan;
   );
 }
 
+/** Per-market override of a plan's marketing text (D-157). Empty fields keep the shared text. */
+function PlanCopyDialog({ plan, market, copy }: { plan: Plan; market: Market; copy?: MarketCopy }) {
+  const t = useTranslations("billing.admin.plans.copy");
+  const tc = useTranslations("billing.admin.common");
+  const [open, setOpen] = React.useState(false);
+  const save = useServerAction(savePlanCopyAction, { onSuccess: () => setOpen(false) });
+  const clear = useServerAction(clearPlanCopyAction, { onSuccess: () => setOpen(false) });
+  const err = (k: string) => save.fieldErrors[k];
+  const overridden = Boolean(copy && (copy.name || copy.description || copy.features.length));
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant={overridden ? "outline" : "ghost"} size="sm" className="mt-2" aria-label={t("openFor", { plan: plan.name, market: market.name })}>
+          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+          {overridden ? t("customised", { market: market.code }) : t("customise", { market: market.code })}
+        </Button>
+      </DialogTrigger>
+      <DialogContent title={t("title", { plan: plan.name, market: market.name })} description={t("description")}>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            save.run(plan.id, market.code, {
+              name: String(fd.get("name") ?? ""),
+              description: String(fd.get("description") ?? ""),
+              features: String(fd.get("features") ?? "").split("\n").map((x) => x.trim()).filter(Boolean),
+            });
+          }}
+        >
+          <Field id={`pc-name-${plan.id}-${market.id}`} label={t("name")} hint={t("sharedIs", { value: plan.name })} error={err("name")}>
+            <Input {...fieldA11y(`pc-name-${plan.id}-${market.id}`, err("name"), false)} name="name" defaultValue={copy?.name ?? ""} maxLength={60} placeholder={plan.name} />
+          </Field>
+          <Field id={`pc-desc-${plan.id}-${market.id}`} label={t("descriptionField")} hint={plan.description ? t("sharedIs", { value: plan.description }) : undefined} error={err("description")}>
+            <Textarea {...fieldA11y(`pc-desc-${plan.id}-${market.id}`, err("description"), false)} name="description" defaultValue={copy?.description ?? ""} maxLength={300} placeholder={plan.description ?? ""} className="min-h-16" />
+          </Field>
+          <Field id={`pc-feat-${plan.id}-${market.id}`} label={t("features")} hint={t("featuresHint")} error={err("features")}>
+            <Textarea {...fieldA11y(`pc-feat-${plan.id}-${market.id}`, err("features"), false)} name="features" defaultValue={(copy?.features ?? []).join("\n")} placeholder={plan.features.join("\n")} className="min-h-32" />
+          </Field>
+          <div className="flex flex-wrap justify-end gap-2">
+            {overridden ? (
+              <Button type="button" variant="outline" loading={clear.pending} onClick={() => clear.run(plan.id, market.code)}>
+                {t("useShared")}
+              </Button>
+            ) : null}
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              {tc("cancel")}
+            </Button>
+            <Button type="submit" loading={save.pending}>
+              {t("save")}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function PlansMatrix({ plans, markets, intervals, stripeReady }: { plans: Plan[]; markets: Market[]; intervals: BillingInterval[]; stripeReady: boolean }) {
   const t = useTranslations("billing.admin.plans");
   const tcm = useTranslations("billing.admin.common");
@@ -339,6 +398,7 @@ export function PlansMatrix({ plans, markets, intervals, stripeReady }: { plans:
                                 ) : null}
                                 {!p.isActive ? <Badge tone="grey">{t("archived")}</Badge> : null}
                               </div>
+                              {p.prices.some((x) => x.marketId === m.id) ? <PlanCopyDialog plan={p} market={m} copy={p.marketCopies.find((c) => c.marketId === m.id)} /> : null}
                             </div>
                             <PlanDialog mode="edit" plan={p} />
                           </div>

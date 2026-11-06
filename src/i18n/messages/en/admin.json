@@ -193,7 +193,10 @@
         "commercialHint": "Plans, coupons, payments and markets. Turn these on only if the team lead should see pricing and revenue.",
         "applyHint": "Changes apply to team leads within a few minutes, or the next time they log in.",
         "save": "Save team lead access"
-      }
+      },
+      "logosHint": "“Our candidates placed in” strip on each country's homepage: company names, one per line (up to 30). Leave empty to use the built-in list for that country. Names we have a logo for show the logo; others show as a text badge.",
+      "logosFor": "Companies shown in {country}",
+      "logosPlaceholder": "TCS\nInfosys\nGoogle"
     },
     "days": {
       "1": "Mon",

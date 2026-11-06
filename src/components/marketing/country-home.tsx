@@ -137,7 +137,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
       ) : null}
 
       {/* 2b. Placed-at logo marquee (D-143) */}
-      <PlacedLogos tone="white" />
+      <PlacedLogos tone="white" market={market} override={site.placedLogos?.[market]} />
 
       {/* 3. Who it's for (country-specific) */}
       <Section labelledBy="who-title">

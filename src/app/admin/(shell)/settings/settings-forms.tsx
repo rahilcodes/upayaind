@@ -145,7 +145,7 @@ export function TemplateEditor({ tpl, override }: { tpl: { type: string; title: 
 const SOCIAL = ["linkedin", "instagram", "facebook", "youtube", "x"] as const;
 type SocialKey = (typeof SOCIAL)[number];
 
-export function PublicSiteForm({ value, markets }: { value: { contactEmail: string; offices: Record<string, string>; stats: { placed: string; interviews: string; applications: string }; social?: Partial<Record<SocialKey, string>> }; markets: { code: string; name: string }[] }) {
+export function PublicSiteForm({ value, markets }: { value: { contactEmail: string; offices: Record<string, string>; stats: { placed: string; interviews: string; applications: string }; social?: Partial<Record<SocialKey, string>>; placedLogos?: Record<string, string[]> }; markets: { code: string; name: string }[] }) {
   const t = useTranslations("admin.settings");
   const { run, pending, fieldErrors } = useServerAction(savePublicSiteAction);
   const err = (k: string) => fieldErrors[k];
@@ -161,6 +161,7 @@ export function PublicSiteForm({ value, markets }: { value: { contactEmail: stri
           offices: Object.fromEntries(markets.map((m) => [m.code, String(fd.get(`office-${m.code}`) ?? "")])),
           stats: { placed: String(fd.get("placed") ?? ""), interviews: String(fd.get("interviews") ?? ""), applications: String(fd.get("applications") ?? "") },
           social: Object.fromEntries(SOCIAL.map((k) => [k, String(fd.get(`social-${k}`) ?? "")])) as Record<SocialKey, string>,
+          placedLogos: Object.fromEntries(markets.map((m) => [m.code, String(fd.get(`logos-${m.code}`) ?? "").split("\n").map((x) => x.trim()).filter(Boolean)])),
         });
       }}
     >
@@ -182,6 +183,12 @@ export function PublicSiteForm({ value, markets }: { value: { contactEmail: stri
       <Field id="ps-applications" label={t("statApplications")} error={err("stats.applications")}>
         <Input {...fieldA11y("ps-applications", err("stats.applications"), false)} name="applications" defaultValue={value.stats.applications} className="tabular" />
       </Field>
+      <p className="text-[13px] text-muted-foreground sm:col-span-2">{t("logosHint")}</p>
+      {markets.map((m) => (
+        <Field key={`logos-${m.code}`} id={`ps-logos-${m.code}`} label={t("logosFor", { country: m.name })} error={err(`placedLogos.${m.code}`)}>
+          <Textarea {...fieldA11y(`ps-logos-${m.code}`, err(`placedLogos.${m.code}`), false)} name={`logos-${m.code}`} defaultValue={(value.placedLogos?.[m.code] ?? []).join("\n")} className="min-h-24" placeholder={t("logosPlaceholder")} />
+        </Field>
+      ))}
       <p className="text-[13px] text-muted-foreground sm:col-span-2">{t("socialHint")}</p>
       {SOCIAL.map((k) => (
         <Field key={k} id={`ps-social-${k}`} label={t(`social.${k}`)} error={err(`social.${k}`)}>

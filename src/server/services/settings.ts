@@ -23,6 +23,8 @@ export type Settings = {
     stats: { placed: string; interviews: string; applications: string };
     /** Social profile URLs shown in the footer (D-148). Empty string = hidden. */
     social: SocialLinks;
+    /** "Placed at" company names per market (D-158). Empty/missing = the built-in list for that market. */
+    placedLogos?: Record<string, string[]>;
   };
   /** Admin sections a TEAM_LEAD may open (D-149). Keys from `ADMIN_SECTIONS` in rbac.ts. */
   teamLeadAccess: { sections: string[] };

@@ -40,6 +40,8 @@ export const publicSiteSchema = z.object({
   }),
   /** Social profile links (D-148). Empty = hidden. */
   social: z.object({ linkedin: socialUrl, instagram: socialUrl, facebook: socialUrl, youtube: socialUrl, x: socialUrl }),
+  /** Placed-at company names per market (D-158); up to 30 names of 40 chars. */
+  placedLogos: z.record(z.string().length(2).toUpperCase(), z.array(z.string().trim().min(1).max(40)).max(30)).optional(),
 });
 
 /** Which admin sections TEAM_LEAD accounts may open (D-149). Unknown keys and Settings are dropped. */

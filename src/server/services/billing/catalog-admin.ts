@@ -241,7 +241,7 @@ export async function getPlansMatrix() {
     db.plan.findMany({
       where: { deletedAt: null },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { ...PLAN_SELECT, prices: { select: PRICE_SELECT } },
+      select: { ...PLAN_SELECT, prices: { select: PRICE_SELECT }, marketCopies: { select: { marketId: true, name: true, description: true, features: true } } },
     }),
     db.market.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }], select: { id: true, code: true, name: true, currency: true, locale: true, minPriceMinor: true, isActive: true, paymentProvider: true } }),
   ]);
@@ -256,4 +256,62 @@ export async function listPriceOptions() {
     select: { id: true, interval: true, amountMinor: true, currency: true, isActive: true, plan: { select: { name: true } }, market: { select: { code: true, locale: true } } },
   });
   return rows;
+}
+
+// ───────────────────────────── Per-market plan text (D-157) ─────────────────────────────
+
+export const planCopyInputSchema = z.object({
+  name: z.string().trim().max(60).optional().transform((v) => v || null),
+  description: z.string().trim().max(300).optional().transform((v) => v || null),
+  features: z.array(z.string().trim().min(1, "Empty feature line").max(160)).max(12, "Up to 12 features per market").default([]),
+});
+export type PlanCopyInput = z.input<typeof planCopyInputSchema>;
+
+async function planAndMarket(planId: string, marketCode: string) {
+  const code = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/).parse(marketCode);
+  const [plan, market] = await Promise.all([
+    db.plan.findFirst({ where: { id: planId, deletedAt: null }, select: { id: true, code: true } }),
+    db.market.findUnique({ where: { code }, select: { id: true, code: true } }),
+  ]);
+  if (!plan) throw new BillingError("Plan not found.");
+  if (!market) throw new BillingError("Market not found.");
+  return { plan, market };
+}
+
+/** Marketing pages are pre-rendered (D-034); best effort outside a request scope (unit tests). */
+async function revalidateMarketing() {
+  try {
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/", "layout");
+  } catch {
+    /* not in a Next request scope */
+  }
+}
+
+/** Override a plan's name / description / features for one market. Empty fields keep the shared text. */
+export async function savePlanMarketCopy(actorId: string, planId: string, marketCode: string, raw: PlanCopyInput) {
+  const v = planCopyInputSchema.parse(raw);
+  if (!v.name && !v.description && !v.features.length) throw new BillingError("Enter at least one of name, description or features — or use the shared text.", "name");
+  const { plan, market } = await planAndMarket(planId, marketCode);
+  const before = await db.planMarketCopy.findUnique({ where: { planId_marketId: { planId: plan.id, marketId: market.id } }, select: { name: true, description: true, features: true } });
+  const row = await db.planMarketCopy.upsert({
+    where: { planId_marketId: { planId: plan.id, marketId: market.id } },
+    update: { name: v.name, description: v.description, features: v.features },
+    create: { planId: plan.id, marketId: market.id, name: v.name, description: v.description, features: v.features },
+    select: { id: true, name: true, description: true, features: true },
+  });
+  await audit({ actorId, action: "plan.market_copy", entity: "Plan", entityId: plan.id, before: before ?? undefined, after: { market: market.code, name: row.name, description: row.description, features: row.features } });
+  await revalidateMarketing();
+  return row;
+}
+
+/** Back to the shared plan text for this market. */
+export async function clearPlanMarketCopy(actorId: string, planId: string, marketCode: string) {
+  const { plan, market } = await planAndMarket(planId, marketCode);
+  const before = await db.planMarketCopy.findUnique({ where: { planId_marketId: { planId: plan.id, marketId: market.id } }, select: { name: true, description: true, features: true } });
+  if (!before) return { cleared: false };
+  await db.planMarketCopy.delete({ where: { planId_marketId: { planId: plan.id, marketId: market.id } } });
+  await audit({ actorId, action: "plan.market_copy_cleared", entity: "Plan", entityId: plan.id, before: { market: market.code, ...before } });
+  await revalidateMarketing();
+  return { cleared: true };
 }

@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { requireRole } from "@/server/auth/guards";
 import { safeAction } from "@/server/errors";
-import { archivePlan, createProviderPrice, planInputSchema, priceInputSchema, savePlan, savePrice, setPriceActive, type PlanInput, type PriceInput } from "@/server/services/billing";
+import { archivePlan, clearPlanMarketCopy, createProviderPrice, planInputSchema, priceInputSchema, savePlan, savePlanMarketCopy, savePrice, setPriceActive, type PlanCopyInput, type PlanInput, type PriceInput } from "@/server/services/billing";
 
 const id = z.string().min(1).max(64);
 
@@ -48,4 +48,19 @@ export async function createStripePriceAction(priceId: string) {
     const p = await createProviderPrice(user.id, id.parse(priceId));
     return { providerPriceId: p.providerPriceId };
   }, (await getTranslations("billing.admin.toasts"))("stripePriceCreated"));
+}
+
+/** Per-market plan text (D-157). */
+export async function savePlanCopyAction(planId: string, marketCode: string, input: PlanCopyInput) {
+  return safeAction(async () => {
+    const user = await requireRole(["ADMIN"]);
+    return savePlanMarketCopy(user.id, id.parse(planId), marketCode, input);
+  }, (await getTranslations("billing.admin.toasts"))("planCopySaved"));
+}
+
+export async function clearPlanCopyAction(planId: string, marketCode: string) {
+  return safeAction(async () => {
+    const user = await requireRole(["ADMIN"]);
+    return clearPlanMarketCopy(user.id, id.parse(planId), marketCode);
+  }, (await getTranslations("billing.admin.toasts"))("planCopyCleared"));
 }
