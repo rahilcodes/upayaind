@@ -246,7 +246,8 @@ export async function seedIndiaPlans() {
   for (const p of INDIA_PLANS) {
     const plan = await db.plan.upsert({
       where: { code: p.code },
-      update: { name: p.name, description: p.description, features: [...p.features], isFeatured: p.isFeatured, sortOrder: p.sortOrder, isActive: true, deletedAt: null },
+      // Admin-edited text and badges are the source of truth (D-162): only re-enable the plan, never overwrite its copy.
+      update: { isActive: true, deletedAt: null },
       create: { code: p.code, name: p.name, description: p.description, features: [...p.features], isFeatured: p.isFeatured, sortOrder: p.sortOrder },
     });
     await db.planPrice.upsert({
@@ -279,7 +280,8 @@ async function seedReference() {
   for (const p of PLANS) {
     const plan = await db.plan.upsert({
       where: { code: p.code },
-      update: { name: p.name, description: p.description, features: [...p.features], isFeatured: p.isFeatured, sortOrder: p.sortOrder },
+      // Seed text is only the starting point: never overwrite what admins changed in Plans & pricing (D-162).
+      update: {},
       create: { code: p.code, name: p.name, description: p.description, features: [...p.features], isFeatured: p.isFeatured, sortOrder: p.sortOrder },
     });
     for (const interval of ["MONTHLY"] as const) {
