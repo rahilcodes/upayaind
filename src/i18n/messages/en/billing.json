@@ -188,15 +188,21 @@
           "customised": "Custom text · {market}",
           "openFor": "Edit the {plan} plan text shown in {market}",
           "title": "{plan} — text for {market}",
-          "description": "What this market's visitors see for this plan. Leave a field empty to keep the shared text. Other markets are not affected.",
+          "description": "What this market's visitors see for this plan. Leave a field empty to keep the shared text. Other markets are not affected. Changes show on the website right after saving.",
           "name": "Name",
           "descriptionField": "Short description",
           "features": "Features",
           "featuresHint": "One per line, in display order (up to 12). Leave empty to use the shared features.",
           "sharedIs": "Shared text: {value}",
           "useShared": "Use shared text",
-          "save": "Save for this market"
-        }
+          "save": "Save for this market",
+          "featured": "Most popular in {market}",
+          "featuredHint": "Shared setting: {shared}. Choosing Yes makes this the only “Most popular” plan in this market.",
+          "featuredInherit": "Same as shared setting",
+          "featuredYes": "Yes",
+          "featuredNo": "No"
+        },
+        "editPlanAllMarkets": "Shared text for every country. To change what one country sees (or its “Most popular” plan), close this and use “Text for UK / US / IN” under the plan instead."
       },
       "markets": {
         "metaTitle": "Markets",

@@ -65,6 +65,16 @@ const MARKET_SELECT = {
   isActive: true,
 } as const;
 
+/** Marketing pages are pre-rendered (D-034); every catalog save refreshes them at once (D-161); best effort outside a request scope (unit tests). */
+async function revalidateMarketing() {
+  try {
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/", "layout");
+  } catch {
+    /* not in a Next request scope */
+  }
+}
+
 export async function listMarketsAdmin() {
   const [markets, styles] = await Promise.all([
     db.market.findMany({
@@ -102,6 +112,7 @@ export async function saveMarket(actorId: string, raw: MarketInput) {
   }
   const created = await db.market.create({ data, select: MARKET_SELECT });
   await audit({ actorId, action: "market.create", entity: "Market", entityId: created.id, after: created });
+  await revalidateMarketing();
   return created;
 }
 
@@ -140,6 +151,7 @@ export async function savePlan(actorId: string, raw: PlanInput) {
     await audit({ actorId, action: "plan.create", entity: "Plan", entityId: created.id, after: created }, tx);
     return created;
   });
+  await revalidateMarketing();
   return saved;
 }
 
@@ -151,6 +163,7 @@ export async function archivePlan(actorId: string, id: string) {
     await tx.planPrice.updateMany({ where: { planId: id }, data: { isActive: false } });
     await audit({ actorId, action: "plan.archive", entity: "Plan", entityId: id, before }, tx);
   });
+  await revalidateMarketing();
 }
 
 // ───────────────────────────── Prices ─────────────────────────────
@@ -186,7 +199,7 @@ export async function savePrice(actorId: string, raw: PriceInput) {
   if (!plan || plan.deletedAt) throw new BillingError("Plan not found.");
   assertPriceFloor(v, market);
 
-  return db.$transaction(async (tx) => {
+  const saved = await db.$transaction(async (tx) => {
     const before = await tx.planPrice.findUnique({ where: { planId_marketId_interval: { planId: v.planId, marketId: v.marketId, interval: v.interval } }, select: PRICE_SELECT });
     // Stripe prices are immutable: a new amount needs a new Stripe price.
     const amountChanged = before && before.amountMinor !== v.amountMinor;
@@ -198,6 +211,8 @@ export async function savePrice(actorId: string, raw: PriceInput) {
     await audit({ actorId, action: before ? "price.update" : "price.create", entity: "PlanPrice", entityId: after.id, before: before ?? undefined, after }, tx);
     return after;
   });
+  await revalidateMarketing();
+  return saved;
 }
 
 export async function setPriceActive(actorId: string, id: string, isActive: boolean) {
@@ -207,6 +222,7 @@ export async function setPriceActive(actorId: string, id: string, isActive: bool
   const after = await db.planPrice.update({ where: { id }, data: { isActive }, select: PRICE_SELECT });
   const { market: _m, ...b } = before;
   await audit({ actorId, action: isActive ? "price.activate" : "price.deactivate", entity: "PlanPrice", entityId: id, before: b, after });
+  await revalidateMarketing();
   return after;
 }
 
@@ -241,7 +257,7 @@ export async function getPlansMatrix() {
     db.plan.findMany({
       where: { deletedAt: null },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { ...PLAN_SELECT, prices: { select: PRICE_SELECT }, marketCopies: { select: { marketId: true, name: true, description: true, features: true } } },
+      select: { ...PLAN_SELECT, prices: { select: PRICE_SELECT }, marketCopies: { select: { marketId: true, name: true, description: true, features: true, isFeatured: true } } },
     }),
     db.market.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }], select: { id: true, code: true, name: true, currency: true, locale: true, minPriceMinor: true, isActive: true, paymentProvider: true } }),
   ]);
@@ -264,6 +280,8 @@ export const planCopyInputSchema = z.object({
   name: z.string().trim().max(60).optional().transform((v) => v || null),
   description: z.string().trim().max(300).optional().transform((v) => v || null),
   features: z.array(z.string().trim().min(1, "Empty feature line").max(160)).max(12, "Up to 12 features per market").default([]),
+  /** D-161: "inherit" follows the shared plan flag; "yes"/"no" decide for this market only. */
+  featured: z.enum(["inherit", "yes", "no"]).default("inherit"),
 });
 export type PlanCopyInput = z.input<typeof planCopyInputSchema>;
 
@@ -278,29 +296,33 @@ async function planAndMarket(planId: string, marketCode: string) {
   return { plan, market };
 }
 
-/** Marketing pages are pre-rendered (D-034); best effort outside a request scope (unit tests). */
-async function revalidateMarketing() {
-  try {
-    const { revalidatePath } = await import("next/cache");
-    revalidatePath("/", "layout");
-  } catch {
-    /* not in a Next request scope */
-  }
-}
-
 /** Override a plan's name / description / features for one market. Empty fields keep the shared text. */
 export async function savePlanMarketCopy(actorId: string, planId: string, marketCode: string, raw: PlanCopyInput) {
   const v = planCopyInputSchema.parse(raw);
-  if (!v.name && !v.description && !v.features.length) throw new BillingError("Enter at least one of name, description or features — or use the shared text.", "name");
+  const isFeatured = v.featured === "inherit" ? null : v.featured === "yes";
+  if (!v.name && !v.description && !v.features.length && isFeatured === null) throw new BillingError("Enter at least one of name, description, features or “Most popular” — or use the shared text.", "name");
   const { plan, market } = await planAndMarket(planId, marketCode);
-  const before = await db.planMarketCopy.findUnique({ where: { planId_marketId: { planId: plan.id, marketId: market.id } }, select: { name: true, description: true, features: true } });
-  const row = await db.planMarketCopy.upsert({
-    where: { planId_marketId: { planId: plan.id, marketId: market.id } },
-    update: { name: v.name, description: v.description, features: v.features },
-    create: { planId: plan.id, marketId: market.id, name: v.name, description: v.description, features: v.features },
-    select: { id: true, name: true, description: true, features: true },
+  const before = await db.planMarketCopy.findUnique({ where: { planId_marketId: { planId: plan.id, marketId: market.id } }, select: { name: true, description: true, features: true, isFeatured: true } });
+  const row = await db.$transaction(async (tx) => {
+    if (isFeatured) {
+      // One "Most popular" per market: every other plan in this market is explicitly not featured here.
+      const others = await tx.planPrice.findMany({ where: { marketId: market.id, planId: { not: plan.id } }, select: { planId: true }, distinct: ["planId"] });
+      for (const o of others) {
+        await tx.planMarketCopy.upsert({
+          where: { planId_marketId: { planId: o.planId, marketId: market.id } },
+          update: { isFeatured: false },
+          create: { planId: o.planId, marketId: market.id, isFeatured: false },
+        });
+      }
+    }
+    return tx.planMarketCopy.upsert({
+      where: { planId_marketId: { planId: plan.id, marketId: market.id } },
+      update: { name: v.name, description: v.description, features: v.features, isFeatured },
+      create: { planId: plan.id, marketId: market.id, name: v.name, description: v.description, features: v.features, isFeatured },
+      select: { id: true, name: true, description: true, features: true, isFeatured: true },
+    });
   });
-  await audit({ actorId, action: "plan.market_copy", entity: "Plan", entityId: plan.id, before: before ?? undefined, after: { market: market.code, name: row.name, description: row.description, features: row.features } });
+  await audit({ actorId, action: "plan.market_copy", entity: "Plan", entityId: plan.id, before: before ?? undefined, after: { market: market.code, name: row.name, description: row.description, features: row.features, isFeatured: row.isFeatured } });
   await revalidateMarketing();
   return row;
 }
@@ -308,7 +330,7 @@ export async function savePlanMarketCopy(actorId: string, planId: string, market
 /** Back to the shared plan text for this market. */
 export async function clearPlanMarketCopy(actorId: string, planId: string, marketCode: string) {
   const { plan, market } = await planAndMarket(planId, marketCode);
-  const before = await db.planMarketCopy.findUnique({ where: { planId_marketId: { planId: plan.id, marketId: market.id } }, select: { name: true, description: true, features: true } });
+  const before = await db.planMarketCopy.findUnique({ where: { planId_marketId: { planId: plan.id, marketId: market.id } }, select: { name: true, description: true, features: true, isFeatured: true } });
   if (!before) return { cleared: false };
   await db.planMarketCopy.delete({ where: { planId_marketId: { planId: plan.id, marketId: market.id } } });
   await audit({ actorId, action: "plan.market_copy_cleared", entity: "Plan", entityId: plan.id, before: { market: market.code, ...before } });

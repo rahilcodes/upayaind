@@ -7,7 +7,7 @@ import { useServerAction } from "@/components/portal/action-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Checkbox, Field, Input, Textarea, fieldA11y } from "@/components/ui/input";
+import { Checkbox, Field, Input, Textarea, fieldA11y, Select } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableWrap, Table, THead, TH, TR, TD } from "@/components/ui/table";
 import { formatMoney, fromMinor, minorDigits, toMinor } from "@/lib/format";
@@ -26,7 +26,7 @@ type Price = {
   providerPriceId: string | null;
   isActive: boolean;
 };
-type MarketCopy = { marketId: string; name: string | null; description: string | null; features: string[] };
+type MarketCopy = { marketId: string; name: string | null; description: string | null; features: string[]; isFeatured: boolean | null };
 type Plan = { id: string; code: string; name: string; description: string | null; features: string[]; isFeatured: boolean; sortOrder: number; isActive: boolean; prices: Price[]; marketCopies: MarketCopy[] };
 type Market = { id: string; code: string; name: string; currency: string; locale: string; minPriceMinor: number; isActive: boolean; paymentProvider: string };
 
@@ -72,7 +72,7 @@ export function PlanDialog({ mode, plan }: { mode: "create" | "edit"; plan?: Pla
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent title={mode === "create" ? t("newPlan") : t("editPlan")} wide>
+      <DialogContent title={mode === "create" ? t("newPlan") : t("editPlan")} description={t("editPlanAllMarkets")} wide>
         <form onSubmit={submit} className="grid gap-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="plan-name" label={tf("name")} error={fieldErrors.name}>
@@ -296,7 +296,8 @@ function PlanCopyDialog({ plan, market, copy }: { plan: Plan; market: Market; co
   const save = useServerAction(savePlanCopyAction, { onSuccess: () => setOpen(false) });
   const clear = useServerAction(clearPlanCopyAction, { onSuccess: () => setOpen(false) });
   const err = (k: string) => save.fieldErrors[k];
-  const overridden = Boolean(copy && (copy.name || copy.description || copy.features.length));
+  const overridden = Boolean(copy && (copy.name || copy.description || copy.features.length || copy.isFeatured !== null));
+  const featuredDefault = copy?.isFeatured == null ? "inherit" : copy.isFeatured ? "yes" : "no";
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -315,6 +316,7 @@ function PlanCopyDialog({ plan, market, copy }: { plan: Plan; market: Market; co
               name: String(fd.get("name") ?? ""),
               description: String(fd.get("description") ?? ""),
               features: String(fd.get("features") ?? "").split("\n").map((x) => x.trim()).filter(Boolean),
+              featured: String(fd.get("featured") ?? "inherit") as "inherit" | "yes" | "no",
             });
           }}
         >
@@ -326,6 +328,13 @@ function PlanCopyDialog({ plan, market, copy }: { plan: Plan; market: Market; co
           </Field>
           <Field id={`pc-feat-${plan.id}-${market.id}`} label={t("features")} hint={t("featuresHint")} error={err("features")}>
             <Textarea {...fieldA11y(`pc-feat-${plan.id}-${market.id}`, err("features"), false)} name="features" defaultValue={(copy?.features ?? []).join("\n")} placeholder={plan.features.join("\n")} className="min-h-32" />
+          </Field>
+          <Field id={`pc-feat-flag-${plan.id}-${market.id}`} label={t("featured", { market: market.name })} hint={t("featuredHint", { shared: plan.isFeatured ? t("featuredYes") : t("featuredNo") })}>
+            <Select id={`pc-feat-flag-${plan.id}-${market.id}`} name="featured" defaultValue={featuredDefault}>
+              <option value="inherit">{t("featuredInherit")}</option>
+              <option value="yes">{t("featuredYes")}</option>
+              <option value="no">{t("featuredNo")}</option>
+            </Select>
           </Field>
           <div className="flex flex-wrap justify-end gap-2">
             {overridden ? (

@@ -59,3 +59,32 @@ describe("logosFor (D-158)", () => {
     expect(custom).toEqual([expect.objectContaining({ kind: "image", name: "Infosys" }), { kind: "text", name: "Deloitte" }]);
   });
 });
+
+describe("per-market Most popular (D-161)", () => {
+  it("makes one plan the badge in one market only; other markets keep the shared flag", async () => {
+    const { us, uk, plan: standard } = await twoMarkets();
+    await db.plan.update({ where: { id: standard.id }, data: { isFeatured: true } });
+    const premium = await db.plan.create({ data: { code: uid("prem"), name: "Premium", features: ["P"] } });
+    for (const m of [us, uk]) await db.planPrice.create({ data: { planId: premium.id, marketId: m.id, interval: "MONTHLY", amountMinor: 39900, currency: m.currency, dailyTarget: 45 } });
+
+    await savePlanMarketCopy("admin", premium.id, "UK", { featured: "yes" });
+    const ukPlans = (await getPricing("UK")).plans;
+    const usPlans = (await getPricing("US")).plans;
+    expect(ukPlans.filter((p) => p.isFeatured).map((p) => p.name)).toEqual(["Premium"]);
+    expect(usPlans.filter((p) => p.isFeatured).map((p) => p.name)).toEqual(["Standard"]);
+    // Premium's UK text is still the shared text (only the badge changed).
+    expect(ukPlans.find((p) => p.planId === premium.id)!.features).toEqual(["P"]);
+
+    // Back to the shared setting for both → Standard is the badge again in the UK.
+    await clearPlanMarketCopy("admin", premium.id, "UK");
+    await clearPlanMarketCopy("admin", standard.id, "UK");
+    expect((await getPricing("UK")).plans.filter((p) => p.isFeatured).map((p) => p.name)).toEqual(["Standard"]);
+  });
+
+  it("refuses an empty save but accepts a badge-only one", async () => {
+    const { plan } = await twoMarkets();
+    await expect(savePlanMarketCopy("admin", plan.id, "UK", {})).rejects.toThrow(/Most popular/);
+    await expect(savePlanMarketCopy("admin", plan.id, "UK", { featured: "no" })).resolves.toMatchObject({ isFeatured: false });
+  });
+});
+

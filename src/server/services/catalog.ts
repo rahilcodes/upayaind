@@ -39,12 +39,18 @@ export async function getPlanPriceSummary(planPriceId: string) {
 }
 
 /** Merge a PlanMarketCopy row over the shared plan text (D-157). Empty fields fall through to the plan. */
-export function applyMarketCopy(plan: { name: string; description: string | null; features: string[] }, copy?: { name: string | null; description: string | null; features: string[] } | null) {
-  if (!copy) return { name: plan.name, description: plan.description, features: plan.features };
+export function applyMarketCopy(
+  plan: { name: string; description: string | null; features: string[]; isFeatured?: boolean },
+  copy?: { name: string | null; description: string | null; features: string[]; isFeatured?: boolean | null } | null,
+) {
+  const shared = plan.isFeatured ?? false;
+  if (!copy) return { name: plan.name, description: plan.description, features: plan.features, isFeatured: shared };
   return {
     name: copy.name?.trim() || plan.name,
     description: copy.description?.trim() || plan.description,
     features: copy.features.length ? copy.features : plan.features,
+    // D-161: a market can pick its own "Most popular" plan.
+    isFeatured: copy.isFeatured ?? shared,
   };
 }
 
@@ -91,7 +97,7 @@ export async function getPricing(marketCode: string | null | undefined) {
         select: { id: true, interval: true, amountMinor: true, currency: true, dailyTarget: true, interviewsPromise: true },
       },
       // Per-market text override (D-157): non-empty fields replace the shared plan text.
-      marketCopies: { where: { marketId: market.id }, select: { name: true, description: true, features: true } },
+      marketCopies: { where: { marketId: market.id }, select: { name: true, description: true, features: true, isFeatured: true } },
     },
   });
   const intervals = new Set<BillingInterval>();
@@ -104,7 +110,7 @@ export async function getPricing(marketCode: string | null | undefined) {
       name: copy.name,
       description: copy.description,
       features: copy.features,
-      isFeatured: p.isFeatured,
+      isFeatured: copy.isFeatured,
       prices: p.prices
         .sort((a, b) => INTERVAL_ORDER.indexOf(a.interval) - INTERVAL_ORDER.indexOf(b.interval))
         .map((x) => {
