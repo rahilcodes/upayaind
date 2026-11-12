@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { H2, Section } from "./ui";
 
 /**
- * "Our global reach" world map with pulsing markers for the three markets
+ * "Our global reach" world map with pulsing markers for every market
  * (D-143). Markers are positioned by percentage over the image so they stay
  * put at every viewport; the page's own country gets a larger dot and a
  * visible name chip. The ping ring is disabled under `prefers-reduced-motion`.
@@ -14,6 +14,9 @@ const MARKERS: { market: HomeMarket; top: string; left: string; color: string }[
   { market: "US", top: "41%", left: "27%", color: "#2563DE" },
   { market: "UK", top: "30%", left: "46.5%", color: "#38B6FF" },
   { market: "IN", top: "56%", left: "69%", color: "#DC2626" },
+  { market: "CA", top: "30%", left: "23%", color: "#C8102E" },
+  { market: "AU", top: "77%", left: "86%", color: "#1E7B4F" },
+  { market: "NZ", top: "84%", left: "94%", color: "#0B1846" },
 ];
 
 export async function GlobalReach({ market, tone = "paper" }: { market: HomeMarket; tone?: "paper" | "white" }) {
@@ -41,7 +44,8 @@ export async function GlobalReach({ market, tone = "paper" }: { market: HomeMark
                     <span className="relative inline-flex h-full w-full rounded-full border-2 border-white shadow-[0_1px_4px_rgba(11,24,70,0.25)]" style={{ backgroundColor: m.color }} />
                   </span>
                   {own ? (
-                    <span className="absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-full border border-sand bg-white px-2 py-0.5 text-[11px] font-bold text-ink shadow-sm sm:text-xs">{name(m.market)}</span>
+                    // Markers near the right edge (AU, NZ) anchor the name chip to their right so it never overflows the page.
+                    <span className={cn("absolute top-full mt-1.5 whitespace-nowrap rounded-full border border-sand bg-white px-2 py-0.5 text-[11px] font-bold text-ink shadow-sm sm:text-xs", parseFloat(m.left) > 80 ? "right-0" : "left-1/2 -translate-x-1/2")}>{name(m.market)}</span>
                   ) : (
                     <span className="sr-only">{name(m.market)}</span>
                   )}

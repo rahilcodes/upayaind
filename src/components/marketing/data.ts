@@ -95,6 +95,9 @@ export function getMarketPricingFallback(code: string): MarketPricing {
     US: { name: "United States", currency: "USD", locale: "en-US", docWord: "resume" },
     IN: { name: "India", currency: "INR", locale: "en-IN", docWord: "resume" },
     UK: { name: "United Kingdom", currency: "GBP", locale: "en-GB", docWord: "CV" },
+    CA: { name: "Canada", currency: "CAD", locale: "en-CA", docWord: "resume" },
+    AU: { name: "Australia", currency: "AUD", locale: "en-AU", docWord: "resume" },
+    NZ: { name: "New Zealand", currency: "NZD", locale: "en-NZ", docWord: "CV" },
   };
   const k = known[code] ?? known.US!;
   return { market: { code, ...k, phoneDisplay: null, whatsapp: null }, plans: [], intervals: [] };

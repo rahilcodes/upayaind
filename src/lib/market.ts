@@ -6,23 +6,26 @@
  * imports here: the middleware runs on the edge runtime.
  */
 
-export const SUPPORTED_MARKETS = ["US", "UK", "CA", "AU", "IN"] as const;
+export const SUPPORTED_MARKETS = ["US", "UK", "CA", "AU", "NZ", "IN"] as const;
 export type MarketCode = (typeof SUPPORTED_MARKETS)[number];
 
 /** Markets with their own public homepage. Everyone else gets the US page. */
-export const HOME_MARKETS = ["US", "IN", "UK"] as const;
+export const HOME_MARKETS = ["US", "IN", "UK", "CA", "AU", "NZ"] as const; // CA/AU/NZ: D-163
 export type HomeMarket = (typeof HOME_MARKETS)[number];
 
 export const DEFAULT_MARKET: HomeMarket = "US";
 
 /** Paths of the country homepages, keyed by market. `/` is the US page. */
-export const HOME_PATHS: Record<HomeMarket, string> = { US: "/", IN: "/in", UK: "/uk" };
+export const HOME_PATHS: Record<HomeMarket, string> = { US: "/", IN: "/in", UK: "/uk", CA: "/ca", AU: "/au", NZ: "/nz" };
 
 /** BCP-47 tags for hreflang and the OG `locale`, keyed by market. */
 export const HOME_LOCALES: Record<HomeMarket, { hreflang: string; og: string }> = {
   US: { hreflang: "en-US", og: "en_US" },
   IN: { hreflang: "en-IN", og: "en_IN" },
   UK: { hreflang: "en-GB", og: "en_GB" },
+  CA: { hreflang: "en-CA", og: "en_CA" },
+  AU: { hreflang: "en-AU", og: "en_AU" },
+  NZ: { hreflang: "en-NZ", og: "en_NZ" },
 };
 
 /** Upper-cases, maps ISO "GB" to our "UK", and rejects unknown codes. */
@@ -88,7 +91,7 @@ export function isCountryHomePath(pathname: string) {
   return marketForHomePath(pathname) !== null;
 }
 
-/** hreflang map for the three country homepages (`x-default` → US). */
+/** hreflang map for the country homepages (`x-default` → US). */
 export function homeAlternates(): Record<string, string> {
   const out: Record<string, string> = {};
   for (const m of HOME_MARKETS) out[HOME_LOCALES[m].hreflang] = HOME_PATHS[m];

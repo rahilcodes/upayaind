@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
+import type { HomeMarket } from "@/lib/market";
 import { cn } from "@/lib/utils";
 import { Eyebrow, H2, Section } from "./ui";
 
@@ -48,12 +49,18 @@ export const LOGO_LIBRARY: PlacedLogo[] = [
 ];
 
 const byName = (names: string[]): PlacedLogo[] => names.map((n) => LOGO_LIBRARY.find((l) => l.name.toLowerCase() === n.toLowerCase())).filter((l): l is PlacedLogo => Boolean(l));
+/** Local employers we have no artwork for show as text badges (same as the admin override). */
+const mixed = (names: string[]): PlacedLogo[] => names.map((n) => LOGO_LIBRARY.find((l) => l.name.toLowerCase() === n.toLowerCase()) ?? ({ kind: "text", name: n } as PlacedLogo));
 
 /** Country-specific mix (D-158): local employers first, then the global names students in that market recognise. */
-export const PLACED_LOGOS_BY_MARKET: Record<"US" | "IN" | "UK", PlacedLogo[]> = {
+export const PLACED_LOGOS_BY_MARKET: Record<HomeMarket, PlacedLogo[]> = {
   IN: byName(["TCS", "Infosys", "Wipro", "HCL", "Accenture", "Zoho", "Paytm", "PhonePe", "Google", "Microsoft", "Amazon", "Cisco", "SAP"]),
   US: byName(["Google", "Microsoft", "Amazon", "Meta", "Cisco", "Intel", "NVIDIA", "Dell", "HP", "Goldman Sachs", "Atlassian", "Stripe", "Accenture"]),
   UK: byName(["Barclays", "HSBC", "Vodafone", "Accenture", "Google", "Microsoft", "Amazon", "SAP", "Cisco", "Intel", "HP", "Atlassian"]),
+  // D-163
+  CA: mixed(["RBC", "TD Bank", "Shopify", "Google", "Microsoft", "Amazon", "Accenture", "Cisco", "SAP", "Intel", "Dell", "Meta"]),
+  AU: mixed(["Commonwealth Bank", "Telstra", "Canva", "Atlassian", "Google", "Microsoft", "Amazon", "Accenture", "Cisco", "SAP", "HP", "Vodafone"]),
+  NZ: mixed(["Xero", "Fonterra", "Air New Zealand", "Spark NZ", "Microsoft", "Google", "Amazon", "Accenture", "Datacom", "Atlassian", "Cisco", "HP"]),
 };
 
 /** Backwards-compatible default list (US). */
@@ -66,7 +73,7 @@ export const PLACED_LOGOS: PlacedLogo[] = PLACED_LOGOS_BY_MARKET.US;
 export function logosFor(market: string, override?: string[] | null): PlacedLogo[] {
   const names = (override ?? []).map((n) => n.trim()).filter(Boolean);
   if (names.length) return names.map((n) => LOGO_LIBRARY.find((l) => l.name.toLowerCase() === n.toLowerCase()) ?? ({ kind: "text", name: n } as PlacedLogo));
-  return PLACED_LOGOS_BY_MARKET[market as "US" | "IN" | "UK"] ?? PLACED_LOGOS_BY_MARKET.US;
+  return PLACED_LOGOS_BY_MARKET[market as HomeMarket] ?? PLACED_LOGOS_BY_MARKET.US;
 }
 
 function LogoRow({ logos, hidden }: { logos: PlacedLogo[]; hidden?: boolean }) {

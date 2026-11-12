@@ -282,13 +282,16 @@
     },
     "reach": {
       "title": "Our global reach",
-      "sub": "We support job seekers across the United States, the United Kingdom and India.",
+      "sub": "We support job seekers across the United States, Canada, the United Kingdom, India, Australia and New Zealand.",
       "markersLabel": "Countries we serve",
       "legendLabel": "Map legend",
       "countries": {
         "US": "United States",
         "UK": "United Kingdom",
-        "IN": "India"
+        "IN": "India",
+        "CA": "Canada",
+        "AU": "Australia",
+        "NZ": "New Zealand"
       }
     },
     "compare": {
@@ -1252,6 +1255,537 @@
           "title": "Spend your evenings on interview prep, not application forms.",
           "sub": "Your specialist can start applying within a day of sign-up."
         }
+      },
+      "CA": {
+        "meta": {
+          "title": "UpayaInd Canada — We apply for jobs on your behalf",
+          "description": "Our specialists apply to 25–50 Canadian jobs for you every weekday on Job Bank, Indeed, LinkedIn and company sites, each with a two-page Canadian resume tailored to the role. PGWP, PR and citizens."
+        },
+        "hero": {
+          "eyebrow": "Done-for-you job applications in Canada",
+          "titleLead": "Your Canadian job search,",
+          "titleAccent": "done for you.",
+          "sub": "Our specialists apply to {min}–{max} Canadian roles for you every weekday on Job Bank, Indeed, LinkedIn, Workopolis and company career sites, each with a resume tailored to the job. Toronto, Vancouver, Montréal, Calgary, Ottawa or remote.",
+          "ctaPrimary": "Get started",
+          "ctaSecondary": "See how it works",
+          "point1": "Resume tailored to every role",
+          "point2": "Applied only where your work status fits",
+          "point3": "Live tracking dashboard"
+        },
+        "who": {
+          "eyebrow": "Who it’s for",
+          "title": "Built for how hiring works in Canada",
+          "sub": "Three situations we see every day. If yours is different, tell us on a free call.",
+          "items": [
+            {
+              "title": "International graduates on a PGWP",
+              "body": "Your Post-Graduation Work Permit is open, but it doesn’t last forever. We fill the pipeline early so you’re building Canadian experience instead of filling in forms."
+            },
+            {
+              "title": "Newcomers and permanent residents",
+              "body": "No Canadian work history yet? We position your international experience the way Canadian recruiters read it and apply where it counts, from your first week here."
+            },
+            {
+              "title": "Canadian citizens switching roles",
+              "body": "Keep your current job. We run the search quietly in the background across the provinces and cities you choose, at the right level and salary."
+            }
+          ]
+        },
+        "eligibility": {
+          "eyebrow": "Work authorization",
+          "title": "We apply where your work status fits",
+          "sub": "You tell us your status during onboarding. Your specialist checks it against every role before applying.",
+          "items": [
+            {
+              "title": "Open work permits and PGWP",
+              "body": "You can work for most employers, so we search the whole market and state your permit plainly when a form asks."
+            },
+            {
+              "title": "Employer-specific work permits",
+              "body": "Changing employer usually means a new permit and often an LMIA. We tell you before we apply anywhere that would need one, rather than guessing."
+            },
+            {
+              "title": "Permanent residents and citizens",
+              "body": "No filter. Every employer is open, including government and roles that require an existing right to work in Canada."
+            },
+            {
+              "title": "Bilingual roles",
+              "body": "English and French? We highlight it and seek out bilingual roles in Montréal, Ottawa and federal positions, where it’s often a requirement."
+            }
+          ],
+          "note": "We’re not immigration consultants and don’t give immigration advice."
+        },
+        "compare": {
+          "eyebrow": "Why UpayaInd",
+          "title": "Job hunting is a second full-time job. Hand it to us.",
+          "diy": "Doing it yourself",
+          "us": "With UpayaInd",
+          "rows": [
+            {
+              "label": "Time spent each week",
+              "diy": "Evenings and weekends",
+              "us": "Interviews and prep only"
+            },
+            {
+              "label": "Applications a month",
+              "diy": "As many as you can fit in",
+              "us": "{min}–{max}+"
+            },
+            {
+              "label": "Resume",
+              "diy": "One generic version",
+              "us": "Tailored to every role"
+            },
+            {
+              "label": "Work status",
+              "diy": "Discovered at offer stage",
+              "us": "Checked before we apply"
+            }
+          ]
+        },
+        "steps": {
+          "eyebrow": "How it works",
+          "title": "From sign-up to interviews in four steps",
+          "items": [
+            {
+              "when": "Day 1",
+              "title": "Sign up and onboard",
+              "body": "Pick a plan, upload your resume, tell us your work status, target roles, cities and salary, and meet your specialist."
+            },
+            {
+              "when": "Day 2",
+              "title": "Master resume ready",
+              "body": "We build a structured profile and a two-page Canadian resume you review and approve."
+            },
+            {
+              "when": "Every weekday",
+              "title": "Tailored applications",
+              "body": "Your specialist applies to {min}–{max} roles a day on Job Bank, Indeed, LinkedIn, Workopolis, Eluta and company sites, each with its own tailored resume."
+            },
+            {
+              "when": "Ongoing",
+              "title": "You interview, we keep going",
+              "body": "Track everything live, prep with us, and keep the pipeline full until you accept an offer."
+            }
+          ]
+        },
+        "portals": {
+          "eyebrow": "Where we apply",
+          "title": "Canada’s job boards, plus company career sites",
+          "sub": "Your specialist searches daily in your time zone, Eastern to Pacific, and applies wherever the role is posted.",
+          "items": [
+            "Job Bank",
+            "Indeed Canada",
+            "LinkedIn",
+            "Workopolis",
+            "Eluta",
+            "Company career sites"
+          ],
+          "formatTitle": "Canadian resume format, the way recruiters expect it",
+          "formatPoints": [
+            "Two pages, no photo, no date of birth, no SIN, no marital status",
+            "Summary, skills, then experience in reverse-chronological order",
+            "Achievements with numbers, in Canadian spelling (colour, centre)",
+            "Bilingual English/French skills highlighted when you have them"
+          ]
+        },
+        "pricing": {
+          "title": "Simple monthly plans",
+          "sub": "Prices in CAD for Canada. Cancel any time.",
+          "finalisingTitle": "Plans for Canada are being finalised",
+          "finalisingBody": "Talk to us or book a call — we’ll confirm the price in Canadian dollars before you pay anything, and reserve your specialist."
+        },
+        "faq": {
+          "title": "Questions from job seekers in Canada",
+          "items": [
+            {
+              "q": "I’m on a PGWP. Should I start now?",
+              "a": "Yes. Canadian work experience matters for your next steps, and the permit has an end date. The earlier the pipeline fills, the more choice you have."
+            },
+            {
+              "q": "Do you apply to jobs that need an LMIA?",
+              "a": "We tell you first. Roles that would need a new permit or an LMIA are flagged before we apply, and we never misstate your work status on a form."
+            },
+            {
+              "q": "Can you target bilingual roles?",
+              "a": "Yes. If you speak French, we highlight it on your resume and look for bilingual roles, including in Québec and the federal public service."
+            },
+            {
+              "q": "Which job boards do you use?",
+              "a": "Job Bank, Indeed Canada, LinkedIn, Workopolis, Eluta and company career sites. You can add or exclude any of them from your dashboard."
+            },
+            {
+              "q": "Can you apply across provinces?",
+              "a": "Yes. Tell us the cities and provinces you’d move to, or remote only, and we search in each one’s time zone."
+            },
+            {
+              "q": "Will you apply to my current employer?",
+              "a": "Never. Your exclusion list — current and past employers, anyone you name — is applied to every search."
+            },
+            {
+              "q": "Do you charge a fee after I’m hired?",
+              "a": "The fee terms are written in the Placement Agreement you accept at sign-up and linked in the footer. The plan price is shown above; there are no hidden charges."
+            }
+          ]
+        },
+        "cta": {
+          "title": "Spend your evenings on interview prep, not application forms.",
+          "sub": "Your specialist can start applying within a day of sign-up."
+        }
+      },
+      "AU": {
+        "meta": {
+          "title": "UpayaInd Australia — We apply for jobs on your behalf",
+          "description": "Our specialists apply to 25–50 Australian jobs for you every weekday on SEEK, LinkedIn, Indeed and company sites, each with an Australian resume tailored to the role. 485, skilled visas, PR and citizens."
+        },
+        "hero": {
+          "eyebrow": "Done-for-you job applications in Australia",
+          "titleLead": "Stop scrolling SEEK.",
+          "titleAccent": "Start interviewing.",
+          "sub": "Our specialists apply to {min}–{max} Australian roles for you every weekday on SEEK, LinkedIn, Indeed, Jora and company career sites, each with a resume tailored to the job. Sydney, Melbourne, Brisbane, Perth, Adelaide or remote.",
+          "ctaPrimary": "Get started",
+          "ctaSecondary": "See how it works",
+          "point1": "Resume tailored to every role",
+          "point2": "Applied only where your visa fits",
+          "point3": "Live tracking dashboard"
+        },
+        "who": {
+          "eyebrow": "Who it’s for",
+          "title": "Built for the Australian market, visa or no visa",
+          "sub": "Three situations we see every day. If yours is different, tell us on a free call.",
+          "items": [
+            {
+              "title": "Graduates on a Temporary Graduate (485) visa",
+              "body": "Your 485 gives you full work rights for a limited time. We fill the pipeline from week one so the clock is spent interviewing, not applying."
+            },
+            {
+              "title": "Skilled visa professionals",
+              "body": "On a 482 or heading for 186, 189 or 190? We target employers with a record of sponsoring in your occupation and state your status plainly on every form."
+            },
+            {
+              "title": "Permanent residents and citizens",
+              "body": "No visa filter — the whole market, including government roles on APSJobs, at the right level and salary band."
+            }
+          ]
+        },
+        "eligibility": {
+          "eyebrow": "Work rights",
+          "title": "We apply where your visa fits",
+          "sub": "You tell us your work rights during onboarding. Your specialist checks them against every role before applying.",
+          "items": [
+            {
+              "title": "Employer sponsorship",
+              "body": "If you need a 482 sponsor, we prioritise employers with a sponsorship history in your field and skip ads that say “PR or citizens only”."
+            },
+            {
+              "title": "Temporary Graduate and student visas",
+              "body": "Full or limited work rights: we respect your hours limit and weight the search towards employers who sponsor afterwards."
+            },
+            {
+              "title": "PR and citizens",
+              "body": "No filter. We cover every employer, including Australian Public Service roles that need citizenship."
+            },
+            {
+              "title": "Selection criteria",
+              "body": "Government roles ask for responses to selection criteria. We draft them from your real experience for you to approve before submitting."
+            }
+          ],
+          "note": "We’re not registered migration agents and don’t give visa advice."
+        },
+        "compare": {
+          "eyebrow": "Why UpayaInd",
+          "title": "Job hunting is a second full-time job. Hand it to us.",
+          "diy": "Doing it yourself",
+          "us": "With UpayaInd",
+          "rows": [
+            {
+              "label": "Time spent each week",
+              "diy": "Evenings and weekends",
+              "us": "Interviews and prep only"
+            },
+            {
+              "label": "Applications a month",
+              "diy": "As many as you can fit in",
+              "us": "{min}–{max}+"
+            },
+            {
+              "label": "Resume",
+              "diy": "One generic version",
+              "us": "Tailored to every role"
+            },
+            {
+              "label": "Visa fit",
+              "diy": "Discovered at offer stage",
+              "us": "Checked before we apply"
+            }
+          ]
+        },
+        "steps": {
+          "eyebrow": "How it works",
+          "title": "From sign-up to interviews in four steps",
+          "items": [
+            {
+              "when": "Day 1",
+              "title": "Sign up and onboard",
+              "body": "Pick a plan, upload your resume, tell us your visa and work rights, target roles, cities and salary, and meet your specialist."
+            },
+            {
+              "when": "Day 2",
+              "title": "Master resume ready",
+              "body": "We build a structured profile and an Australian-format resume you review and approve."
+            },
+            {
+              "when": "Every weekday",
+              "title": "Tailored applications",
+              "body": "Your specialist applies to {min}–{max} roles a day on SEEK, LinkedIn, Indeed, Jora and company sites, each with its own tailored resume."
+            },
+            {
+              "when": "Ongoing",
+              "title": "You interview, we keep going",
+              "body": "Track everything live, prep with us, and keep the pipeline full until you accept an offer."
+            }
+          ]
+        },
+        "portals": {
+          "eyebrow": "Where we apply",
+          "title": "SEEK to APSJobs — wherever the role is posted",
+          "sub": "Your specialist searches daily on Australian time and applies on every board you use, plus the ones you don’t have time for.",
+          "items": [
+            "SEEK",
+            "LinkedIn",
+            "Indeed Australia",
+            "Jora",
+            "APSJobs",
+            "Company career sites"
+          ],
+          "formatTitle": "Australian resume format, the way recruiters expect it",
+          "formatPoints": [
+            "Two to three pages, no photo, no date of birth",
+            "Career summary and a “Key skills” section up front",
+            "Achievements with numbers, in Australian spelling",
+            "Ends with “Referees available on request”"
+          ]
+        },
+        "pricing": {
+          "title": "Simple monthly plans",
+          "sub": "Prices in AUD for Australia. Cancel any time.",
+          "finalisingTitle": "Plans for Australia are being finalised",
+          "finalisingBody": "Talk to us or book a call — we’ll confirm the price in Australian dollars before you pay anything, and reserve your specialist."
+        },
+        "faq": {
+          "title": "Questions from job seekers in Australia",
+          "items": [
+            {
+              "q": "I’m on a 485 visa. Should I start now?",
+              "a": "Yes. The 485 gives you full work rights for a limited time, and sponsored roles take longer to land. The earlier the pipeline fills, the more choice you have."
+            },
+            {
+              "q": "Can you apply only to employers that sponsor?",
+              "a": "Yes. If you need sponsorship, we prioritise employers with a sponsorship history in your occupation and skip ads that rule it out. If you don’t, we don’t filter."
+            },
+            {
+              "q": "Do you write selection criteria for government jobs?",
+              "a": "Yes. We draft responses from your real experience and send them for your approval before anything is submitted."
+            },
+            {
+              "q": "Which job boards do you use?",
+              "a": "SEEK, LinkedIn, Indeed Australia, Jora, APSJobs and company career sites. You can add or exclude any of them from your dashboard."
+            },
+            {
+              "q": "What about referees?",
+              "a": "Your resume says “Referees available on request”. When an employer asks, we tell you and you provide them — we never share referee details without you."
+            },
+            {
+              "q": "Will you apply to my current employer?",
+              "a": "Never. Your exclusion list — current and past employers, anyone you name — is applied to every search."
+            },
+            {
+              "q": "Do you charge a fee after I’m hired?",
+              "a": "The fee terms are written in the Placement Agreement you accept at sign-up and linked in the footer. The plan price is shown above; there are no hidden charges."
+            }
+          ]
+        },
+        "cta": {
+          "title": "Spend your evenings on interview prep, not application forms.",
+          "sub": "Your specialist can start applying within a day of sign-up."
+        }
+      },
+      "NZ": {
+        "meta": {
+          "title": "UpayaInd New Zealand — We apply for jobs on your behalf",
+          "description": "Our specialists apply to 25–50 New Zealand jobs for you every weekday on SEEK, Trade Me Jobs, LinkedIn and company sites, each with a NZ CV tailored to the role. Post-study, AEWV, residents and citizens."
+        },
+        "hero": {
+          "eyebrow": "Done-for-you job applications in New Zealand",
+          "titleLead": "Your Kiwi job search,",
+          "titleAccent": "handled for you.",
+          "sub": "Our specialists apply to {min}–{max} New Zealand roles for you every weekday on SEEK, Trade Me Jobs, LinkedIn and company career sites, each with a CV tailored to the job. Auckland, Wellington, Christchurch, Hamilton or remote.",
+          "ctaPrimary": "Get started",
+          "ctaSecondary": "See how it works",
+          "point1": "CV tailored to every role",
+          "point2": "Applied only where your visa fits",
+          "point3": "Live tracking dashboard"
+        },
+        "who": {
+          "eyebrow": "Who it’s for",
+          "title": "Built for the New Zealand market",
+          "sub": "Three situations we see every day. If yours is different, tell us on a free call.",
+          "items": [
+            {
+              "title": "Graduates on a Post-Study Work Visa",
+              "body": "Open work rights for a limited time after a NZ qualification. We fill the pipeline early so you’re building local experience, not filling in forms."
+            },
+            {
+              "title": "Skilled migrants and AEWV holders",
+              "body": "Changing employer on an Accredited Employer Work Visa needs an accredited employer. We target them, and roles on the Green List in your field."
+            },
+            {
+              "title": "Residents and citizens",
+              "body": "No visa filter — the whole market, including public-sector roles on jobs.govt.nz, at the right level and salary band."
+            }
+          ]
+        },
+        "eligibility": {
+          "eyebrow": "Work rights",
+          "title": "We apply where your visa fits",
+          "sub": "You tell us your work rights during onboarding. Your specialist checks them against every role before applying.",
+          "items": [
+            {
+              "title": "Accredited employers",
+              "body": "If you need an AEWV, we apply to accredited employers and skip ads that say “residents and citizens only”."
+            },
+            {
+              "title": "Post-Study Work Visa",
+              "body": "Full work rights now, a visa decision later. We weight the search towards accredited employers so your next step is easier."
+            },
+            {
+              "title": "Green List occupations",
+              "body": "If your role is on the Green List, we say so clearly on your CV and target employers hiring for it."
+            },
+            {
+              "title": "Residents and citizens",
+              "body": "No filter. We cover every employer, including public-sector roles that require residence."
+            }
+          ],
+          "note": "We’re not licensed immigration advisers and don’t give immigration advice."
+        },
+        "compare": {
+          "eyebrow": "Why UpayaInd",
+          "title": "Job hunting is a second full-time job. Hand it to us.",
+          "diy": "Doing it yourself",
+          "us": "With UpayaInd",
+          "rows": [
+            {
+              "label": "Time spent each week",
+              "diy": "Evenings and weekends",
+              "us": "Interviews and prep only"
+            },
+            {
+              "label": "Applications a month",
+              "diy": "As many as you can fit in",
+              "us": "{min}–{max}+"
+            },
+            {
+              "label": "CV",
+              "diy": "One generic version",
+              "us": "Tailored to every role"
+            },
+            {
+              "label": "Visa fit",
+              "diy": "Discovered at offer stage",
+              "us": "Checked before we apply"
+            }
+          ]
+        },
+        "steps": {
+          "eyebrow": "How it works",
+          "title": "From sign-up to interviews in four steps",
+          "items": [
+            {
+              "when": "Day 1",
+              "title": "Sign up and onboard",
+              "body": "Pick a plan, upload your CV, tell us your visa and work rights, target roles, cities and salary, and meet your specialist."
+            },
+            {
+              "when": "Day 2",
+              "title": "Master CV ready",
+              "body": "We build a structured profile and a New Zealand-format CV you review and approve."
+            },
+            {
+              "when": "Every weekday",
+              "title": "Tailored applications",
+              "body": "Your specialist applies to {min}–{max} roles a day on SEEK, Trade Me Jobs, LinkedIn, Indeed and company sites, each with its own tailored CV."
+            },
+            {
+              "when": "Ongoing",
+              "title": "You interview, we keep going",
+              "body": "Track everything live, prep with us, and keep the pipeline full until you accept an offer."
+            }
+          ]
+        },
+        "portals": {
+          "eyebrow": "Where we apply",
+          "title": "SEEK to Trade Me Jobs — wherever the role is posted",
+          "sub": "Your specialist searches daily on New Zealand time and applies on every board you use, plus the ones you don’t have time for.",
+          "items": [
+            "SEEK NZ",
+            "Trade Me Jobs",
+            "LinkedIn",
+            "Indeed NZ",
+            "jobs.govt.nz",
+            "Company career sites"
+          ],
+          "formatTitle": "New Zealand CV format, the way recruiters expect it",
+          "formatPoints": [
+            "Two to three pages, no photo, no date of birth",
+            "Personal profile, key skills, then experience",
+            "Achievements with numbers, in British-style spelling",
+            "Referees listed or “available on request” — your choice"
+          ]
+        },
+        "pricing": {
+          "title": "Simple monthly plans",
+          "sub": "Prices in NZD for New Zealand. Cancel any time.",
+          "finalisingTitle": "Plans for New Zealand are being finalised",
+          "finalisingBody": "Talk to us or book a call — we’ll confirm the price in New Zealand dollars before you pay anything, and reserve your specialist."
+        },
+        "faq": {
+          "title": "Questions from job seekers in New Zealand",
+          "items": [
+            {
+              "q": "I’m on a Post-Study Work Visa. Should I start now?",
+              "a": "Yes. The visa has an end date, and roles with accredited employers take longer to land. The earlier the pipeline fills, the more choice you have."
+            },
+            {
+              "q": "Can you apply only to accredited employers?",
+              "a": "Yes. If you need an AEWV, we apply to accredited employers and skip ads that rule it out. If you don’t, we don’t filter."
+            },
+            {
+              "q": "Is my role on the Green List?",
+              "a": "We check your occupation against it and say so on your CV when it is. We’re not immigration advisers, so visa questions go to a licensed adviser."
+            },
+            {
+              "q": "Which job boards do you use?",
+              "a": "SEEK NZ, Trade Me Jobs, LinkedIn, Indeed NZ, jobs.govt.nz and company career sites. You can add or exclude any of them from your dashboard."
+            },
+            {
+              "q": "What about referees?",
+              "a": "New Zealand employers often call referees. We list them only if you want to; otherwise your CV says “available on request” and we tell you when they’re asked for."
+            },
+            {
+              "q": "Will you apply to my current employer?",
+              "a": "Never. Your exclusion list — current and past employers, anyone you name — is applied to every search."
+            },
+            {
+              "q": "Do you charge a fee after I’m hired?",
+              "a": "The fee terms are written in the Placement Agreement you accept at sign-up and linked in the footer. The plan price is shown above; there are no hidden charges."
+            }
+          ]
+        },
+        "cta": {
+          "title": "Spend your evenings on interview prep, not application forms.",
+          "sub": "Your specialist can start applying within a day of sign-up."
+        }
       }
     },
     "common": {
@@ -1410,6 +1944,120 @@
             "rating": 5,
             "photo": "testimonial-uk-4",
             "quote": "I could see every application live and the weekly summary told me what was working. Offer accepted in week six; I never filled in another form."
+          }
+        ],
+        "CA": [
+          {
+            "placeholder": true,
+            "name": "Daniel K.",
+            "role": "Business Analyst",
+            "location": "Toronto",
+            "rating": 5,
+            "photo": "testimonial-ca-1",
+            "quote": "On a PGWP with no Canadian experience, I was getting nowhere. They rewrote my resume the Canadian way and applied daily — first interview in three weeks."
+          },
+          {
+            "placeholder": true,
+            "name": "Mei L.",
+            "role": "Software Developer",
+            "location": "Vancouver",
+            "rating": 5,
+            "photo": "testimonial-ca-2",
+            "quote": "I didn’t have time to search while working. The dashboard showed every application and which ones were viewed. I accepted an offer in week eight."
+          },
+          {
+            "placeholder": true,
+            "name": "Olivier P.",
+            "role": "Bilingual Customer Success Lead",
+            "location": "Montréal",
+            "rating": 4,
+            "photo": "testimonial-ca-3",
+            "quote": "They put my French front and centre and found bilingual roles I’d never seen on the big boards. Two final rounds in a month."
+          },
+          {
+            "placeholder": true,
+            "name": "Priya S.",
+            "role": "Data Analyst",
+            "location": "Calgary",
+            "rating": 5,
+            "photo": "testimonial-ca-4",
+            "quote": "Every resume matched the job ad without inventing anything. Recruiters actually called back, and the specialist kept going until I signed."
+          }
+        ],
+        "AU": [
+          {
+            "placeholder": true,
+            "name": "Hannah W.",
+            "role": "Marketing Coordinator",
+            "location": "Melbourne",
+            "rating": 5,
+            "photo": "testimonial-au-1",
+            "quote": "On a 485 visa I needed momentum fast. They applied on SEEK and LinkedIn every weekday and I had four interviews in the first month."
+          },
+          {
+            "placeholder": true,
+            "name": "Rahul M.",
+            "role": "Cloud Engineer",
+            "location": "Sydney",
+            "rating": 5,
+            "photo": "testimonial-au-2",
+            "quote": "They targeted employers that sponsor 482s in my field and never misstated my visa. Offer in seven weeks."
+          },
+          {
+            "placeholder": true,
+            "name": "Grace T.",
+            "role": "Policy Officer",
+            "location": "Canberra",
+            "rating": 4,
+            "photo": "testimonial-au-3",
+            "quote": "The selection criteria drafts were built from my real experience and saved me whole weekends. Two APS interviews from the first batch."
+          },
+          {
+            "placeholder": true,
+            "name": "Josh N.",
+            "role": "Accountant",
+            "location": "Brisbane",
+            "rating": 5,
+            "photo": "testimonial-au-4",
+            "quote": "Clean Australian resume, referees on request, and a tracker that showed exactly where every application stood. Worth it."
+          }
+        ],
+        "NZ": [
+          {
+            "placeholder": true,
+            "name": "Aroha T.",
+            "role": "Project Coordinator",
+            "location": "Auckland",
+            "rating": 5,
+            "photo": "testimonial-nz-1",
+            "quote": "They applied on SEEK and Trade Me every weekday with a CV tailored to each role. Three interviews in the first fortnight."
+          },
+          {
+            "placeholder": true,
+            "name": "Vikram R.",
+            "role": "QA Engineer",
+            "location": "Wellington",
+            "rating": 5,
+            "photo": "testimonial-nz-2",
+            "quote": "On a Post-Study Work Visa I needed accredited employers. They only applied to those, and I had an offer in six weeks."
+          },
+          {
+            "placeholder": true,
+            "name": "Sophie M.",
+            "role": "Registered Nurse",
+            "location": "Christchurch",
+            "rating": 4,
+            "photo": "testimonial-nz-3",
+            "quote": "My role is on the Green List and they made that clear on every application. Recruiters started calling within days."
+          },
+          {
+            "placeholder": true,
+            "name": "Ben H.",
+            "role": "Data Analyst",
+            "location": "Hamilton",
+            "rating": 5,
+            "photo": "testimonial-nz-4",
+            "quote": "I kept my day job and they ran the search in the background. The dashboard showed every application — no guesswork."
           }
         ]
       }

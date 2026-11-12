@@ -21,6 +21,7 @@ export const DIAL_CODES: Record<string, { cc: CountryCode; dial: string }> = {
   CA: { cc: "CA", dial: "+1" },
   UK: { cc: "GB", dial: "+44" },
   AU: { cc: "AU", dial: "+61" },
+  NZ: { cc: "NZ", dial: "+64" },
   IN: { cc: "IN", dial: "+91" },
 };
 

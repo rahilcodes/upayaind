@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { absoluteUrl } from "@/lib/utils";
-import { getActiveMarkets, getAllPricing, htmlToText, type MarketPricing } from "@/components/marketing/data";
+import { getActiveMarkets, getAllPricing, hasPurchasablePlan, htmlToText, type MarketPricing } from "@/components/marketing/data";
 import { JsonLd, ORG_ID, faqLd } from "@/components/marketing/json-ld";
 import { PerMarket } from "@/components/marketing/market";
 import { ComparisonTable, PricingTable } from "@/components/marketing/pricing";
@@ -85,7 +85,7 @@ export default async function PricingPage() {
         <div className="mx-auto max-w-[1200px]">
           <PerMarket items={all.map((p) => ({ code: p.market.code, p }))}>
             {({ p }) =>
-              p.plans.length ? (
+              hasPurchasablePlan(p) ? (
                 <>
                   <PricingTable pricing={p} />
                   {p.market.code === "IN" ? <p className="mx-auto mt-6 max-w-[760px] rounded-[14px] border border-[#C6D9FC] bg-white px-4 py-3 text-center text-sm text-[#1A4FB8]">{t("pricing.inNote")}</p> : null}
@@ -108,7 +108,7 @@ export default async function PricingPage() {
         <H2 id="compare-title" className="mb-8">
           {t("pricing.compareTitle")}
         </H2>
-        <PerMarket items={all.map((p) => ({ code: p.market.code, p }))}>{({ p }) => <ComparisonTable pricing={p} />}</PerMarket>
+        <PerMarket items={all.map((p) => ({ code: p.market.code, p }))}>{({ p }) => (hasPurchasablePlan(p) ? <ComparisonTable pricing={p} /> : null)}</PerMarket>
       </Section>
 
       {guarantee ? (

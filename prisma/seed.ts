@@ -61,6 +61,12 @@ const RESUME_STYLES = [
     rulesPrompt: "Career objective/summary at the top, then a 'Key skills' section. Australian spelling. 2–3 pages. End with 'Referees available on request'.",
   },
   {
+    code: "NZ_CV", name: "New Zealand CV", documentTitle: "CV", pageSize: "A4", maxPages: 3, dateFormat: "MMM yyyy", spelling: "en-AU",
+    includePhoto: false, includeDob: false, includeNationality: false, includeFullAddress: false, summaryLabel: "Profile",
+    sectionOrder: ["summary", "skills", "experience", "education", "projects", "certifications"],
+    rulesPrompt: "New Zealand CV: short profile, then key skills and reverse-chronological experience. British-style spelling (organised, colour). 2–3 pages. No photo, date of birth or IRD number. End with 'Referees available on request'.",
+  },
+  {
     code: "IN_RESUME", name: "Indian Resume", documentTitle: "Resume", pageSize: "A4", maxPages: 2, dateFormat: "MMM yyyy", spelling: "en-IN",
     includePhoto: false, includeDob: false, includeNationality: false, includeFullAddress: false, summaryLabel: "Profile Summary",
     sectionOrder: ["summary", "skills", "experience", "projects", "education", "certifications"],
@@ -83,8 +89,9 @@ const RESUME_STYLES = [
 const MARKETS = [
   { code: "US", name: "United States", currency: "USD", locale: "en-US", minPriceMinor: 4900, defaultTimezone: "America/New_York", style: "US_RESUME", isActive: true, phoneDisplay: "+1 (724) 584-1786", whatsapp: "17245841786" },
   { code: "UK", name: "United Kingdom", currency: "GBP", locale: "en-GB", minPriceMinor: 3900, defaultTimezone: "Europe/London", style: "UK_CV", isActive: true, phoneDisplay: null, whatsapp: null },
-  { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA", minPriceMinor: 6500, defaultTimezone: "America/Toronto", style: "CA_RESUME", isActive: false, phoneDisplay: null, whatsapp: null },
-  { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU", minPriceMinor: 7500, defaultTimezone: "Australia/Sydney", style: "AU_RESUME", isActive: false, phoneDisplay: null, whatsapp: null },
+  { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA", minPriceMinor: 6500, defaultTimezone: "America/Toronto", style: "CA_RESUME", isActive: true, phoneDisplay: null, whatsapp: null },
+  { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU", minPriceMinor: 7500, defaultTimezone: "Australia/Sydney", style: "AU_RESUME", isActive: true, phoneDisplay: null, whatsapp: null },
+  { code: "NZ", name: "New Zealand", currency: "NZD", locale: "en-NZ", minPriceMinor: 7500, defaultTimezone: "Pacific/Auckland", style: "NZ_CV", isActive: true, phoneDisplay: null, whatsapp: null },
   { code: "IN", name: "India", currency: "INR", locale: "en-IN", minPriceMinor: 299900, defaultTimezone: "Asia/Kolkata", style: "IN_RESUME", isActive: true, paymentProvider: "RAZORPAY", phoneDisplay: "+91 95508 88128", whatsapp: "919550888128" },
 ] as const;
 
@@ -271,11 +278,19 @@ async function seedReference() {
   for (const m of MARKETS) {
     const style = await db.resumeStyle.findUniqueOrThrow({ where: { code: m.style } });
     const { style: _s, ...data } = m;
-    await db.market.upsert({ where: { code: m.code }, update: { ...data, resumeStyleId: style.id }, create: { ...data, resumeStyleId: style.id } });
+    // Create-only (D-162/D-163): never overwrite what admins changed in Markets (phone, provider, active flag…).
+    await db.market.upsert({ where: { code: m.code }, update: {}, create: { ...data, resumeStyleId: style.id } });
+  }
+  // One-time launch of Canada, Australia and New Zealand (client request, 12 Nov 2026). A setting marks it done,
+  // so a market an admin later switches off stays off on the next deploy.
+  const launched = await db.setting.findUnique({ where: { key: "launch:ca-au-nz" }, select: { key: true } });
+  if (!launched) {
+    await db.market.updateMany({ where: { code: { in: ["CA", "AU", "NZ"] } }, data: { isActive: true } });
+    await db.setting.create({ data: { key: "launch:ca-au-nz", value: { at: new Date().toISOString() } } });
   }
   const us = await db.market.findUniqueOrThrow({ where: { code: "US" } });
   // Country homepages (D-141): IN and UK are live markets; their prices stay 0 (placeholder, not purchasable) until set in /admin/plans.
-  const liveMarkets = await db.market.findMany({ where: { code: { in: ["US", "IN", "UK"] } }, select: { id: true, code: true, currency: true } });
+  const liveMarkets = await db.market.findMany({ where: { code: { in: ["US", "IN", "UK", "CA", "AU", "NZ"] } }, select: { id: true, code: true, currency: true } });
   const demoPrices = process.env.SEED_DEMO_PRICES === "1";
   for (const p of PLANS) {
     const plan = await db.plan.upsert({
@@ -312,6 +327,9 @@ async function seedReference() {
   const holidays: [string, string, string][] = [
     [`${year}-01-01`, "New Year's Day", "US"], [`${year}-07-04`, "Independence Day", "US"], [`${year}-11-26`, "Thanksgiving", "US"], [`${year}-12-25`, "Christmas Day", "US"],
     [`${year}-01-26`, "Republic Day", "IN"], [`${year}-08-15`, "Independence Day", "IN"], [`${year}-10-02`, "Gandhi Jayanti", "IN"], [`${year}-11-08`, "Diwali", "IN"],
+    [`${year}-01-01`, "New Year's Day", "CA"], [`${year}-07-01`, "Canada Day", "CA"], [`${year}-12-25`, "Christmas Day", "CA"], [`${year}-12-26`, "Boxing Day", "CA"],
+    [`${year}-01-01`, "New Year's Day", "AU"], [`${year}-01-26`, "Australia Day", "AU"], [`${year}-04-25`, "Anzac Day", "AU"], [`${year}-12-25`, "Christmas Day", "AU"], [`${year}-12-26`, "Boxing Day", "AU"],
+    [`${year}-01-01`, "New Year's Day", "NZ"], [`${year}-02-06`, "Waitangi Day", "NZ"], [`${year}-04-25`, "Anzac Day", "NZ"], [`${year}-12-25`, "Christmas Day", "NZ"], [`${year}-12-26`, "Boxing Day", "NZ"],
   ];
   for (const [d, name, region] of holidays) {
     await db.holiday.upsert({ where: { date_region: { date: dateOnly(d), region } }, update: { name }, create: { date: dateOnly(d), name, region } });

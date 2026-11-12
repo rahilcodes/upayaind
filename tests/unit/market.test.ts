@@ -48,6 +48,8 @@ describe("geo detection (D-151)", () => {
     expect(resolveMarket({ geo: "US", acceptLanguage: "en-IN" })).toBe("US");
     expect(resolveMarket({ cookie: "UK", acceptLanguage: "en-IN" })).toBe("UK");
     expect(resolveMarket({ acceptLanguage: "fr-FR" })).toBe("US");
+    expect(resolveMarket({ geo: "NZ" })).toBe("NZ");
+    expect(resolveMarket({ acceptLanguage: "en-AU" })).toBe("AU");
   });
 });
 
@@ -57,8 +59,9 @@ describe("homePathForMarket", () => {
     expect(homePathForMarket("UK")).toBe("/uk");
     expect(homePathForMarket("GB")).toBe("/uk");
     expect(homePathForMarket("US")).toBe("/");
-    expect(homePathForMarket("CA")).toBe("/");
-    expect(homePathForMarket("AU")).toBe("/");
+    expect(homePathForMarket("CA")).toBe("/ca");
+    expect(homePathForMarket("AU")).toBe("/au");
+    expect(homePathForMarket("NZ")).toBe("/nz");
     expect(homePathForMarket("FR")).toBe("/");
     expect(homePathForMarket(null)).toBe("/");
   });
@@ -73,6 +76,6 @@ describe("homePathForMarket", () => {
 
 describe("homeAlternates", () => {
   it("lists hreflang for the three homepages with x-default on the US page", () => {
-    expect(homeAlternates()).toEqual({ "en-US": "/", "en-IN": "/in", "en-GB": "/uk", "x-default": "/" });
+    expect(homeAlternates()).toEqual({ "en-US": "/", "en-IN": "/in", "en-GB": "/uk", "en-CA": "/ca", "en-AU": "/au", "en-NZ": "/nz", "x-default": "/" });
   });
 });

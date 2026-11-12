@@ -39,6 +39,18 @@ export const MARKETING_IMAGES = {
   "testimonial-uk-2": portrait("United Kingdom", "Testimonials (United Kingdom)"),
   "testimonial-uk-3": portrait("United Kingdom", "Testimonials (United Kingdom)"),
   "testimonial-uk-4": portrait("United Kingdom", "Testimonials (United Kingdom)"),
+  "testimonial-ca-1": portrait("Canada", "Testimonials (Canada)"),
+  "testimonial-ca-2": portrait("Canada", "Testimonials (Canada)"),
+  "testimonial-ca-3": portrait("Canada", "Testimonials (Canada)"),
+  "testimonial-ca-4": portrait("Canada", "Testimonials (Canada)"),
+  "testimonial-au-1": portrait("Australia", "Testimonials (Australia)"),
+  "testimonial-au-2": portrait("Australia", "Testimonials (Australia)"),
+  "testimonial-au-3": portrait("Australia", "Testimonials (Australia)"),
+  "testimonial-au-4": portrait("Australia", "Testimonials (Australia)"),
+  "testimonial-nz-1": portrait("New Zealand", "Testimonials (New Zealand)"),
+  "testimonial-nz-2": portrait("New Zealand", "Testimonials (New Zealand)"),
+  "testimonial-nz-3": portrait("New Zealand", "Testimonials (New Zealand)"),
+  "testimonial-nz-4": portrait("New Zealand", "Testimonials (New Zealand)"),
 } satisfies Record<string, ImageSlotDef>;
 
 export type ImageSlotId = keyof typeof MARKETING_IMAGES;

@@ -53,7 +53,10 @@ describe("logosFor (D-158)", () => {
     expect(PLACED_LOGOS_BY_MARKET.IN.map((l) => l.name)).toContain("TCS");
     expect(PLACED_LOGOS_BY_MARKET.UK.map((l) => l.name)).toContain("Barclays");
     expect(PLACED_LOGOS_BY_MARKET.US.map((l) => l.name)).not.toContain("Paytm");
-    expect(logosFor("CA")).toBe(PLACED_LOGOS_BY_MARKET.US);
+    // CA/AU/NZ have their own lists since D-163; unknown markets fall back to the US list.
+    expect(logosFor("CA")).toBe(PLACED_LOGOS_BY_MARKET.CA);
+    expect(PLACED_LOGOS_BY_MARKET.NZ.map((l) => l.name)).toContain("Xero");
+    expect(logosFor("FR")).toBe(PLACED_LOGOS_BY_MARKET.US);
     expect(logosFor("IN", [])).toBe(PLACED_LOGOS_BY_MARKET.IN);
     const custom = logosFor("IN", ["infosys", "Deloitte"]);
     expect(custom).toEqual([expect.objectContaining({ kind: "image", name: "Infosys" }), { kind: "text", name: "Deloitte" }]);
