@@ -172,7 +172,15 @@
       "confirmNote": "How the applicant confirmed",
       "confirmNotePlaceholder": "e.g. confirmed on WhatsApp, 26 Oct",
       "confirmSave": "Add to profile",
-      "confirmCancel": "Cancel"
+      "confirmCancel": "Cancel",
+      "gapTitle": "{count, plural, one {# JD skill isn't on the applicant's profile} other {# JD skills aren't on the applicant's profile}}",
+      "gapBody": "This is what holds the score down. Ask the applicant which ones they have, or add the ones they've already confirmed to you. The score rises as soon as you generate again.",
+      "askApplicant": "Ask the applicant",
+      "bulkOpen": "Add confirmed skills",
+      "bulkLevel": "How well the applicant knows them",
+      "levelHave": "Has used them",
+      "levelBasic": "Basic / learning",
+      "bulkSave": "{count, plural, =0 {Add to profile} one {Add # skill} other {Add # skills}}"
     },
     "cover": {
       "emptyTitle": "No cover letter yet",

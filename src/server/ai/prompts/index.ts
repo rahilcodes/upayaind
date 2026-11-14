@@ -69,12 +69,13 @@ ${styleRules(input.style)}
 ATS MAXIMISATION (within the rules above):
 - Go through EVERY item of JD_ANALYSIS.requiredSkills, niceToHaveSkills and keywords. Each one the student genuinely has or has done must appear at least once, in the JD's exact phrase: in a skills group, a bullet or the summary.
 - First skills group: "Key skills" — the JD-matching skills first, in the JD's wording, then the student's other relevant skills.
-- Headline: the job title (or its closest truthful variant) when the experience matches the role; otherwise the student's own title.
+- Headline: the target role — the job title applied for (no requisition numbers or locations), optionally " | " plus 2–3 real top skills.
+- A profile group "Familiar with" = basic-level skills: keep them in a group with that exact name, last; never in "Key skills", never as hands-on work in bullets.
 - Summary: 2–3 sentences that read like the role's own description, built only from real experience, naming the top required skills and the domain.
 - Bullets: strong, specific, action-verb first; where a bullet describes work that used a JD skill or keyword, name it explicitly in the JD's wording. Most relevant bullets and roles first.
-- Freshers and junior profiles: treat academic projects, internships, coursework, certifications and training as experience — frame each one in the JD's language (the problem, the tools, the outcome) so the resume reads like the role's own description. Don't leave project sections thin when the JD is demanding.
-- Reframe, don't inflate: describe what the student actually did using the JD's terminology and priorities; never add responsibilities, employers, titles, years or tools they didn't have.
-- Do not stuff: each term appears where it is true, in natural sentences.
+- Freshers and junior profiles: treat projects, internships, coursework, certifications and training as experience — frame each in the JD's language (problem, tools, outcome); keep project sections full.
+- Reframe, don't inflate: describe what the student actually did in the JD's terminology; never add responsibilities, employers, titles, years or tools they didn't have.
+- No stuffing: each term appears where it is true, in natural sentences.
 ${DATA_NOTE}`,
     user: `${fenced("master_profile", JSON.stringify(masterForPrompt(input.master)))}
 

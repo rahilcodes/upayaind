@@ -806,6 +806,25 @@
       "size": "{kb} KB",
       "emptyTitle": "No reports yet",
       "emptyBody": "Your first weekly report arrives on Monday morning after your first applications are sent. You can switch report emails on or off in Settings."
+    },
+    "skills": {
+      "title": "Skill check",
+      "description": "These skills came up in the jobs we applied to for you, and they aren't on your profile yet. Tell us which ones you really have so your next resumes match more jobs.",
+      "honesty": "Answer honestly: interviewers will ask about anything on your resume. “I've used it” adds the skill to your profile. “Basic / learning” lists it separately under “Familiar with”. “No” means we won't ask again.",
+      "have": "I've used it",
+      "basic": "Basic / learning",
+      "no": "No",
+      "askedIn": "{count, plural, one {Asked for in # job} other {Asked for in # jobs}}",
+      "required": "required",
+      "answerFor": "Do you have {skill}?",
+      "answered": "{count} of {total} answered",
+      "save": "Save my answers",
+      "emptyTitle": "You're all caught up",
+      "emptyBody": "There are no new skills to confirm right now. You can always edit your skills on your profile.",
+      "openProfile": "Open my profile",
+      "cardTitle": "{count, plural, one {Employers asked for # skill that isn't on your profile} other {Employers asked for # skills that aren't on your profile}}",
+      "cardBody": "For example: {examples}. Tick the ones you have — it takes a minute and improves every resume we send.",
+      "cardCta": "Answer skill check"
     }
   }
 }

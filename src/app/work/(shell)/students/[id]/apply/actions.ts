@@ -9,6 +9,7 @@ import { suggestEdit, type EditRequestT } from "@/server/services/resume-edits";
 import { fetchJobPosting } from "@/server/services/job-fetch";
 import { rememberWorkspaceDefaults } from "@/server/services/workspace-prefs";
 import { addConfirmedSkill } from "@/server/services/student-profile";
+import { addConfirmedSkills, requestSkillCheck } from "@/server/services/skill-check";
 import type { ApplicationStatus } from "@/generated/prisma/enums";
 
 const STAFF = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "ADMIN"] as const;
@@ -29,6 +30,23 @@ export async function confirmSkillAction(input: { studentId: string; skill: stri
     const data = z.object({ studentId: id, skill: z.string().min(1).max(60), note: z.string().min(5).max(300) }).parse(input);
     return addConfirmedSkill(user, data.studentId, data);
   }, "Skill added to the applicant's profile. Generate again to use it.");
+}
+
+/** D-164: record several skills the applicant confirmed, in one step. */
+export async function confirmSkillsAction(input: { studentId: string; skills: string[]; level: "have" | "basic"; note: string }) {
+  return safeAction(async () => {
+    const user = await requireRole(STAFF);
+    const data = z.object({ studentId: id, skills: z.array(z.string().min(1).max(60)).min(1).max(30), level: z.enum(["have", "basic"]), note: z.string().min(5).max(300) }).parse(input);
+    return addConfirmedSkills(user, data.studentId, data);
+  }, "Skills added to the applicant's profile. Generate again to use them.");
+}
+
+/** D-164: ask the applicant to answer the skill check themselves. */
+export async function requestSkillCheckAction(studentId: string) {
+  return safeAction(async () => {
+    const user = await requireRole(STAFF);
+    return requestSkillCheck(user, id.parse(studentId));
+  }, "Sent. The applicant will be asked which of these skills they have.");
 }
 
 export async function saveVersionAction(versionId: string, content: unknown, jobTitle?: string) {

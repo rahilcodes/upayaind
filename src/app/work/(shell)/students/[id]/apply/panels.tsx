@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import { GEN_STEPS, type GenStep } from "./types";
 import { useServerAction } from "@/components/portal/action-form";
 import { Input } from "@/components/ui/input";
-import { confirmSkillAction } from "./actions";
+import { confirmSkillAction, confirmSkillsAction, requestSkillCheckAction } from "./actions";
+import { Checkbox, Select } from "@/components/ui/input";
 
 /** "Base 54 → Tailored 86" with breakdown tooltip (§9.5). */
 export function ScoreChip({ base, tailored }: { base: AtsBreakdown | null; tailored: AtsBreakdown | null }) {
@@ -88,6 +89,55 @@ function ConfirmSkill({ studentId, skill, onDone }: { studentId: string; skill: 
   );
 }
 
+/** D-164: ask the applicant to answer the skill check, or record several skills they confirmed on a call in one step. */
+function SkillGapActions({ studentId, skills, onDone }: { studentId: string; skills: string[]; onDone: () => void }) {
+  const t = useTranslations("workspace.keywords");
+  const [open, setOpen] = React.useState(false);
+  const [picked, setPicked] = React.useState<string[]>([]);
+  const [level, setLevel] = React.useState<"have" | "basic">("have");
+  const [note, setNote] = React.useState("");
+  const ask = useServerAction(requestSkillCheckAction);
+  const add = useServerAction(confirmSkillsAction, { onSuccess: () => { setOpen(false); setPicked([]); setNote(""); onDone(); } });
+  if (!skills.length) return null;
+  return (
+    <div className="rounded-[12px] border border-[#E3C98F] bg-[#FFFAF0] p-3">
+      <p className="text-[13px] font-semibold text-[#7A4E0E]">{t("gapTitle", { count: skills.length })}</p>
+      <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{t("gapBody")}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button size="sm" loading={ask.pending} onClick={() => ask.run(studentId)}>{t("askApplicant")}</Button>
+        <Button size="sm" variant="outline" onClick={() => setOpen((v) => !v)}>{t("bulkOpen")}</Button>
+      </div>
+      {open ? (
+        <form
+          className="mt-3 grid gap-2.5 border-t border-[#E3C98F] pt-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            add.run({ studentId, skills: picked, level, note });
+          }}
+        >
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {skills.map((k) => (
+              <label key={k} className="inline-flex min-h-9 items-center gap-1.5 text-[13px]">
+                <Checkbox checked={picked.includes(k)} onChange={(e) => setPicked((cur) => (e.target.checked ? [...cur, k] : cur.filter((x) => x !== k)))} />
+                {k}
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={level} onChange={(e) => setLevel(e.target.value as "have" | "basic")} aria-label={t("bulkLevel")} className="h-9 w-auto text-[13px]">
+              <option value="have">{t("levelHave")}</option>
+              <option value="basic">{t("levelBasic")}</option>
+            </Select>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("confirmNotePlaceholder")} aria-label={t("confirmNote")} className="h-9 min-w-[220px] flex-1 text-[13px]" aria-invalid={Boolean(add.fieldErrors.note)} />
+            <Button type="submit" size="sm" loading={add.pending} disabled={!picked.length}>{t("bulkSave", { count: picked.length })}</Button>
+          </div>
+          {add.fieldErrors.note ? <p role="alert" className="text-[12px] text-danger">{add.fieldErrors.note[0]}</p> : null}
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 /** JD keywords covered ✅ / missing ⚠️ — missing ones are suggestions only (never auto-inserted). */
 export function KeywordPanel({ ats, profileSkills, studentId, onProfileChanged }: { ats: AtsBreakdown | null; profileSkills: string[]; studentId?: string; onProfileChanged?: () => void }) {
   const t = useTranslations("workspace.keywords");
@@ -132,6 +182,7 @@ export function KeywordPanel({ ats, profileSkills, studentId, onProfileChanged }
             ))}
           </ul>
           <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">{t("missingHint")}</p>
+          {studentId ? <div className="mt-3"><SkillGapActions studentId={studentId} skills={missing.filter((k) => k.kind !== "keyword" && !has.has(k.keyword.toLowerCase())).map((k) => k.keyword)} onDone={() => onProfileChanged?.()} /></div> : null}
         </div>
       ) : null}
     </div>

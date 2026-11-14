@@ -14,7 +14,7 @@ import type { ResumeData } from "@/resume/schema";
  */
 
 export const TailorPatch = z.object({
-  headline: z.string().optional().describe("Resume headline: the job title when the experience matches, else the student's own title"),
+  headline: z.string().optional().describe("Resume headline = the target role: the job title being applied for, optionally followed by ' | ' and 2–3 of the student's real top skills for it"),
   summary: z.string().max(800).describe("2–3 sentence professional summary built only from the student's real experience"),
   skills: z.array(z.object({ group: z.string(), items: z.array(z.string()) })).describe('Skill groups to show; first group "Key skills" lists the JD-matching skills first, in the JD\'s wording'),
   experience: z

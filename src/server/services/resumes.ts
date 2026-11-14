@@ -363,6 +363,8 @@ function pinIdentity(out: ResumeData, master: ResumeData, style: RenderStyle): R
     ...out,
     basics: {
       ...master.basics,
+      // The headline is positioning, not identity: keep the tailored one (it was silently discarded before D-164).
+      headline: out.basics?.headline?.trim() || master.basics.headline,
       photoKey: style.includePhoto ? master.basics.photoKey : undefined,
       dateOfBirth: style.includeDob ? master.basics.dateOfBirth : undefined,
       nationality: style.includeNationality ? master.basics.nationality : undefined,
@@ -393,7 +395,10 @@ async function generateTailored(ctx: StudentResumeContext & { master: ResumeData
     userId: user.id,
     studentId: ctx.studentId,
   });
-  return pinIdentity(applyTailorPatch(ctx.master, data), ctx.master, ctx.style);
+  const merged = applyTailorPatch(ctx.master, data);
+  // Target-role headline (D-164): the role applied for, as on any targeted resume. Falls back to the job title when the model returned none.
+  if (!data.headline?.trim()) merged.basics = { ...merged.basics, headline: input.title.trim().slice(0, 90) };
+  return pinIdentity(merged, ctx.master, ctx.style);
 }
 
 /**

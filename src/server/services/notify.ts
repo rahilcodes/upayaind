@@ -55,6 +55,18 @@ export const TEMPLATES = {
     body: (p) => `${s(p.amount)} for ${s(p.plan)}. Reason: ${s(p.reason) || "unknown"}.`,
     link: (p) => `/admin/students/${s(p.studentId)}`,
   },
+  skill_check_requested: {
+    title: () => "Which of these skills do you have?",
+    body: (p) => `Employers asked for ${s(p.count)} skills that aren't on your profile yet (${s(p.examples)}…). Tick the ones you really have — it takes a minute and makes your next resumes match more jobs.`,
+    link: () => "/app/skills",
+    cta: () => "Answer skill check",
+    mandatory: true,
+  },
+  skills_confirmed_by_student: {
+    title: (p) => `${s(p.studentName)} confirmed ${s(p.count)} skills`,
+    body: (p) => `${s(p.studentName)} answered the skill check. Generate again to use the ${s(p.count)} new skills in tailored resumes.`,
+    link: (p) => `/work/students/${s(p.studentId)}`,
+  },
   skill_added_by_specialist: {
     title: (p) => `"${s(p.skill)}" was added to your profile`,
     body: (p) => `Your specialist added "${s(p.skill)}" to your skills after you confirmed it, so it can appear on tailored resumes. If that's not right, remove it from your profile.`,

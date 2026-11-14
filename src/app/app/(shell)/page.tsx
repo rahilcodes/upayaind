@@ -16,6 +16,7 @@ import { InstallHint } from "@/components/student/install-hint";
 import { ApplicationListItem, InterviewItem, RenewBanner } from "@/components/student/rows";
 import { requireStudent } from "@/server/auth/guards";
 import { getDashboard } from "@/server/services/student-dashboard";
+import { pendingSkillCheck } from "@/server/services/skill-check";
 import { formatDate, formatInTz } from "@/lib/format";
 import { firstName } from "@/lib/utils";
 
@@ -32,6 +33,8 @@ export default async function StudentDashboard({ searchParams }: { searchParams:
   const { user, student } = await requireStudent();
   const t = await getTranslations("student.dashboard");
   const d = await getDashboard(user);
+  const ts = await getTranslations("student.skills");
+  const skillGaps = await pendingSkillCheck(student.id);
   const tz = d.studentTimezone;
   const hour = Number(formatInTz(new Date(), tz, "H"));
   const plan = d.plan;
@@ -55,6 +58,20 @@ export default async function StudentDashboard({ searchParams }: { searchParams:
       <PausedBanner studentId={student.id} timezone={tz} />
       {inactive && !plan.paused ? <RenewBanner /> : null}
       <InstallHint />
+      {skillGaps.length ? (
+        <div role="status" className="mb-6 flex flex-col gap-3 rounded-[16px] border border-[#C6D9FC] bg-[#EAF1FE] p-4 text-[#1A4FB8] sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <Sparkles className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-semibold">{ts("cardTitle", { count: skillGaps.length })}</p>
+              <p className="text-sm">{ts("cardBody", { examples: skillGaps.slice(0, 4).map((x) => x.skill).join(", ") })}</p>
+            </div>
+          </div>
+          <Link href="/app/skills" className={buttonVariants({ className: "shrink-0" })}>
+            {ts("cardCta")}
+          </Link>
+        </div>
+      ) : null}
       {d.celebrate ? <Celebration applicationId={d.celebrate.id} status={d.celebrate.status as "OFFER" | "HIRED"} company={d.celebrate.companyName} title={d.celebrate.jobTitle} /> : null}
       {!d.specialist && !inactive ? (
         <div role="status" className="mb-6 flex items-start gap-3 rounded-[16px] border border-[#C6D9FC] bg-[#EAF1FE] p-4 text-[#1A4FB8]">

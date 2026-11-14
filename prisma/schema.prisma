@@ -378,6 +378,8 @@ model StudentProfile {
   masterProfile          Json?
   templateId             String?
   consentApplyOnBehalfAt DateTime?
+  /// Skill check answers (D-164): { declined: string[] (normalised keys), answeredAt }.
+  skillCheck             Json?
   consentTermsAt         DateTime?
   consentVersion         String?
   consentAgreementAt     DateTime? // placement agreement accepted at signup (D-138)
