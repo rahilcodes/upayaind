@@ -25,7 +25,7 @@ export default async function SettingsPage() {
       <PageHeader title={t("title")} description={t("description")} />
       <div className="grid gap-6">
         <Section id="general" title={t("generalTitle")} description={t("generalDescription")}>
-          <GeneralForm value={{ autoAssignEnabled: s.autoAssignEnabled, defaultMaxStudents: s.defaultMaxStudents, noResponseDays: s.noResponseDays, belowTargetAlertTime: s.belowTargetAlertTime, aiLimits: s.aiLimits }} />
+          <GeneralForm value={{ autoAddJdSkills: Boolean(s.autoAddJdSkills), autoAssignEnabled: s.autoAssignEnabled, defaultMaxStudents: s.defaultMaxStudents, noResponseDays: s.noResponseDays, belowTargetAlertTime: s.belowTargetAlertTime, aiLimits: s.aiLimits }} />
         </Section>
         <Section id="team-lead" title={t("teamLead.title")} description={t("teamLead.description")}>
           <TeamLeadAccessForm value={normalizeTeamLeadSections(s.teamLeadAccess?.sections)} sections={ADMIN_SECTIONS.filter((x) => x.key !== "settings").map((x) => ({ key: x.key, commercial: x.commercial }))} />

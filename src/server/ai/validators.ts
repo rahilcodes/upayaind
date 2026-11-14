@@ -25,6 +25,7 @@ export type IssueCode =
   | "gap_created"
   | "new_number"
   | "skill_removed"
+  | "jd_skill_added"
   | "too_long";
 
 export type ValidationIssue = {
@@ -315,6 +316,12 @@ export function stripUnknownSkills(master: ResumeData, out: ResumeData): { resum
 /** Warnings to attach after a repair, so the specialist sees what was dropped. */
 export function removedSkillWarnings(removed: string[]): ValidationIssue[] {
   return removed.map((s) => ({ code: "skill_removed", severity: "warning", path: "skills", message: `"${s}" was removed: it isn't in the student's profile. If they do have it, add it after confirming.`, actual: s }));
+}
+
+/** D-165: tell the specialist which skills came from the job description rather than the profile. */
+export function jdSkillWarnings(added: string[], used: (skill: string) => boolean): ValidationIssue[] {
+  const shown = added.filter(used);
+  return shown.length ? [{ code: "jd_skill_added", severity: "warning", path: "skills", message: `From the job description, not the applicant's profile: ${shown.join(", ")}. Make sure the applicant can speak to these in an interview.` }] : [];
 }
 
 /** Compact list for the retry prompt. */

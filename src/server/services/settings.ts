@@ -10,6 +10,8 @@ export type Settings = {
   noResponseDays: number;
   belowTargetAlertTime: string; // "HH:mm" in employee tz
   aiLimits: { employeePerHour: number; studentPerDay: number };
+  /** D-165: treat the JD's skills as the applicant's skills on tailored resumes (the business confirms applicants hold them). */
+  autoAddJdSkills: boolean;
   business: Record<string, { legalName: string; address: string; taxId: string }>;
   notificationTemplates?: Record<string, { subject?: string; heading?: string; body?: string }>;
   /** Referral programme (D-113): friend's first-payment discount and the referrer's credit per currency (minor units). */
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   noResponseDays: 30,
   belowTargetAlertTime: "15:00",
   aiLimits: { employeePerHour: 60, studentPerDay: 300 },
+  autoAddJdSkills: false,
   business: {},
   notificationTemplates: {},
   referral: { friendPercentOff: 10, referrerCreditMinor: { USD: 2500, CAD: 3000, GBP: 2000, AUD: 3500, INR: 150000 } },

@@ -196,7 +196,9 @@
       },
       "logosHint": "“Our candidates placed in” strip on each country's homepage: company names, one per line (up to 30). Leave empty to use the built-in list for that country. Names we have a logo for show the logo; others show as a text badge.",
       "logosFor": "Companies shown in {country}",
-      "logosPlaceholder": "TCS\nInfosys\nGoogle"
+      "logosPlaceholder": "TCS\nInfosys\nGoogle",
+      "autoAddJdSkills": "Add the job description's skills to tailored resumes",
+      "autoAddJdSkillsHint": "When on, every required and preferred skill in the job description is listed on the tailored resume, even if it isn't on the applicant's profile. Turn this on only if your applicants have confirmed they hold the skills of the roles you apply to. Employers, job titles, dates, degrees and numbers always stay as on the profile. Specialists see which skills came from the job description."
     },
     "days": {
       "1": "Mon",

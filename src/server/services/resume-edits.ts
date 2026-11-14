@@ -1,4 +1,6 @@
 import "server-only";
+import { withJdSkills } from "@/server/ai/jd-skills";
+import { getSetting } from "./settings";
 import { z } from "zod";
 import type { Role } from "@/generated/prisma/enums";
 import { db } from "@/server/db";
@@ -97,9 +99,10 @@ export async function suggestEdit(user: Actor, raw: EditRequestT): Promise<EditS
   const content = parsed.data;
   const ctx = await getStudentResumeContext(v.studentId);
   if (!ctx.master) throw new ResumeError("The master profile is missing.");
-  const master = ctx.master;
   const analysisParsed = JdAnalysis.safeParse(v.jdAnalysis);
   const analysis = analysisParsed.success ? analysisParsed.data : null;
+  // D-165: JD skills count as the applicant's while the admin setting is on.
+  const master = withJdSkills(ctx.master, analysis, Boolean(await getSetting("autoAddJdSkills"))).master;
   await enforceAiLimits(user, v.studentId);
 
   if (input.target.kind === "summary") {

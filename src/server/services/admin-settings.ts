@@ -21,6 +21,7 @@ export const generalSettingsSchema = z.object({
   defaultMaxStudents: z.coerce.number().int("Whole numbers only.").min(1, "At least 1.").max(100, "At most 100."),
   noResponseDays: z.coerce.number().int("Whole numbers only.").min(7, "At least 7 days.").max(180, "At most 180 days."),
   belowTargetAlertTime: hhmm,
+  autoAddJdSkills: z.boolean().default(false),
   aiLimits: z.object({
     employeePerHour: z.coerce.number().int().min(1, "At least 1.").max(1000, "At most 1,000."),
     studentPerDay: z.coerce.number().int().min(1, "At least 1.").max(5000, "At most 5,000."),

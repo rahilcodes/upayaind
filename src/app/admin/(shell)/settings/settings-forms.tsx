@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Textarea, fieldA11y } from "@/components/ui/input";
 import { saveBusinessAction, saveGeneralAction, savePublicSiteAction, saveReferralAction, saveTeamLeadAccessAction, saveTemplateAction } from "./actions";
 
-type General = { autoAssignEnabled: boolean; defaultMaxStudents: number; noResponseDays: number; belowTargetAlertTime: string; aiLimits: { employeePerHour: number; studentPerDay: number } };
+type General = { autoAddJdSkills: boolean; autoAssignEnabled: boolean; defaultMaxStudents: number; noResponseDays: number; belowTargetAlertTime: string; aiLimits: { employeePerHour: number; studentPerDay: number } };
 
 export function GeneralForm({ value }: { value: General }) {
   const t = useTranslations("admin.settings");
@@ -23,6 +23,7 @@ export function GeneralForm({ value }: { value: General }) {
         const fd = new FormData(e.currentTarget);
         run({
           autoAssignEnabled: fd.get("autoAssignEnabled") === "on",
+          autoAddJdSkills: fd.get("autoAddJdSkills") === "on",
           defaultMaxStudents: Number(fd.get("defaultMaxStudents")),
           noResponseDays: Number(fd.get("noResponseDays")),
           belowTargetAlertTime: String(fd.get("belowTargetAlertTime") ?? ""),
@@ -35,6 +36,13 @@ export function GeneralForm({ value }: { value: General }) {
         <span>
           <span className="block font-semibold">{t("autoAssign")}</span>
           <span className="block text-[13px] text-muted-foreground">{t("autoAssignHint")}</span>
+        </span>
+      </label>
+      <label className="flex min-h-11 items-start gap-3 rounded-[12px] border border-warning/40 bg-warning/5 p-3 sm:col-span-2">
+        <Checkbox name="autoAddJdSkills" defaultChecked={value.autoAddJdSkills} className="mt-0.5" />
+        <span>
+          <span className="block font-semibold">{t("autoAddJdSkills")}</span>
+          <span className="block text-[13px] text-muted-foreground">{t("autoAddJdSkillsHint")}</span>
         </span>
       </label>
       <Field id="s-max" label={t("defaultMax")} hint={t("defaultMaxHint")} error={err("defaultMaxStudents")}>
