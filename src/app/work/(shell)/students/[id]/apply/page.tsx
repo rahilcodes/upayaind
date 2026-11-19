@@ -7,6 +7,7 @@ import { getWorkspaceData } from "@/server/services/applications";
 import { getStudentResumeContext } from "@/server/services/resumes";
 import { allProfileSkills } from "@/resume/schema";
 import { aiConfigured } from "@/server/ai/client";
+import { getSetting } from "@/server/services/settings";
 import { getWorkspaceDefaults, listCompanySuggestions } from "@/server/services/workspace-prefs";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -63,6 +64,7 @@ export default async function ApplyPage({ params }: { params: Promise<{ id: stri
       masterIssues={ctx.masterIssues}
       profileSkills={ctx.master ? allProfileSkills(ctx.master) : []}
       aiEnabled={aiConfigured()}
+      autoAddJdSkills={Boolean(await getSetting("autoAddJdSkills"))}
       employeeTimezone={data.employeeTimezone}
     />
   );

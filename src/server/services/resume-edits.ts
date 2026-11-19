@@ -102,7 +102,8 @@ export async function suggestEdit(user: Actor, raw: EditRequestT): Promise<EditS
   const analysisParsed = JdAnalysis.safeParse(v.jdAnalysis);
   const analysis = analysisParsed.success ? analysisParsed.data : null;
   // D-165: JD skills count as the applicant's while the admin setting is on.
-  const master = withJdSkills(ctx.master, analysis, Boolean(await getSetting("autoAddJdSkills"))).master;
+  const jdMode = Boolean(await getSetting("autoAddJdSkills"));
+  const master = withJdSkills(ctx.master, analysis, jdMode).master;
   await enforceAiLimits(user, v.studentId);
 
   if (input.target.kind === "summary") {
@@ -114,7 +115,7 @@ export async function suggestEdit(user: Actor, raw: EditRequestT): Promise<EditS
     };
     const check = (summary: string, skills: string[]) => {
       const problems = textProblems({ text: summary, original, master, skillsMentioned: skills, analysis });
-      const full = validateTailored(master, { ...content, summary });
+      const full = validateTailored(master, { ...content, summary }, { allowAnySkill: jdMode });
       return [...problems, ...full.errors.map((e) => e.message)];
     };
     let out = await askSafely(ask);
@@ -146,7 +147,7 @@ export async function suggestEdit(user: Actor, raw: EditRequestT): Promise<EditS
   const check = (text: string, skills: string[]) => {
     const problems = textProblems({ text, original, master, skillsMentioned: skills, analysis });
     const candidate: ResumeData = { ...content, experience: content.experience.map((e) => (e.id === experienceId ? { ...e, bullets: e.bullets.map((b) => (b.id === bulletId ? { ...b, text } : b)) } : e)) };
-    const full = validateTailored(master, candidate);
+    const full = validateTailored(master, candidate, { allowAnySkill: jdMode });
     if (mode === "shorten" && text.trim().split(/\s+/).length > original.trim().split(/\s+/).length) problems.push("It is longer than the original.");
     return [...problems, ...full.errors.map((e) => e.message)];
   };

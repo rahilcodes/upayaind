@@ -39,6 +39,8 @@ type Props = {
   masterIssues: string[];
   profileSkills: string[];
   aiEnabled: boolean;
+  /** Admin setting (D-165): the JD's skills count as the applicant's, so skills are never flagged. */
+  autoAddJdSkills?: boolean;
   employeeTimezone: string;
 };
 
@@ -105,7 +107,7 @@ export function ApplyWorkspace(props: Props) {
   React.useEffect(() => setToday(props.today), [props.today]);
 
   // Live, client-side validation + score (authoritative copies come from the server on save).
-  const liveValidation = React.useMemo(() => (content && master ? validateTailored(master, content) : null), [content, master]);
+  const liveValidation = React.useMemo(() => (content && master ? validateTailored(master, content, { allowAnySkill: props.autoAddJdSkills }) : null), [content, master, props.autoAddJdSkills]);
   const validation = liveValidation ?? serverValidation;
   const liveScore = React.useMemo<AtsBreakdown | null>(() => (content && tailor ? computeAtsScore({ resume: content, analysis: tailor.analysis, jobTitle: job.jobTitle || tailor.content.basics.headline || "", maxPages: style.maxPages, includePhoto: style.includePhoto }) : null), [content, tailor, job.jobTitle, style.maxPages, style.includePhoto]);
   const preview = usePreview(student.id, content ?? master);

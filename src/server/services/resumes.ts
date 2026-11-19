@@ -12,7 +12,7 @@ import { AiNotConfiguredError, AiOutputError, aiConfigured, callTool } from "@/s
 import { CoverLetterOutput, JdAnalysis, ParsedResume, TailorOutput, type JdAnalysisData } from "@/server/ai/schemas";
 import { analyzeJdPrompt, coverLetterPrompt, parseResumePrompt, tailorResumePrompt, type StyleForPrompt } from "@/server/ai/prompts";
 import { applyTailorPatch } from "@/server/ai/tailor-patch";
-import { errorsForPrompt, jdSkillWarnings, numbersIn, removedSkillWarnings, stripUnknownSkills, validateTailored, type ValidationResult } from "@/server/ai/validators";
+import { errorsForPrompt, numbersIn, removedSkillWarnings, stripUnknownSkills, validateTailored, type ValidationResult } from "@/server/ai/validators";
 import { ensureJdSkillsListed, withJdSkills } from "@/server/ai/jd-skills";
 import { computeAtsScore, type AtsBreakdown } from "@/server/ai/ats-score";
 import { heuristicJdAnalysis } from "@/server/ai/jd-heuristic";
@@ -425,6 +425,8 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
   // D-165: with the admin setting on, the JD's skills count as the applicant's for this application.
   const jdMode = ai && Boolean(await getSetting("autoAddJdSkills"));
   const { master, added: jdSkillsAdded } = withJdSkills(profile, analysis, jdMode);
+  // D-167: in this mode skills are never a validation error and nothing is stripped or flagged.
+  const vOpts = { allowAnySkill: jdMode };
 
   await onStep("tailoring");
   let content: ResumeData;
@@ -434,7 +436,7 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
   if (!ai) {
     content = pinIdentity(master, master, ctx.style);
     await onStep("validating");
-    validation = validateTailored(master, content);
+    validation = validateTailored(master, content, vOpts);
   } else {
     attempts = 1;
     let candidate: ResumeData | null = null;
@@ -446,13 +448,13 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
       errs = e.issues;
     }
     await onStep("validating");
-    validation = candidate ? validateTailored(master, candidate) : { ok: false, errors: [], warnings: [], checkedAt: new Date().toISOString() };
+    validation = candidate ? validateTailored(master, candidate, vOpts) : { ok: false, errors: [], warnings: [], checkedAt: new Date().toISOString() };
     if (candidate && !validation.ok && validation.errors.every((e) => e.code === "unknown_skill")) {
       // Only skills the student lacks: drop them in code instead of paying for a second generation (D-156).
       const fixed = stripUnknownSkills(master, candidate);
       candidate = fixed.resume;
       removedSkills = fixed.removed;
-      validation = validateTailored(master, candidate);
+      validation = validateTailored(master, candidate, vOpts);
     }
     if (!candidate || !validation.ok) {
       // Auto-retry once with the error list (SPEC §9.4).
@@ -465,7 +467,7 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
         if (!candidate) throw new ResumeError("The AI couldn't produce a valid resume. Please try again.");
       }
       await onStep("validating");
-      validation = validateTailored(master, candidate);
+      validation = validateTailored(master, candidate, vOpts);
     }
     content = candidate;
     // D-165/D-166: every JD skill and keyword appears even when the model left some out.
@@ -476,12 +478,8 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
   await onStep("rendering");
   const { renderResumePdf } = await import("@/resume/render-pdf");
   const { pages } = await renderResumePdf({ resume: content, style: ctx.style, template: ctx.templateCode });
-  validation = validateTailored(master, content, { maxPages: ctx.style.maxPages, pageCount: pages });
+  validation = validateTailored(master, content, { ...vOpts, maxPages: ctx.style.maxPages, pageCount: pages });
   if (removedSkills.length) validation = { ...validation, warnings: [...validation.warnings, ...removedSkillWarnings(removedSkills)] };
-  if (jdSkillsAdded.length) {
-    const text = JSON.stringify([content.skills, content.summary, content.experience.map((e) => [e.technologies, e.bullets])]).toLowerCase();
-    validation = { ...validation, warnings: [...validation.warnings, ...jdSkillWarnings(jdSkillsAdded, (k) => text.includes(k.toLowerCase()))] };
-  }
   const basePdf = await renderResumePdf({ resume: profile, style: ctx.style, template: ctx.templateCode });
   const base = computeAtsScore({ resume: profile, analysis, jobTitle: input.title, maxPages: ctx.style.maxPages, pageCount: basePdf.pages, includePhoto: ctx.style.includePhoto });
   const tailored = computeAtsScore({ resume: content, analysis, jobTitle: input.title, maxPages: ctx.style.maxPages, pageCount: pages, includePhoto: ctx.style.includePhoto });
@@ -541,9 +539,10 @@ export async function updateVersionContent(user: Actor, versionId: string, conte
   const { pages } = await renderResumePdf({ resume: content, style, template: v.templateCode });
   // Same rule as at generation (D-165): JD skills are allowed while the setting is on.
   const jdA = JdAnalysis.safeParse(v.jdAnalysis);
-  const effective = ctx.master ? withJdSkills(ctx.master, jdA.success ? jdA.data : null, Boolean(await getSetting("autoAddJdSkills"))).master : null;
+  const jdMode = Boolean(await getSetting("autoAddJdSkills"));
+  const effective = ctx.master ? withJdSkills(ctx.master, jdA.success ? jdA.data : null, jdMode).master : null;
   const validation = effective
-    ? validateTailored(effective, content, { maxPages: style.maxPages, pageCount: pages })
+    ? validateTailored(effective, content, { maxPages: style.maxPages, pageCount: pages, allowAnySkill: jdMode })
     : { ok: false, errors: [{ code: "schema" as const, severity: "error" as const, path: "master", message: "The master profile is missing." }], warnings: [], checkedAt: new Date().toISOString() };
   const prev = (v.validation as StoredValidation | null) ?? null;
   const stored: StoredValidation = { ...validation, attempts: prev?.attempts ?? 0, aiUnavailable: prev?.aiUnavailable };

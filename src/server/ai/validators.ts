@@ -118,7 +118,7 @@ function masterText(m: ResumeData) {
   ].join(" \n ");
 }
 
-export function validateTailored(masterInput: unknown, outputInput: unknown, opts: { now?: Date; maxPages?: number; pageCount?: number } = {}): ValidationResult {
+export function validateTailored(masterInput: unknown, outputInput: unknown, opts: { now?: Date; maxPages?: number; pageCount?: number; /** JD-skills mode (D-165/D-167): skills are never an error. */ allowAnySkill?: boolean } = {}): ValidationResult {
   const now = opts.now ?? new Date();
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
@@ -173,7 +173,7 @@ export function validateTailored(masterInput: unknown, outputInput: unknown, opt
   const reported = new Set<string>();
   const checkSkill = (s: string, path: string) => {
     const k = key(s);
-    if (!k || known(s) || reported.has(k)) return;
+    if (opts.allowAnySkill || !k || known(s) || reported.has(k)) return;
     reported.add(k);
     errors.push({ code: "unknown_skill", severity: "error", path, message: `Skill "${norm(s)}" isn't in the student's profile.`, actual: norm(s) });
   };

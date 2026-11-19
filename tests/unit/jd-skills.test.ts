@@ -73,4 +73,14 @@ describe("withJdSkills", () => {
     expect(ensureJdSkillsListed(r.resume, jd, added).resume).toBe(r.resume);
     expect(ensureJdSkillsListed(out, jd, []).resume).toBe(out);
   });
+
+  it("in JD-skills mode the validator never flags a skill, but still rejects invented employers (D-167)", () => {
+    const out = clone(MASTER);
+    out.skills[0]!.items.push("ServiceNow", "IntegrationHub", "API testing");
+    out.experience[0]!.technologies.push("SecOps");
+    expect(validateTailored(MASTER, out).errors.map((e) => e.code)).toEqual(["unknown_skill", "unknown_skill", "unknown_skill", "unknown_skill"]);
+    expect(validateTailored(MASTER, out, { allowAnySkill: true })).toMatchObject({ ok: true, errors: [] });
+    out.experience[0]!.company = "Google";
+    expect(validateTailored(MASTER, out, { allowAnySkill: true }).errors.map((e) => e.code)).toEqual(["company_changed"]);
+  });
 });
