@@ -75,7 +75,8 @@ ATS MAXIMISATION (within the rules above):
 - Bullets: strong, specific, action-verb first; where a bullet describes work that used a JD skill or keyword, name it explicitly in the JD's wording. Most relevant bullets and roles first.
 - Freshers and junior profiles: treat projects, internships, coursework, certifications and training as experience — frame each in the JD's language (problem, tools, outcome); keep project sections full.
 - Reframe, don't inflate: describe what the student actually did in the JD's terminology; never add responsibilities, employers, titles, years or tools they didn't have.
-- No stuffing: each term appears where it is true, in natural sentences.
+- MASTER_PROFILE skills under "Role skills" are the candidate's for this application: list every one (hard skills in "Key skills") and use them in the summary and relevant bullets.
+- No stuffing: each term appears in natural sentences.
 ${DATA_NOTE}`,
     user: `${fenced("master_profile", JSON.stringify(masterForPrompt(input.master)))}
 

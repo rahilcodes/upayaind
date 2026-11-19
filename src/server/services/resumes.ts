@@ -13,7 +13,7 @@ import { CoverLetterOutput, JdAnalysis, ParsedResume, TailorOutput, type JdAnaly
 import { analyzeJdPrompt, coverLetterPrompt, parseResumePrompt, tailorResumePrompt, type StyleForPrompt } from "@/server/ai/prompts";
 import { applyTailorPatch } from "@/server/ai/tailor-patch";
 import { errorsForPrompt, jdSkillWarnings, numbersIn, removedSkillWarnings, stripUnknownSkills, validateTailored, type ValidationResult } from "@/server/ai/validators";
-import { withJdSkills } from "@/server/ai/jd-skills";
+import { ensureJdSkillsListed, withJdSkills } from "@/server/ai/jd-skills";
 import { computeAtsScore, type AtsBreakdown } from "@/server/ai/ats-score";
 import { heuristicJdAnalysis } from "@/server/ai/jd-heuristic";
 import { enforceRateLimit } from "./ratelimit";
@@ -468,17 +468,8 @@ export async function tailorResume(user: Actor, input: TailorInput, onStep: (s: 
       validation = validateTailored(master, candidate);
     }
     content = candidate;
-    // D-165: every JD skill is listed even when the model left some out.
-    if (jdSkillsAdded.length) {
-      const listed = JSON.stringify(content.skills).toLowerCase();
-      const missing = jdSkillsAdded.filter((k) => !listed.includes(k.toLowerCase()));
-      if (missing.length) {
-        const groups = content.skills.map((g) => ({ ...g, items: [...g.items] }));
-        if (groups[0]) groups[0].items.push(...missing);
-        else groups.push({ group: "Key skills", items: missing });
-        content = { ...content, skills: groups };
-      }
-    }
+    // D-165/D-166: every JD skill and keyword appears even when the model left some out.
+    content = ensureJdSkillsListed(content, analysis, jdSkillsAdded).resume;
   }
 
   await onStep("scoring");

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeAtsScore } from "@/server/ai/ats-score";
-import { JD_SKILLS_GROUP, jdSkillsToAdd, withJdSkills } from "@/server/ai/jd-skills";
+import { JD_KEYWORDS_GROUP, JD_SKILLS_GROUP, ensureJdSkillsListed, jdSkillsToAdd, withJdSkills } from "@/server/ai/jd-skills";
 import { jdSkillWarnings, validateTailored } from "@/server/ai/validators";
 import { ANALYSIS, MASTER, clone } from "./resume-fixtures";
 
@@ -46,5 +46,31 @@ describe("withJdSkills", () => {
     expect(w[0]!.message).toContain("Playwright");
     expect(w[0]!.message).not.toContain("Docker");
     expect(jdSkillWarnings([], () => true)).toEqual([]);
+  });
+
+  it("also adds the JD's other keywords, except ones that name a credential or tenure (D-166)", () => {
+    const jd = { ...JD, keywords: ["stakeholder management", "PMP certification", "5+ years experience", "Bachelor's degree", "Agile", "security clearance", "sql", "CCNP", "CCIE", "PMP", "Six Sigma Green Belt", "peering", "K-12 education"] };
+    expect(jdSkillsToAdd(MASTER, jd)).toEqual(["Playwright", "TypeScript", "Docker", "stakeholder management", "Agile", "peering", "K-12 education"]);
+  });
+
+  it("guarantees every added term is on the resume as the ATS scorer reads it", () => {
+    const jd = { ...JD, keywords: ["stakeholder management", "Agile", "data pipelines"] };
+    const { master: eff, added } = withJdSkills(MASTER, jd, true);
+    const out = clone(MASTER);
+    out.skills = [{ group: "Key skills", items: ["SQL", "Playwright"] }];
+    out.summary = "Analyst experienced in stakeholder management and TypeScript.";
+    out.meta = { hiddenSections: ["skills"] };
+    const r = ensureJdSkillsListed(out, jd, added);
+    expect(r.appended).toEqual(["TypeScript", "Docker", "Agile", "data pipelines"]);
+    expect(r.resume.skills[0]).toEqual({ group: "Key skills", items: ["SQL", "Playwright", "TypeScript", "Docker"] });
+    expect(r.resume.skills.at(-1)).toEqual({ group: JD_KEYWORDS_GROUP, items: ["Agile", "data pipelines"] });
+    expect(r.resume.meta.hiddenSections).toEqual([]);
+    expect(validateTailored(eff, r.resume).errors).toEqual([]);
+    const score = computeAtsScore({ resume: r.resume, analysis: jd, jobTitle: "Data Analyst" });
+    expect(score.keywordCoverage).toBe(100);
+    expect(score.skillsOverlap).toBe(100);
+    // Nothing missing → same object back.
+    expect(ensureJdSkillsListed(r.resume, jd, added).resume).toBe(r.resume);
+    expect(ensureJdSkillsListed(out, jd, []).resume).toBe(out);
   });
 });

@@ -37,7 +37,7 @@ describe("tailoring patch (D-156) — compact input", () => {
   it("the whole tailoring prompt for the fixture fits a tight character budget (guards against creep)", () => {
     const p = tailorResumePrompt({ style: STYLE, market: { name: "United States" }, master: MASTER, job: { title: "Data Analyst", company: "Northstar Bank" }, analysis: ANALYSIS, jd: JD_TEXT });
     const schema = JSON.stringify(toolSchema(TailorPatch));
-    expect(p.system.length).toBeLessThan(3600);
+    expect(p.system.length).toBeLessThan(3800);
     expect(schema.length).toBeLessThan(2400);
     expect(p.user.length).toBeLessThan(JSON.stringify(MASTER).length + JSON.stringify(ANALYSIS).length + JD_TEXT.length + 400);
     expect(p.system).toContain("TRUTHFULNESS RULES");
