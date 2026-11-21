@@ -65,4 +65,4 @@ export const backupCodeSchema = z.object({
     .pipe(z.string().length(8, "Enter one of your 8-character backup codes")),
 });
 
-export const CONSENT_VERSION = "2026-10-15"; // bumped for the Placement Agreement (D-138)
+export const CONSENT_VERSION = "2026-11-21"; // bumped for the published Placement Agreement + legal pages (D-170)

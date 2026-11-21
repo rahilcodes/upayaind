@@ -17,6 +17,7 @@ import { seal } from "../src/server/crypto";
 import { normalizeJobUrl } from "../src/lib/url-normalize";
 import { addDayKey, dateOnly, dayKey, isoWeekday, startOfDayInTz } from "../src/lib/dates";
 import type { ResumeData } from "../src/resume/schema";
+import { LEGAL_PAGES, LEGAL_VERSION, compileLegal } from "../src/server/legal-pages";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 faker.seed(20261012);
@@ -220,27 +221,6 @@ const FAQS = [
   ["Is my data safe?", "Logins are encrypted with per-record keys, files are stored privately and served through short-lived links, and staff access is limited and audited."],
 ] as const;
 
-const LEGAL = [
-  ["privacy", "Privacy Policy"],
-  ["terms", "Terms of Service"],
-  ["refund", "Refund Policy"],
-  ["guarantee", "Our Guarantee"],
-  ["cookies", "Cookie Policy"],
-  ["agreement", "Placement Agreement"],
-] as const;
-
-// Placement Agreement draft (D-138). Accepted at sign-up; the fee terms in [brackets] must be set by UpayaInd before publishing.
-const AGREEMENT_TEMPLATE = [
-  "[DRAFT — review with counsel and set the bracketed terms before publishing.]",
-  "1. Service. UpayaInd applies to jobs on your behalf using the plan you purchased, with resumes tailored from the career details you provide. We do not guarantee any particular employer, role or salary.",
-  "2. Placement fee. If you accept a job offer that resulted from an application made by UpayaInd during your subscription or within [90] days after it ends, you agree to pay UpayaInd a placement fee of [X% of your first-year base salary / a fixed amount of $X], invoiced on your start date and payable within [30] days.",
-  "3. Your duties. Keep your profile and job preferences accurate, respond to interview requests promptly, and tell us within 5 days of accepting any offer that came through our applications.",
-  "4. Authorisation. You authorise UpayaInd to submit applications, create job-portal accounts and communicate with employers in your name, and confirm the information you give us is true.",
-  "5. Fees and cancellation. Subscription fees are charged per the plan and the Refund Policy. The placement fee in section 2 applies even if you cancel the subscription before the offer.",
-  "6. Disputes and law. This agreement is governed by the laws of [State/Country]. Disputes will first be raised with contact@upayaind.com and resolved in good faith before any formal proceedings.",
-  "By ticking the box at sign-up you confirm that you have read and accept this Placement Agreement together with the Terms of Service and Privacy Policy.",
-];
-
 function doc(paragraphs: string[]) {
   return {
     body: { type: "doc", content: paragraphs.map((t) => ({ type: "paragraph", content: [{ type: "text", text: t }] })) },
@@ -342,12 +322,19 @@ async function seedReference() {
     const { body, bodyHtml } = doc([a]);
     await db.cmsEntry.upsert({ where: { kind_slug: { kind: "FAQ", slug } }, update: {}, create: { kind: "FAQ", slug, title: q, excerpt: a, body, bodyHtml, sortOrder: i, isPublished: true, publishedAt: new Date() } });
   }
-  for (const [slug, title] of LEGAL) {
-    const { body, bodyHtml } = doc(slug === "agreement" ? AGREEMENT_TEMPLATE : [`[DRAFT — the final ${title} text must be supplied and approved by UpayaInd before launch.]`]);
-    // Drafts (unpublished) of the agreement follow the template; anything published is never touched.
-    const existing = await db.cmsEntry.findUnique({ where: { kind_slug: { kind: "LEGAL", slug } }, select: { isPublished: true } });
-    const update = slug === "agreement" && existing && !existing.isPublished ? { body, bodyHtml } : {};
-    await db.cmsEntry.upsert({ where: { kind_slug: { kind: "LEGAL", slug } }, update, create: { kind: "LEGAL", slug, title, body, bodyHtml, isPublished: false, seoTitle: title } });
+  // Legal pages (D-170): published from src/server/legal-pages.ts. An entry the admin has edited in the CMS
+  // (it has revisions) is left alone; everything else is brought to the current LEGAL_VERSION and published.
+  for (const page of LEGAL_PAGES) {
+    const { body, bodyHtml } = compileLegal(page.text);
+    const existing = await db.cmsEntry.findUnique({ where: { kind_slug: { kind: "LEGAL", slug: page.slug } }, select: { data: true, publishedAt: true } });
+    const data = existing?.data && typeof existing.data === "object" && !Array.isArray(existing.data) ? (existing.data as Record<string, unknown>) : {};
+    const adminEdited = Array.isArray(data.revisions) && data.revisions.length > 0;
+    const fresh = { title: page.title, excerpt: page.excerpt, seoTitle: page.title, seoDescription: page.excerpt, body: body as Prisma.InputJsonValue, bodyHtml, isPublished: true, publishedAt: existing?.publishedAt ?? new Date(), data: { ...data, legalVersion: LEGAL_VERSION } as Prisma.InputJsonValue };
+    await db.cmsEntry.upsert({
+      where: { kind_slug: { kind: "LEGAL", slug: page.slug } },
+      update: adminEdited || data.legalVersion === LEGAL_VERSION ? {} : fresh,
+      create: { kind: "LEGAL", slug: page.slug, ...fresh, data: { legalVersion: LEGAL_VERSION, revisions: [] } },
+    });
   }
   for (let i = 1; i <= 3; i++) {
     const slug = `sample-story-${i}`;
