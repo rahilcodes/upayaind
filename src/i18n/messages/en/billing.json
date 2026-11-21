@@ -40,14 +40,14 @@
       "pay": "Continue to secure payment",
       "redirecting": "Taking you to secure payment…",
       "changePlan": "Change plan",
-      "secureNote": "Payments are processed by our payment partner (Stripe, or Razorpay in India). We never see or store your card details.",
+      "secureNote": "Payments are processed by our payment partner, {partner}. We never see or store your card details.",
       "legal": "By continuing you agree to our <terms>Terms</terms> and <refund>Refund policy</refund>.",
       "missingPlan": "Choose a plan first",
       "missingPlanBody": "Pick the plan that suits you on the pricing page, then come back here to pay.",
       "unavailableTitle": "This plan can’t be purchased",
       "seePricing": "See plans and pricing",
       "alreadyActiveTitle": "You already have an active plan",
-      "alreadyActiveBody": "To upgrade, downgrade or cancel, use “Manage subscription” on your Billing page.",
+      "alreadyActiveBody": "Your plan renews automatically. To upgrade, downgrade or cancel, use “Manage subscription” on your Billing page.",
       "goToBilling": "Go to Billing",
       "canceledNotice": "Payment was canceled. You haven’t been charged.",
       "simTitle": "Test mode: simulate payment",
@@ -74,8 +74,15 @@
         "scriptFailed": "We couldn’t load the payment window. Check your connection and reload the page.",
         "note": "Payments are processed by Razorpay. We never see or store your card or UPI details. If money is deducted but this page doesn’t confirm, your plan is activated automatically within a few minutes.",
         "notFoundTitle": "This payment link isn’t valid",
-        "notFoundBody": "Start again from the pricing page and we’ll create a fresh order."
-      }
+        "notFoundBody": "Start again from the pricing page and we’ll create a fresh order.",
+        "subIntl": "Pay by credit or debit card. Your plan starts as soon as the payment is confirmed.",
+        "noteIntl": "Payments are processed by Razorpay. We never see or store your card details. Your bank may show the charge as an international payment. If money is deducted but this page doesn’t confirm, your plan is activated automatically within a few minutes."
+      },
+      "perPeriod": "One payment covers {months, plural, one {# month} other {# months}}. No automatic charges: we’ll remind you before it ends so you can renew.",
+      "extends": "You’re renewing early. This adds {months, plural, one {# month} other {# months}} after your current plan ends on {date}.",
+      "subtitleRenew": "You’re renewing the plan you already have. You’ll be taken to our payment partner to pay securely.",
+      "pausedTitle": "Your plan is paused",
+      "pausedBody": "Please contact us to resume your plan before paying again."
     },
     "page": {
       "metaTitle": "Billing",
@@ -114,7 +121,10 @@
       "noPdf": "PDF not available",
       "refunded": "{amount} refunded",
       "failedReason": "Failed: {reason}",
-      "help": "Need help with billing? <contact>Contact support</contact>."
+      "help": "Need help with billing? <contact>Contact support</contact>.",
+      "renewEarly": "Renew now",
+      "perPeriodNotice": "This plan doesn’t renew automatically. It ends on {date}. Renew any time before then and the new period is added after your current one.",
+      "perPeriodNoticeContact": "This plan doesn’t renew automatically. It ends on {date}. Contact us before then to keep your applications going."
     },
     "admin": {
       "nav": {
@@ -231,7 +241,7 @@
         },
         "providerName": {
           "STRIPE": "Stripe",
-          "RAZORPAY": "Razorpay (coming soon)"
+          "RAZORPAY": "Razorpay"
         },
         "form": {
           "code": "Country code",

@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { FlaskConical, ShieldCheck, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, fieldA11y } from "@/components/ui/input";
-import type { BillingInterval } from "@/generated/prisma/enums";
 import { formatMoney } from "@/lib/format";
 import { applyCouponAction, simulatePaymentAction, startCheckoutAction } from "./actions";
 
@@ -16,10 +15,10 @@ type Props = {
   currency: string;
   locale: string;
   amountMinor: number;
-  recurring: boolean;
-  per: string;
-  interval: BillingInterval;
-  months: number;
+  /** "Renews automatically…" (Stripe) or "One payment covers…" (Razorpay), already translated. */
+  periodNote: string;
+  /** Payment partner shown in the security note. */
+  partner: string;
   simulate: boolean;
   initialCoupon: string;
 };
@@ -161,7 +160,7 @@ export function CheckoutPanel(p: Props) {
           </dd>
         </div>
       </dl>
-      <p className="mt-2 text-[13px] text-muted-foreground">{p.recurring ? t("renews", { every: t(`every.${p.interval}`) }) : t("oneTime", { months: p.months })}</p>
+      <p className="mt-2 text-[13px] text-muted-foreground">{p.periodNote}</p>
 
       {error ? (
         <div role="alert" className="mt-5 rounded-[10px] border border-[#F3C8C3] bg-[#FCEAE8] px-4 py-3 text-sm text-[#8E231B]">
@@ -193,7 +192,7 @@ export function CheckoutPanel(p: Props) {
 
       <p className="mt-4 flex items-start gap-2 text-[13px] text-muted-foreground">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
-        {t("secureNote")}
+        {t("secureNote", { partner: p.partner })}
       </p>
       <p className="mt-3 text-[13px] text-muted-foreground">
         {t.rich("legal", {

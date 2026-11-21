@@ -108,7 +108,7 @@ Enforce all rules **on the server** in every server action and route handler. Ne
 | Resume output | **@react-pdf/renderer** (PDF) + **docx** (DOCX) | Both rendered from the same resume JSON |
 | Email | **Resend + React Email** | Transactional templates in `/emails` |
 | WhatsApp (P1) | Twilio WhatsApp or Interakt | Behind a `NotificationChannel` interface |
-| Payments | **Stripe** (US and international) + **Razorpay** (India, P1) | Behind a `PaymentProvider` interface, chosen per market |
+| Payments | **Stripe** (United States) + **Razorpay** (every other market, D-168) | Behind a `PaymentProvider` interface, chosen per market |
 | Rich text (CMS) | **Tiptap** | Stored as JSON + rendered HTML |
 | i18n | **next-intl** | English only at launch; every UI string goes through it |
 | Rate limiting | **Upstash Redis + @upstash/ratelimit** | Login, signup, AI generation, contact form |

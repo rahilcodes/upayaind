@@ -23,7 +23,7 @@ export const confirmSchema = z.object({
 export async function razorpayCheckoutData(studentId: string, orderId: string) {
   const sub = await db.subscription.findFirst({
     where: { studentId, providerSubId: orderId, provider: "RAZORPAY" },
-    select: { id: true, status: true, planPrice: { select: { currency: true, interval: true, plan: { select: { name: true } } } }, student: { select: { user: { select: { name: true, email: true, phone: true } } } } },
+    select: { id: true, status: true, planPrice: { select: { currency: true, interval: true, plan: { select: { name: true } }, market: { select: { locale: true } } } }, student: { select: { user: { select: { name: true, email: true, phone: true } } } } },
   });
   if (!sub) return null;
   if (sub.status !== "PENDING_PAYMENT") return { paid: true as const, subscriptionId: sub.id };
@@ -34,6 +34,7 @@ export async function razorpayCheckoutData(studentId: string, orderId: string) {
     orderId: order.id,
     amountMinor: order.amount,
     currency: order.currency,
+    locale: sub.planPrice.market.locale,
     planName: sub.planPrice.plan.name,
     interval: sub.planPrice.interval,
     name: sub.student.user.name,

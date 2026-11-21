@@ -177,10 +177,10 @@ export const TEMPLATES = {
   },
   renewal_reminder: {
     whatsapp: true,
-    title: (p) => `Your plan renews in ${s(p.days)} days`,
-    body: (p) => `${s(p.plan)} ${p.autoRenew ? "renews automatically" : "ends"} on ${s(p.date)}.`,
+    title: (p) => (p.autoRenew ? `Your plan renews in ${s(p.days)} days` : `Your plan ends in ${s(p.days)} days`),
+    body: (p) => (p.autoRenew ? `${s(p.plan)} renews automatically on ${s(p.date)}.` : `${s(p.plan)} ends on ${s(p.date)}. Renew from your Billing page to keep your applications going.`),
     link: () => "/app/billing",
-    cta: () => "Manage billing",
+    cta: (p) => (p.autoRenew ? "Manage billing" : "Renew plan"),
     mandatory: true,
   },
   student_expiring: {

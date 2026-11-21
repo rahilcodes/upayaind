@@ -143,12 +143,13 @@ export async function onFirstPaymentSucceeded(studentId: string) {
   // Provider credit (Stripe customer balance) when the referrer has a customer id and the gateway is configured.
   let providerCreditId: string | null = null;
   if (pending.creditMinor > 0) {
-    const provider = providerFor(pending.referrer.market.paymentProvider);
+    // The gateway that holds the referrer's customer record (Stripe only; Razorpay plans have none, D-168).
     const sub = await db.subscription.findFirst({
-      where: { studentId: pending.referrer.id, providerCustomerId: { not: null }, provider: provider.code },
+      where: { studentId: pending.referrer.id, providerCustomerId: { not: null }, provider: "STRIPE" },
       orderBy: { createdAt: "desc" },
-      select: { providerCustomerId: true },
+      select: { providerCustomerId: true, provider: true },
     });
+    const provider = providerFor(sub?.provider ?? "STRIPE");
     if (provider.isConfigured() && sub?.providerCustomerId && !sub.providerCustomerId.includes("_sim_")) {
       try {
         const r = await provider.applyCredit({

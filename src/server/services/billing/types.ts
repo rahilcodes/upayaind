@@ -77,7 +77,7 @@ export type ProviderSubscription = {
 
 /**
  * Payment gateway abstraction (SPEC §4: "Behind a PaymentProvider interface,
- * chosen per market"). Stripe is the launch provider; Razorpay is P1.
+ * chosen per market"). Stripe serves the United States; Razorpay every other market (D-168).
  */
 export interface PaymentProvider {
   readonly code: ProviderCode;

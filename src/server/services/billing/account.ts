@@ -2,7 +2,7 @@ import "server-only";
 import { absoluteUrl } from "@/lib/utils";
 import { db } from "@/server/db";
 import { invoiceFileIds } from "./invoices";
-import { providerFor, simulationEnabled } from "./provider";
+import { gatewayAutoRenews, providerFor, simulationEnabled } from "./provider";
 import { BillingError } from "./types";
 
 /** Data for the student /app/billing page. */
@@ -22,7 +22,7 @@ export async function getStudentBilling(studentId: string) {
         cancelAtPeriodEnd: true,
         createdAt: true,
         planPrice: {
-          select: { id: true, interval: true, amountMinor: true, currency: true, dailyTarget: true, isActive: true, plan: { select: { name: true } }, market: { select: { locale: true, minPriceMinor: true } } },
+          select: { id: true, interval: true, amountMinor: true, currency: true, dailyTarget: true, isActive: true, plan: { select: { name: true } }, market: { select: { locale: true, minPriceMinor: true, paymentProvider: true } } },
         },
       },
     }),
@@ -43,6 +43,8 @@ export async function getStudentBilling(studentId: string) {
 
   const pp = (current ?? pending)?.planPrice;
   const canRenew = Boolean(pp && pp.isActive && pp.amountMinor >= pp.market.minPriceMinor);
+  // Pay-per-period plans (Razorpay, manual — D-168) never charge again by themselves.
+  const payPerPeriod = Boolean(current && !gatewayAutoRenews(current.provider) && current.planPrice.interval !== "ONE_TIME");
 
   return {
     locale: student?.market.locale ?? "en-US",
@@ -59,6 +61,9 @@ export async function getStudentBilling(studentId: string) {
           cancelAtPeriodEnd: current.cancelAtPeriodEnd,
           canManage: Boolean(current.providerCustomerId) && current.planPrice.interval !== "ONE_TIME",
           provider: current.provider,
+          payPerPeriod,
+          // Renew before the end date: only where the next payment also goes through Razorpay (the new period is added after this one).
+          canRenewEarly: payPerPeriod && current.status === "ACTIVE" && canRenew && providerFor(current.planPrice.market.paymentProvider).code === "RAZORPAY",
         }
       : null,
     pending: pending ? { id: pending.id, planPriceId: pending.planPrice.id, planName: pending.planPrice.plan.name } : null,

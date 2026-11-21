@@ -15,7 +15,7 @@ import { RazorpayPay } from "./razorpay-pay";
 export const metadata: Metadata = { title: "Pay with Razorpay", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-/** Razorpay Checkout.js step for Indian packages (D-159): opened after `startCheckout` created the order. */
+/** Razorpay Checkout.js step (D-159; every market except the US since D-168): opened after `startCheckout` created the order. */
 export default async function RazorpayCheckoutPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const { student } = await requireStudent();
@@ -57,7 +57,7 @@ export default async function RazorpayCheckoutPage({ searchParams }: { searchPar
           {data && !data.paid ? (
             <>
               <h1 className="text-[24px] font-bold tracking-[-0.01em]">{t("title")}</h1>
-              <p className="mt-1.5 text-[15px] text-muted-foreground">{t("sub")}</p>
+              <p className="mt-1.5 text-[15px] text-muted-foreground">{data.currency === "INR" ? t("sub") : t("subIntl")}</p>
               <dl className="mt-6 grid grid-cols-2 gap-4 rounded-[14px] bg-accent px-4 py-3 text-sm text-accent-foreground">
                 <div>
                   <dt className="opacity-80">{tc("plan")}</dt>
@@ -65,7 +65,7 @@ export default async function RazorpayCheckoutPage({ searchParams }: { searchPar
                 </div>
                 <div className="text-right">
                   <dt className="opacity-80">{tc("total")}</dt>
-                  <dd className="tabular mt-0.5 text-lg font-bold">{formatMoney(data.amountMinor, data.currency, "en-IN")}</dd>
+                  <dd className="tabular mt-0.5 text-lg font-bold">{formatMoney(data.amountMinor, data.currency, data.locale)}</dd>
                 </div>
               </dl>
               <RazorpayPay
@@ -73,11 +73,11 @@ export default async function RazorpayCheckoutPage({ searchParams }: { searchPar
                 orderId={data.orderId}
                 amountMinor={data.amountMinor}
                 currency={data.currency}
-                amountLabel={formatMoney(data.amountMinor, data.currency, "en-IN")}
+                amountLabel={formatMoney(data.amountMinor, data.currency, data.locale)}
                 description={`UpayaInd ${data.planName}`}
                 prefill={{ name: data.name, email: data.email, contact: data.phone ?? "" }}
               />
-              <p className="mt-5 text-[13px] text-muted-foreground">{t("note")}</p>
+              <p className="mt-5 text-[13px] text-muted-foreground">{data.currency === "INR" ? t("note") : t("noteIntl")}</p>
             </>
           ) : (
             <>

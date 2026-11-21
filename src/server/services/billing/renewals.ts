@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { audit } from "@/server/services/audit";
 import { notify } from "@/server/services/notify";
 import { formatDate } from "@/lib/format";
+import { gatewayAutoRenews } from "./provider";
 
 /**
  * F11 renewals.
@@ -12,6 +13,8 @@ import { formatDate } from "@/lib/format";
  * - Idempotent: each reminder is keyed `T7:<periodEnd>` / `T2:<periodEnd>` in
  *   Subscription.remindersSent and claimed with an atomic UPDATE before sending,
  *   so overlapping runs never send twice. A new period gets new keys.
+ * - Razorpay plans are paid per period (D-159/D-168): they never auto-renew, so
+ *   their reminders say "ends" and ask the student to renew.
  * - Nightly sweep: one-time/manual plans → EXPIRED at period end; Stripe plans
  *   whose renewal never arrived → PAST_DUE after a grace period; long-unpaid
  *   PAST_DUE → EXPIRED. Stripe webhooks remain the primary source of truth.
@@ -35,7 +38,32 @@ type SubRow = {
 };
 
 export function willAutoRenew(s: { provider: string; providerSubId: string | null; cancelAtPeriodEnd: boolean; planPrice: { interval: string } }) {
-  return s.provider !== "MANUAL" && Boolean(s.providerSubId) && s.planPrice.interval !== "ONE_TIME" && !s.cancelAtPeriodEnd;
+  return gatewayAutoRenews(s.provider) && Boolean(s.providerSubId) && s.planPrice.interval !== "ONE_TIME" && !s.cancelAtPeriodEnd;
+}
+
+/**
+ * Pay-per-period plans (Razorpay, manual — D-168): when a student who still has
+ * time left pays again for the SAME plan, the new period is added after the
+ * current one instead of replacing it. A different plan starts at once and
+ * replaces the current plan. Returns the date the new period should start from,
+ * or null when it starts at the payment date.
+ */
+export async function carryOverStart(input: { studentId: string; planPriceId: string; excludeSubscriptionId?: string | null; at: Date }): Promise<Date | null> {
+  const target = await db.planPrice.findUnique({ where: { id: input.planPriceId }, select: { planId: true } });
+  if (!target) return null;
+  const live = await db.subscription.findFirst({
+    where: {
+      studentId: input.studentId,
+      status: "ACTIVE",
+      provider: { in: ["RAZORPAY", "MANUAL"] },
+      currentPeriodEnd: { gt: input.at },
+      planPrice: { planId: target.planId },
+      ...(input.excludeSubscriptionId ? { id: { not: input.excludeSubscriptionId } } : {}),
+    },
+    orderBy: { currentPeriodEnd: "desc" },
+    select: { currentPeriodEnd: true },
+  });
+  return live?.currentPeriodEnd ?? null;
 }
 
 /** Which reminder (if any) is due now. Pure, unit-tested. */

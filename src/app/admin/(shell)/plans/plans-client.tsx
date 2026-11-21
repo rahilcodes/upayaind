@@ -277,7 +277,7 @@ function PriceCell({ plan, market, interval, price, stripeReady }: { plan: Plan;
         <code className="truncate text-[11px] text-muted-foreground" title={price.providerPriceId}>
           {price.providerPriceId}
         </code>
-      ) : (
+      ) : market.paymentProvider !== "STRIPE" ? null : (
         <Button variant="outline" size="sm" className="h-8 w-fit px-2.5 text-[12px]" disabled={!stripeReady || belowFloor || price.amountMinor <= 0} loading={stripe.pending} onClick={() => stripe.run(price.id)}>
           <CloudUpload className="h-3.5 w-3.5" aria-hidden="true" />
           {t("createInStripe")}

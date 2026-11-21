@@ -74,6 +74,10 @@ export default async function BillingPage() {
                   <Link href={renewHref} className={buttonVariants({ className: "w-full sm:w-auto" })}>
                     {b.renewPlanPriceId ? t("renew") : t("choosePlan")}
                   </Link>
+                ) : c.canRenewEarly ? (
+                  <Link href={renewHref} className={buttonVariants({ variant: "outline", className: "w-full sm:w-auto" })}>
+                    {t("renewEarly")}
+                  </Link>
                 ) : null}
               </div>
             </div>
@@ -109,6 +113,8 @@ export default async function BillingPage() {
               if (c.status === "PAST_DUE") notices.push(<Alert key="pd" tone="danger">{t("pastDueNotice")}</Alert>);
               if (live && c.cancelAtPeriodEnd && c.currentPeriodEnd) notices.push(<Alert key="cx" tone="warning">{t("cancelNotice", { date: formatDate(c.currentPeriodEnd, tz) })}</Alert>);
               if (live && c.interval === "ONE_TIME" && c.currentPeriodEnd) notices.push(<Alert key="ot" tone="info">{t("oneTimeNotice", { date: formatDate(c.currentPeriodEnd, tz) })}</Alert>);
+              if (live && c.payPerPeriod && c.currentPeriodEnd && c.status === "ACTIVE")
+                notices.push(<Alert key="pp" tone="info">{c.canRenewEarly ? t("perPeriodNotice", { date: formatDate(c.currentPeriodEnd, tz) }) : t("perPeriodNoticeContact", { date: formatDate(c.currentPeriodEnd, tz) })}</Alert>);
               if (!live) notices.push(<Alert key="in" tone="info">{t("inactiveNotice")}</Alert>);
               return notices.length ? <div className="grid gap-2.5 border-t border-border p-4 sm:px-6">{notices}</div> : null;
             })()}

@@ -2,7 +2,8 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { db } from "@/server/db";
 import { INTERVAL_MONTHS } from "@/server/services/catalog";
-import { simulationEnabled } from "./provider";
+import { providerFor, simulationEnabled } from "./provider";
+import { paymentToEvent } from "./razorpay";
 import { BillingError, STRIPE_RECURRING, type ProviderEvent } from "./types";
 import { processWebhookEvent } from "./webhooks";
 
@@ -23,7 +24,7 @@ function addMonths(d: Date, months: number) {
   return x;
 }
 
-export type SyntheticOptions = { now?: Date; discountMinor?: number; couponId?: string | null };
+export type SyntheticOptions = { now?: Date; discountMinor?: number; couponId?: string | null; provider?: "STRIPE" | "RAZORPAY" };
 
 async function loadPending(subscriptionId: string) {
   const s = await db.subscription.findUnique({
@@ -167,9 +168,31 @@ export async function buildPaymentFailedEvent(subscriptionId: string, opts: { no
   return { id: rid("evt"), type: "invoice.payment_failed", created: unix(opts.now ?? new Date()), data: { object: inv } };
 }
 
+/** Synthetic Razorpay `payment.captured` for a pending checkout (markets that pay through Razorpay, D-168). */
+export async function buildRazorpayCapturedEvent(subscriptionId: string, opts: SyntheticOptions = {}): Promise<ProviderEvent> {
+  const s = await loadPending(subscriptionId);
+  const now = opts.now ?? new Date();
+  const discount = Math.min(opts.discountMinor ?? 0, s.planPrice.amountMinor);
+  const orderId = s.providerSubId?.startsWith("order_") ? s.providerSubId : `order_sim_${s.id}`;
+  if (orderId !== s.providerSubId) await db.subscription.update({ where: { id: s.id }, data: { providerSubId: orderId } });
+  return paymentToEvent({
+    id: rid("pay"),
+    order_id: orderId,
+    amount: s.planPrice.amountMinor - discount,
+    currency: s.planPrice.currency.toUpperCase(),
+    status: "captured",
+    method: "card",
+    notes: { subscriptionId: s.id, studentId: s.studentId, planPriceId: s.planPrice.id, discountMinor: String(discount), ...(opts.couponId ? { couponId: opts.couponId } : {}) },
+    created_at: unix(now),
+    captured: true,
+  });
+}
+
 /** Run a simulated successful checkout through the real webhook processor (dev only). */
 export async function simulateCheckoutPayment(subscriptionId: string, opts: SyntheticOptions = {}) {
-  if (!simulationEnabled()) throw new BillingError("Simulated payments are only available in development without Stripe keys.");
+  const provider = providerFor(opts.provider ?? "STRIPE");
+  if (!simulationEnabled(provider)) throw new BillingError("Simulated payments are only available in development without payment gateway keys.");
+  if (provider.code === "RAZORPAY") return processWebhookEvent("RAZORPAY", await buildRazorpayCapturedEvent(subscriptionId, opts));
   const event = await buildCheckoutCompletedEvent(subscriptionId, opts);
   return processWebhookEvent("STRIPE", event);
 }

@@ -17,6 +17,7 @@ import { onFirstPaymentSucceeded } from "@/server/services/referrals";
 import { nextInvoiceNumber } from "./invoice-number";
 import { normaliseStripeSubscription } from "./stripe";
 import { providerFor } from "./provider";
+import { carryOverStart } from "./renewals";
 import type { ProviderEvent, ProviderSubscription } from "./types";
 
 /**
@@ -312,8 +313,8 @@ export async function afterPayment(paymentId: string, ctx: { discountMinor: numb
 // ───────────────────────────── handlers ─────────────────────────────
 
 /**
- * Razorpay `payment.captured` (D-159): one payment = one period of the plan
- * (India's 90-day packages). Reached from the webhook and from the browser's
+ * Razorpay `payment.captured` (D-159, D-168): one payment = one period of the
+ * plan, in every market that pays through Razorpay. Reached from the webhook and from the browser's
  * signed success callback; the Payment row's unique providerPaymentId and the
  * event id keep it idempotent.
  */
@@ -326,7 +327,9 @@ async function onRazorpayPaymentCaptured(p: RazorpayPayment): Promise<string> {
   if (already?.status === "SUCCEEDED" || already?.status === "REFUNDED" || already?.status === "PARTIALLY_REFUNDED") return "duplicate payment";
   const sub = await db.subscription.findUniqueOrThrow({ where: { id: local.id }, select: { planPrice: { select: { interval: true } } } });
   const paidAt = new Date(p.created_at * 1000);
-  const periodStart = local.status === "ACTIVE" && local.currentPeriodEnd && local.currentPeriodEnd > paidAt ? local.currentPeriodEnd : paidAt;
+  // Renewal before the end date (D-168): the new period is added after the time already paid for.
+  const carried = local.status === "ACTIVE" ? null : await carryOverStart({ studentId: local.studentId, planPriceId: local.planPriceId, excludeSubscriptionId: local.id, at: paidAt });
+  const periodStart = local.status === "ACTIVE" && local.currentPeriodEnd && local.currentPeriodEnd > paidAt ? local.currentPeriodEnd : (carried ?? paidAt);
   const periodEnd = addMonths(periodStart, INTERVAL_MONTHS[sub.planPrice.interval]);
   await activate(local.id, { periodStart, periodEnd, providerSubId: p.order_id ?? undefined });
   const discountMinor = Math.max(0, Number(notes.discountMinor ?? 0) || 0);

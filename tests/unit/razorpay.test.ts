@@ -11,7 +11,8 @@ vi.hoisted(() => {
 import { db } from "@/server/db";
 import { paymentToEvent, razorpayProvider, verifyCheckoutSignature, verifyWebhookSignature, type RazorpayPayment } from "@/server/services/billing/razorpay";
 import { processWebhookEvent } from "@/server/services/billing/webhooks";
-import { runSubscriptionStatusSweep } from "@/server/services/billing/renewals";
+import { runSubscriptionStatusSweep, willAutoRenew } from "@/server/services/billing/renewals";
+import { checkoutBlock, getCheckoutQuote } from "@/server/services/billing/checkout";
 import { makeEmployee, makeMarket, makeStudent, resetDb, uid } from "../setup/db";
 
 /** Razorpay for India (D-158): order creation, signatures, and payment.captured → one period of the plan. */
@@ -132,5 +133,79 @@ describe("payment.captured → plan activation", () => {
     await processWebhookEvent("RAZORPAY", paymentToEvent(captured()));
     await runSubscriptionStatusSweep(new Date("2027-02-11T00:00:00Z"));
     expect((await db.subscription.findUniqueOrThrow({ where: { id: sub.id } })).status).toBe("EXPIRED");
+  });
+});
+
+/** D-168: every market except the US pays through Razorpay, one payment per period, renewable before the end date. */
+describe("non-US markets on Razorpay (D-168)", () => {
+  beforeEach(resetDb);
+
+  async function ukStudentWithPlans() {
+    const m = await makeMarket("UK");
+    await db.market.update({ where: { id: m.id }, data: { currency: "GBP", paymentProvider: "RAZORPAY", minPriceMinor: 3900 } });
+    const standard = await db.plan.create({ data: { code: uid("uk_std"), name: "Standard", features: ["A"] } });
+    const premium = await db.plan.create({ data: { code: uid("uk_prem"), name: "Premium", features: ["A"] } });
+    const std = await db.planPrice.create({ data: { planId: standard.id, marketId: m.id, interval: "MONTHLY", amountMinor: 19900, currency: "GBP", dailyTarget: 35 } });
+    const prem = await db.planPrice.create({ data: { planId: premium.id, marketId: m.id, interval: "MONTHLY", amountMinor: 29900, currency: "GBP", dailyTarget: 45 } });
+    const s = await makeStudent(m.id);
+    await makeEmployee(m.id);
+    return { m, s, std, prem };
+  }
+
+  const at = (iso: string) => Math.floor(new Date(iso).getTime() / 1000);
+  const pay = (id: string, order: string, amount: number, iso: string): RazorpayPayment => ({ id, order_id: order, amount, currency: "GBP", status: "captured", method: "card", created_at: at(iso), notes: { discountMinor: "0" } });
+
+  it("quotes a monthly GBP plan as one payment per period, not an auto-renewing subscription", async () => {
+    const { s, std } = await ukStudentWithPlans();
+    const q = await getCheckoutQuote({ userId: s.user.id, studentId: s.student.id }, std.id);
+    expect(q).toMatchObject({ paymentProvider: "RAZORPAY", recurring: false, currency: "GBP", amountMinor: 19900, extendsFrom: null });
+  });
+
+  it("renewing the same plan before it ends adds the new period after the current one", async () => {
+    const { s, std } = await ukStudentWithPlans();
+    const first = await db.subscription.create({ data: { studentId: s.student.id, planPriceId: std.id, status: "PENDING_PAYMENT", provider: "RAZORPAY", providerSubId: "order_uk_1", remindersSent: [] } });
+    await processWebhookEvent("RAZORPAY", paymentToEvent(pay("pay_uk_1", "order_uk_1", 19900, "2026-11-10T06:00:00Z")));
+    expect((await db.subscription.findUniqueOrThrow({ where: { id: first.id } })).currentPeriodEnd!.toISOString()).toBe("2026-12-10T06:00:00.000Z");
+
+    // A live Razorpay plan doesn't block paying again through Razorpay…
+    expect(await checkoutBlock(s.student.id, "RAZORPAY")).toBeNull();
+    // …but it would block buying a Stripe subscription on top of it.
+    expect(await checkoutBlock(s.student.id, "STRIPE")).toBe("managed");
+
+    const second = await db.subscription.create({ data: { studentId: s.student.id, planPriceId: std.id, status: "PENDING_PAYMENT", provider: "RAZORPAY", providerSubId: "order_uk_2", remindersSent: [] } });
+    await processWebhookEvent("RAZORPAY", paymentToEvent(pay("pay_uk_2", "order_uk_2", 19900, "2026-12-05T06:00:00Z")));
+    const renewed = await db.subscription.findUniqueOrThrow({ where: { id: second.id } });
+    expect(renewed.status).toBe("ACTIVE");
+    expect(renewed.currentPeriodStart!.toISOString()).toBe("2026-12-10T06:00:00.000Z");
+    expect(renewed.currentPeriodEnd!.toISOString()).toBe("2027-01-10T06:00:00.000Z");
+    // One live plan per student: the old row is closed, both payments are kept.
+    expect((await db.subscription.findUniqueOrThrow({ where: { id: first.id } })).status).toBe("CANCELED");
+    expect(await db.payment.count({ where: { studentId: s.student.id, status: "SUCCEEDED" } })).toBe(2);
+  });
+
+  it("switching to a different plan starts at once and replaces the current plan", async () => {
+    const { s, std, prem } = await ukStudentWithPlans();
+    await db.subscription.create({ data: { studentId: s.student.id, planPriceId: std.id, status: "PENDING_PAYMENT", provider: "RAZORPAY", providerSubId: "order_uk_3", remindersSent: [] } });
+    await processWebhookEvent("RAZORPAY", paymentToEvent(pay("pay_uk_3", "order_uk_3", 19900, "2026-11-10T06:00:00Z")));
+    const up = await db.subscription.create({ data: { studentId: s.student.id, planPriceId: prem.id, status: "PENDING_PAYMENT", provider: "RAZORPAY", providerSubId: "order_uk_4", remindersSent: [] } });
+    await processWebhookEvent("RAZORPAY", paymentToEvent(pay("pay_uk_4", "order_uk_4", 29900, "2026-11-20T06:00:00Z")));
+    const row = await db.subscription.findUniqueOrThrow({ where: { id: up.id } });
+    expect(row.currentPeriodStart!.toISOString()).toBe("2026-11-20T06:00:00.000Z");
+    expect(row.currentPeriodEnd!.toISOString()).toBe("2026-12-20T06:00:00.000Z");
+  });
+
+  it("a live Stripe subscription or a paused plan blocks a new Razorpay checkout", async () => {
+    const { s, std } = await ukStudentWithPlans();
+    const row = await db.subscription.create({ data: { studentId: s.student.id, planPriceId: std.id, status: "ACTIVE", provider: "STRIPE", providerSubId: "sub_live_uk", currentPeriodEnd: new Date("2027-01-01T00:00:00Z"), remindersSent: [] } });
+    expect(await checkoutBlock(s.student.id, "RAZORPAY")).toBe("managed");
+    await db.subscription.update({ where: { id: row.id }, data: { provider: "RAZORPAY", status: "PAUSED" } });
+    expect(await checkoutBlock(s.student.id, "RAZORPAY")).toBe("paused");
+  });
+
+  it("Razorpay plans never count as auto-renewing; Stripe subscriptions do", () => {
+    const base = { providerSubId: "x", cancelAtPeriodEnd: false, planPrice: { interval: "MONTHLY" } };
+    expect(willAutoRenew({ ...base, provider: "RAZORPAY" })).toBe(false);
+    expect(willAutoRenew({ ...base, provider: "MANUAL" })).toBe(false);
+    expect(willAutoRenew({ ...base, provider: "STRIPE" })).toBe(true);
   });
 });

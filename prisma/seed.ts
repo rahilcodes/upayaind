@@ -86,12 +86,14 @@ const RESUME_STYLES = [
   },
 ] as const;
 
+// Payment gateway per market (D-168): the United States pays through Stripe (US account);
+// every other market pays through Razorpay (Indian account, settles in INR).
 const MARKETS = [
   { code: "US", name: "United States", currency: "USD", locale: "en-US", minPriceMinor: 4900, defaultTimezone: "America/New_York", style: "US_RESUME", isActive: true, phoneDisplay: "+1 (724) 584-1786", whatsapp: "17245841786" },
-  { code: "UK", name: "United Kingdom", currency: "GBP", locale: "en-GB", minPriceMinor: 3900, defaultTimezone: "Europe/London", style: "UK_CV", isActive: true, phoneDisplay: null, whatsapp: null },
-  { code: "CA", name: "Canada", currency: "CAD", locale: "en-CA", minPriceMinor: 6500, defaultTimezone: "America/Toronto", style: "CA_RESUME", isActive: true, phoneDisplay: null, whatsapp: null },
-  { code: "AU", name: "Australia", currency: "AUD", locale: "en-AU", minPriceMinor: 7500, defaultTimezone: "Australia/Sydney", style: "AU_RESUME", isActive: true, phoneDisplay: null, whatsapp: null },
-  { code: "NZ", name: "New Zealand", currency: "NZD", locale: "en-NZ", minPriceMinor: 7500, defaultTimezone: "Pacific/Auckland", style: "NZ_CV", isActive: true, phoneDisplay: null, whatsapp: null },
+  { code: "UK", paymentProvider: "RAZORPAY", name: "United Kingdom", currency: "GBP", locale: "en-GB", minPriceMinor: 3900, defaultTimezone: "Europe/London", style: "UK_CV", isActive: true, phoneDisplay: null, whatsapp: null },
+  { code: "CA", paymentProvider: "RAZORPAY", name: "Canada", currency: "CAD", locale: "en-CA", minPriceMinor: 6500, defaultTimezone: "America/Toronto", style: "CA_RESUME", isActive: true, phoneDisplay: null, whatsapp: null },
+  { code: "AU", paymentProvider: "RAZORPAY", name: "Australia", currency: "AUD", locale: "en-AU", minPriceMinor: 7500, defaultTimezone: "Australia/Sydney", style: "AU_RESUME", isActive: true, phoneDisplay: null, whatsapp: null },
+  { code: "NZ", paymentProvider: "RAZORPAY", name: "New Zealand", currency: "NZD", locale: "en-NZ", minPriceMinor: 7500, defaultTimezone: "Pacific/Auckland", style: "NZ_CV", isActive: true, phoneDisplay: null, whatsapp: null },
   { code: "IN", name: "India", currency: "INR", locale: "en-IN", minPriceMinor: 299900, defaultTimezone: "Asia/Kolkata", style: "IN_RESUME", isActive: true, paymentProvider: "RAZORPAY", phoneDisplay: "+91 95508 88128", whatsapp: "919550888128" },
 ] as const;
 

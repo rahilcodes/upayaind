@@ -6,8 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { requireStudent } from "@/server/auth/guards";
 import { INTERVAL_MONTHS } from "@/server/services/catalog";
-import { BillingError, getCheckoutQuote, liveRecurringSubscription, simulationEnabled, type CheckoutQuote } from "@/server/services/billing";
-import { formatMoney } from "@/lib/format";
+import { BillingError, checkoutBlock, getCheckoutQuote, providerFor, simulationEnabled, type CheckoutQuote } from "@/server/services/billing";
+import { formatDate, formatMoney } from "@/lib/format";
 import { referralCouponFor } from "@/server/services/referrals";
 import { CheckoutPanel } from "./checkout-panel";
 
@@ -64,10 +64,6 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
 
   if (!sp.plan) return <Notice title={t("missingPlan")} body={t("missingPlanBody")} href="/pricing" cta={t("seePricing")} />;
 
-  if (await liveRecurringSubscription(student.id)) {
-    return <Notice title={t("alreadyActiveTitle")} body={t("alreadyActiveBody")} href="/app/billing" cta={t("goToBilling")} />;
-  }
-
   let quote: CheckoutQuote;
   try {
     quote = await getCheckoutQuote({ userId: user.id, studentId: student.id }, sp.plan);
@@ -75,6 +71,20 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     if (e instanceof BillingError) return <Notice title={t("unavailableTitle")} body={e.message} href="/pricing" cta={t("seePricing")} />;
     throw e;
   }
+
+  const block = await checkoutBlock(student.id, quote.paymentProvider);
+  if (block === "managed") return <Notice title={t("alreadyActiveTitle")} body={t("alreadyActiveBody")} href="/app/billing" cta={t("goToBilling")} />;
+  if (block === "paused") return <Notice title={t("pausedTitle")} body={t("pausedBody")} href="/app/billing" cta={t("goToBilling")} />;
+
+  const months = INTERVAL_MONTHS[quote.interval];
+  // Stripe subscriptions renew by themselves; Razorpay plans are one payment per period (D-168).
+  const periodNote = quote.recurring
+    ? t("renews", { every: t(`every.${quote.interval}`) })
+    : quote.extendsFrom
+      ? t("extends", { months, date: formatDate(quote.extendsFrom, user.timezone) })
+      : quote.interval === "ONE_TIME"
+        ? t("oneTime", { months })
+        : t("perPeriod", { months });
 
   const money = (n: number) => formatMoney(n, quote.currency, quote.locale);
   const per = tc(`intervalPer.${quote.interval}`);
@@ -86,7 +96,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         {t("changePlan")}
       </Link>
       <h1 className="text-[26px] font-bold leading-tight tracking-[-0.01em] sm:text-[30px]">{t("title")}</h1>
-      <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{t("subtitle")}</p>
+      <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{quote.extendsFrom ? t("subtitleRenew") : t("subtitle")}</p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_400px] lg:items-start">
         <section aria-labelledby="plan-heading" className="rounded-[20px] border border-border bg-surface p-5 sm:p-7">
@@ -136,11 +146,9 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           currency={quote.currency}
           locale={quote.locale}
           amountMinor={quote.amountMinor}
-          recurring={quote.recurring}
-          per={per}
-          interval={quote.interval}
-          months={INTERVAL_MONTHS[quote.interval]}
-          simulate={simulationEnabled()}
+          periodNote={periodNote}
+          partner={quote.paymentProvider === "RAZORPAY" ? "Razorpay" : "Stripe"}
+          simulate={simulationEnabled(providerFor(quote.paymentProvider))}
           initialCoupon={sp.coupon ?? (await referralCouponFor(student.id)) ?? ""}
         />
       </div>

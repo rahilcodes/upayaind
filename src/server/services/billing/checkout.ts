@@ -6,7 +6,8 @@ import { db } from "@/server/db";
 import { trackEvent } from "@/server/services/events";
 import { applyMarketCopy } from "@/server/services/catalog";
 import { syncCouponToProvider, validateCoupon, type CouponCheck } from "./coupons";
-import { providerFor, simulationEnabled } from "./provider";
+import { gatewayAutoRenews, providerFor, simulationEnabled } from "./provider";
+import { carryOverStart } from "./renewals";
 import { simulateCheckoutPayment } from "./simulate";
 import { BillingError } from "./types";
 
@@ -36,7 +37,11 @@ export type CheckoutQuote = {
   marketName: string;
   coupon: CouponCheck | null;
   totalMinor: number;
+  /** True only when the gateway charges again by itself (Stripe subscriptions). Razorpay plans are paid per period (D-168). */
   recurring: boolean;
+  paymentProvider: "STRIPE" | "RAZORPAY";
+  /** Paying for the plan the student already has: the new period starts when the current one ends. */
+  extendsFrom: Date | null;
 };
 
 /**
@@ -57,7 +62,7 @@ export async function getCheckoutQuote(s: Student, planPriceId: string, couponCo
       isActive: true,
       marketId: true,
       plan: { select: { name: true, description: true, features: true, isActive: true, deletedAt: true, marketCopies: { select: { marketId: true, name: true, description: true, features: true } } } },
-      market: { select: { name: true, isActive: true, minPriceMinor: true, locale: true, currency: true } },
+      market: { select: { name: true, isActive: true, minPriceMinor: true, locale: true, currency: true, paymentProvider: true } },
     },
   });
   if (!pp || !pp.isActive || !pp.plan.isActive || pp.plan.deletedAt) throw new BillingError("This plan is no longer available. Please choose another plan.");
@@ -70,6 +75,8 @@ export async function getCheckoutQuote(s: Student, planPriceId: string, couponCo
 
   const coupon = couponCode ? await validateCoupon(couponCode, { id: pp.id, amountMinor: pp.amountMinor, currency: pp.currency }) : null;
   const copy = applyMarketCopy(pp.plan, pp.plan.marketCopies.find((c) => c.marketId === pp.marketId));
+  const provider = providerFor(pp.market.paymentProvider).code;
+  const recurring = pp.interval !== "ONE_TIME" && gatewayAutoRenews(provider);
   return {
     planPriceId: pp.id,
     planName: copy.name,
@@ -84,17 +91,37 @@ export async function getCheckoutQuote(s: Student, planPriceId: string, couponCo
     marketName: pp.market.name,
     coupon,
     totalMinor: coupon ? coupon.finalMinor : pp.amountMinor,
-    recurring: pp.interval !== "ONE_TIME",
+    recurring,
+    paymentProvider: provider,
+    extendsFrom: recurring ? null : await carryOverStart({ studentId: s.studentId, planPriceId: pp.id, at: new Date() }),
   };
 }
 
-/** Does the student already have a live recurring plan? (Changes go through the customer portal.) */
-export async function liveRecurringSubscription(studentId: string) {
-  return db.subscription.findFirst({
+export type CheckoutBlock = "managed" | "paused";
+
+/**
+ * Why a student with a live plan can't start another checkout, or null when they can.
+ * - "managed": they hold a plan that renews by itself at Stripe, or they are about to buy one
+ *   (changes go through the customer portal, never a second checkout).
+ * - "paused": their plan is paused; an admin resumes it.
+ * A pay-per-period plan (Razorpay, manual) bought through Razorpay is renewed or
+ * changed by paying again (D-168), so that is allowed.
+ */
+export async function checkoutBlock(studentId: string, targetProvider: string | null | undefined): Promise<CheckoutBlock | null> {
+  const live = await db.subscription.findMany({
     where: { studentId, status: { in: ["ACTIVE", "PAST_DUE", "PAUSED"] }, planPrice: { interval: { not: "ONE_TIME" } } },
-    select: { id: true, status: true },
+    select: { status: true, provider: true },
   });
+  if (!live.length) return null;
+  if (gatewayAutoRenews(providerFor(targetProvider).code) || live.some((s) => gatewayAutoRenews(s.provider))) return "managed";
+  if (live.some((s) => s.status === "PAUSED")) return "paused";
+  return null;
 }
+
+const BLOCK_MESSAGE: Record<CheckoutBlock, string> = {
+  managed: "You already have an active plan. Use “Manage subscription” on the Billing page to change it.",
+  paused: "Your plan is paused. Please contact us to resume it before paying again.",
+};
 
 export type StartCheckoutResult = { kind: "redirect"; url: string } | { kind: "simulate"; subscriptionId: string };
 
@@ -105,16 +132,15 @@ export type StartCheckoutResult = { kind: "redirect"; url: string } | { kind: "s
 export async function startCheckout(s: Student & { email: string }, raw: z.input<typeof checkoutInputSchema>): Promise<StartCheckoutResult> {
   const input = checkoutInputSchema.parse(raw);
   const quote = await getCheckoutQuote(s, input.planPriceId, input.coupon);
-  if (await liveRecurringSubscription(s.studentId)) {
-    throw new BillingError("You already have an active plan. Use “Manage subscription” on the Billing page to change it.");
-  }
+  const block = await checkoutBlock(s.studentId, quote.paymentProvider);
+  if (block) throw new BillingError(BLOCK_MESSAGE[block]);
 
   const pp = await db.planPrice.findUniqueOrThrow({
     where: { id: quote.planPriceId },
     select: { id: true, providerPriceId: true, plan: { select: { code: true } }, market: { select: { code: true, paymentProvider: true } } },
   });
   const provider = providerFor(pp.market.paymentProvider);
-  const simulate = !provider.isConfigured() && provider.code === "STRIPE" && simulationEnabled();
+  const simulate = simulationEnabled(provider);
   if (!provider.isConfigured() && !simulate) {
     throw new BillingError(
       provider.code === "STRIPE"
@@ -169,5 +195,5 @@ export async function completeSimulatedCheckout(s: Student, raw: { subscriptionI
   if (!sub || sub.studentId !== s.studentId) throw new BillingError("Checkout not found. Start again from the pricing page.");
   if (sub.status !== "PENDING_PAYMENT") throw new BillingError("This checkout was already completed.");
   const quote = await getCheckoutQuote(s, sub.planPriceId, input.coupon || null);
-  return simulateCheckoutPayment(input.subscriptionId, { discountMinor: quote.coupon?.discountMinor ?? 0, couponId: quote.coupon?.id ?? null });
+  return simulateCheckoutPayment(input.subscriptionId, { discountMinor: quote.coupon?.discountMinor ?? 0, couponId: quote.coupon?.id ?? null, provider: quote.paymentProvider });
 }
