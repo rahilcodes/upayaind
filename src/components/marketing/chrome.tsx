@@ -161,7 +161,19 @@ export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo
         </nav>
       </div>
       <div className={cn(container, "mt-10 flex flex-col gap-4 border-t border-sand pt-6 text-sm text-[#5A6585] sm:flex-row sm:items-center sm:justify-between")}>
-        <span>{t("footer.copyright")}</span>
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>{t("footer.copyright")}</span>
+          <span aria-hidden="true" className="hidden sm:inline">·</span>
+          <span>
+            {t.rich("footer.credit", {
+              link: (c) => (
+                <a href="https://creativals.com" target="_blank" rel="noopener noreferrer" className="font-medium text-royal underline-offset-2 hover:underline">
+                  {c}
+                </a>
+              ),
+            })}
+          </span>
+        </span>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <MarketMenu
             up
