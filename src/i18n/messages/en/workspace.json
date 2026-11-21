@@ -208,6 +208,8 @@
     "validationFailedToast": "The resume failed the truthfulness check — fix the highlighted items.",
     "generatedToast": "Tailored resume ready · ATS {score}",
     "loggedToast": "Logged {company} · today {applied}/{target}",
+    "autoLoggedToast": "{company} marked as applied · resume downloading · today {applied}/{target}",
+    "autoLogFailedToast": "Resume downloading, but the job wasn't marked as applied: {reason}",
     "confirmDiscard": "Discard this tailored resume and start a new application?",
     "alreadyLogged": "Already logged. Press N for a new application.",
     "save": {

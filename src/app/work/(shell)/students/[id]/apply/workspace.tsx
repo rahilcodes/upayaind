@@ -187,6 +187,7 @@ export function ApplyWorkspace(props: Props) {
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
+      let fresh: { versionId: string; ready: boolean } | null = null;
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -215,9 +216,13 @@ export function ApplyWorkspace(props: Props) {
             if (r.aiUnavailable) toast.message(t("aiOffToast"));
             else if (!r.validation.ok) toast.error(t("validationFailedToast"));
             else toast.success(t("generatedToast", { score: r.tailored.score }));
+            fresh = { versionId: r.versionId, ready: r.validation.ok && !r.aiUnavailable };
           }
         }
       }
+      // D-169: a ready resume is logged as applied and downloaded without further clicks.
+      const done = fresh as { versionId: string; ready: boolean } | null;
+      if (done?.ready) await autoFinishRef.current(done.versionId);
     } catch (e) {
       setGenError((e as Error).message);
     } finally {
@@ -267,6 +272,53 @@ export function ApplyWorkspace(props: Props) {
     setMarkOpen(true);
   }, [tailor, job, runDup]);
 
+  /** Log the application for a resume version; on success the version is locked and today's counter updates. */
+  const logApplied = async (versionId: string, opts: { proof?: { file: File | null; text: string }; coverLetter?: string; auto?: boolean } = {}): Promise<boolean> => {
+    const fd = new FormData();
+    fd.set("studentId", student.id);
+    for (const [k, v] of Object.entries(job)) if (k !== "jd") fd.set(k, v);
+    fd.set("jdText", job.jd);
+    fd.set("resumeVersionId", versionId);
+    if (opts.coverLetter?.trim()) fd.set("coverLetter", opts.coverLetter.trim());
+    if (opts.proof?.file) fd.set("proof", opts.proof.file);
+    if (opts.proof?.text.trim()) fd.set("proofText", opts.proof.text.trim());
+    if (confirmSimilar) fd.set("confirmSimilar", "1");
+    setMarking(true);
+    const r = await markAppliedAction(fd);
+    setMarking(false);
+    if (r.ok) {
+      setToday(r.data.today);
+      setDefaults({ source: job.source, workMode: job.workMode || null, employmentType: job.employmentType || null, location: job.location || null });
+      setTailor((s) => (s && s.versionId === versionId ? { ...s, locked: true, applicationId: r.data.applicationId } : s));
+      setMarkOpen(false);
+      toast.success(t(opts.auto ? "autoLoggedToast" : "loggedToast", { company: job.companyName, applied: r.data.today.applied, target: r.data.today.target }));
+      router.refresh();
+      return true;
+    }
+    toast.error(opts.auto ? t("autoLogFailedToast", { reason: r.error }) : r.error);
+    void runDup(job, true);
+    return false;
+  };
+
+  /**
+   * After a successful generation (D-169): mark the job as applied, then download the PDF.
+   * If logging is refused (similar application to confirm, outside working hours…) the resume
+   * still downloads and stays open, so the specialist can use "Mark as applied" by hand.
+   */
+  const autoFinish = async (versionId: string) => {
+    await logApplied(versionId, { auto: true });
+    // A download link click (not a navigation), so requests still in flight aren't aborted.
+    const a = document.createElement("a");
+    a.href = `/api/resumes/${versionId}/pdf`;
+    a.download = "";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+  const autoFinishRef = React.useRef(autoFinish);
+  autoFinishRef.current = autoFinish;
+
   const submitMark = async (proof: { file: File | null; text: string }) => {
     if (!tailor) return;
     setMarking(true);
@@ -279,28 +331,7 @@ export function ApplyWorkspace(props: Props) {
       window.clearTimeout(coverTimer.current);
       coverTimer.current = null;
     }
-    const fd = new FormData();
-    fd.set("studentId", student.id);
-    for (const [k, v] of Object.entries(job)) if (k !== "jd") fd.set(k, v);
-    fd.set("jdText", job.jd);
-    fd.set("resumeVersionId", tailor.versionId);
-    if (cover.trim()) fd.set("coverLetter", cover.trim());
-    if (proof.file) fd.set("proof", proof.file);
-    if (proof.text.trim()) fd.set("proofText", proof.text.trim());
-    if (confirmSimilar) fd.set("confirmSimilar", "1");
-    const r = await markAppliedAction(fd);
-    setMarking(false);
-    if (r.ok) {
-      setToday(r.data.today);
-      setDefaults({ source: job.source, workMode: job.workMode || null, employmentType: job.employmentType || null, location: job.location || null });
-      setTailor((s) => (s ? { ...s, locked: true, applicationId: r.data.applicationId } : s));
-      setMarkOpen(false);
-      toast.success(t("loggedToast", { company: job.companyName, applied: r.data.today.applied, target: r.data.today.target }));
-      router.refresh();
-    } else {
-      toast.error(r.error);
-      void runDup(job, true);
-    }
+    await logApplied(tailor.versionId, { proof, coverLetter: cover });
   };
 
   // ── New application ──
