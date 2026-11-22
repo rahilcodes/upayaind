@@ -19,6 +19,7 @@ type Market = {
   defaultTimezone: string;
   workingDays: number[];
   paymentProvider: string;
+  trialDays: number;
   phoneDisplay: string | null;
   whatsapp: string | null;
   minPriceMinor: number;
@@ -50,6 +51,7 @@ export function MarketDialog({ styles, market }: { styles: Style[]; market?: Mar
       defaultTimezone: String(fd.get("defaultTimezone") ?? ""),
       workingDays: fd.getAll("workingDays").map(Number),
       paymentProvider: String(fd.get("paymentProvider") ?? "STRIPE") as "STRIPE" | "RAZORPAY",
+      trialDays: Number(fd.get("trialDays") ?? 0) || 0,
       phoneDisplay: String(fd.get("phoneDisplay") ?? ""),
       whatsapp: String(fd.get("whatsapp") ?? ""),
       minPriceMinor: validCurrency && Number.isFinite(minPrice) ? toMinor(minPrice, currency) : -1,
@@ -147,6 +149,9 @@ export function MarketDialog({ styles, market }: { styles: Style[]; market?: Mar
               <Input {...fieldA11y("m-wa", fieldErrors.whatsapp, true)} name="whatsapp" defaultValue={market?.whatsapp ?? ""} maxLength={40} inputMode="tel" />
             </Field>
           </div>
+          <Field id="m-trial" label={tf("trialDays")} hint={tf("trialDaysHint")} error={fieldErrors.trialDays}>
+            <Input {...fieldA11y("m-trial", fieldErrors.trialDays, true)} name="trialDays" type="number" min={0} max={30} step={1} defaultValue={market?.trialDays ?? 0} inputMode="numeric" className="sm:max-w-[160px]" />
+          </Field>
           <label className="flex min-h-11 items-center gap-3 text-sm">
             <Checkbox name="isActive" defaultChecked={market?.isActive ?? false} />
             {tf("active")}

@@ -108,8 +108,10 @@ describe("payment.captured → plan activation", () => {
     expect(r1.status).toBe("processed");
     const active = await db.subscription.findUniqueOrThrow({ where: { id: sub.id } });
     expect(active.status).toBe("ACTIVE");
-    expect(active.currentPeriodStart!.toISOString()).toBe("2026-11-10T06:00:00.000Z");
-    expect(active.currentPeriodEnd!.toISOString()).toBe("2027-02-10T06:00:00.000Z");
+    // Paid on Tuesday 10 Nov → starts Thursday 12 Nov (setup days, D-171), midday in the market's zone.
+    expect(active.currentPeriodStart!.toISOString()).toBe("2026-11-12T17:00:00.000Z");
+    expect(active.serviceStartAt!.toISOString()).toBe("2026-11-12T17:00:00.000Z");
+    expect(active.currentPeriodEnd!.toISOString()).toBe("2027-02-12T17:00:00.000Z");
     const pay = await db.payment.findUniqueOrThrow({ where: { providerPaymentId: "pay_live_1" } });
     expect(pay).toMatchObject({ status: "SUCCEEDED", provider: "RAZORPAY", amountMinor: 1499900, currency: "INR", method: "upi", subscriptionId: sub.id });
     expect(pay.invoiceNumber).toMatch(/^UPY-/);
@@ -131,7 +133,7 @@ describe("payment.captured → plan activation", () => {
   it("expires at the period end instead of going past due (no auto-renewal)", async () => {
     const { sub } = await pendingRazorpaySub();
     await processWebhookEvent("RAZORPAY", paymentToEvent(captured()));
-    await runSubscriptionStatusSweep(new Date("2027-02-11T00:00:00Z"));
+    await runSubscriptionStatusSweep(new Date("2027-02-13T00:00:00Z"));
     expect((await db.subscription.findUniqueOrThrow({ where: { id: sub.id } })).status).toBe("EXPIRED");
   });
 });
@@ -165,7 +167,7 @@ describe("non-US markets on Razorpay (D-168)", () => {
     const { s, std } = await ukStudentWithPlans();
     const first = await db.subscription.create({ data: { studentId: s.student.id, planPriceId: std.id, status: "PENDING_PAYMENT", provider: "RAZORPAY", providerSubId: "order_uk_1", remindersSent: [] } });
     await processWebhookEvent("RAZORPAY", paymentToEvent(pay("pay_uk_1", "order_uk_1", 19900, "2026-11-10T06:00:00Z")));
-    expect((await db.subscription.findUniqueOrThrow({ where: { id: first.id } })).currentPeriodEnd!.toISOString()).toBe("2026-12-10T06:00:00.000Z");
+    expect((await db.subscription.findUniqueOrThrow({ where: { id: first.id } })).currentPeriodEnd!.toISOString()).toBe("2026-12-12T17:00:00.000Z");
 
     // A live Razorpay plan doesn't block paying again through Razorpay…
     expect(await checkoutBlock(s.student.id, "RAZORPAY")).toBeNull();
@@ -176,8 +178,8 @@ describe("non-US markets on Razorpay (D-168)", () => {
     await processWebhookEvent("RAZORPAY", paymentToEvent(pay("pay_uk_2", "order_uk_2", 19900, "2026-12-05T06:00:00Z")));
     const renewed = await db.subscription.findUniqueOrThrow({ where: { id: second.id } });
     expect(renewed.status).toBe("ACTIVE");
-    expect(renewed.currentPeriodStart!.toISOString()).toBe("2026-12-10T06:00:00.000Z");
-    expect(renewed.currentPeriodEnd!.toISOString()).toBe("2027-01-10T06:00:00.000Z");
+    expect(renewed.currentPeriodStart!.toISOString()).toBe("2026-12-12T17:00:00.000Z");
+    expect(renewed.currentPeriodEnd!.toISOString()).toBe("2027-01-12T17:00:00.000Z");
     // One live plan per student: the old row is closed, both payments are kept.
     expect((await db.subscription.findUniqueOrThrow({ where: { id: first.id } })).status).toBe("CANCELED");
     expect(await db.payment.count({ where: { studentId: s.student.id, status: "SUCCEEDED" } })).toBe(2);

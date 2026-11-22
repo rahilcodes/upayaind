@@ -12,7 +12,7 @@ import { Dropdown, DropdownContent, DropdownItem, DropdownLabel, DropdownSeparat
 import { Checkbox, Field, Input, Select, Textarea, fieldA11y } from "@/components/ui/input";
 import { periodEndFor } from "@/lib/billing-period";
 import { formatDate, formatMoney, fromMinor, minorDigits, toMinor } from "@/lib/format";
-import { cancelAtPeriodEndAction, changePlanAction, grantPlanAction, listGrantablePricesAction, recordManualPaymentAction, setSubscriptionPeriodAction, setSubscriptionStatusAction } from "../billing-actions";
+import { cancelAtPeriodEndAction, changePlanAction, grantPlanAction, listGrantablePricesAction, recordManualPaymentAction, setStartDateAction, setSubscriptionPeriodAction, setSubscriptionStatusAction } from "../billing-actions";
 
 /**
  * Admin toolbar for the Student 360 billing tab (D-147b): grant a manual plan,
@@ -28,6 +28,8 @@ export type BillingSubscription = {
   planPriceId?: string;
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
+  serviceStartAt?: Date | null;
+  trialEndsAt?: Date | null;
   cancelAtPeriodEnd: boolean;
   planPrice: { interval: BillingInterval; amountMinor: number; currency: string; dailyTarget: number; plan: { name: string } };
 };
@@ -36,7 +38,7 @@ export type GrantablePrice = { id: string; planName: string; interval: BillingIn
 
 type Props = { studentId: string; marketId: string; currency: string; locale: string; tz: string; subscriptions: BillingSubscription[] };
 
-type RowDialog = { kind: "change" | "period" | "status" | "cancel"; sub: BillingSubscription } | null;
+type RowDialog = { kind: "change" | "period" | "status" | "cancel" | "start"; sub: BillingSubscription } | null;
 
 const DAY_INPUT = (d: Date) => d.toISOString().slice(0, 10);
 /** Noon UTC so the picked calendar day reads the same in every admin timezone. */
@@ -79,10 +81,23 @@ export function BillingControls({ studentId, marketId, currency, locale, tz, sub
                   {s.currentPeriodStart ? formatDate(s.currentPeriodStart, tz) : "—"} – {s.currentPeriodEnd ? formatDate(s.currentPeriodEnd, tz) : "—"}
                   {s.cancelAtPeriodEnd ? ` · ${t("endsAtPeriodEnd")}` : ""}
                 </p>
+                {s.serviceStartAt || s.trialEndsAt ? (
+                  <p className="tabular text-[12px] text-muted-foreground">
+                    {s.serviceStartAt ? t("startLine", { date: formatDate(s.serviceStartAt, tz) }) : ""}
+                    {s.serviceStartAt && s.trialEndsAt ? " · " : ""}
+                    {s.trialEndsAt ? t("trialLine", { date: formatDate(s.trialEndsAt, tz) }) : ""}
+                  </p>
+                ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <SubscriptionStatusPill status={s.status} />
                 <ProviderBadge provider={s.provider} />
+                {s.status === "ACTIVE" ? (
+                  <Button variant="outline" size="sm" onClick={() => setRow({ kind: "start", sub: s })}>
+                    <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                    {t("changeStart")}
+                  </Button>
+                ) : null}
                 {s.provider === "MANUAL" ? (
                   <Dropdown>
                     <DropdownTrigger asChild>
@@ -128,6 +143,7 @@ export function BillingControls({ studentId, marketId, currency, locale, tz, sub
       <RecordPaymentDialog open={payOpen} onOpenChange={setPayOpen} studentId={studentId} currency={currency} locale={locale} tz={tz} subscriptions={subscriptions} />
       {row?.kind === "change" ? <ChangePlanDialog sub={row.sub} prices={prices} locale={locale} onClose={() => setRow(null)} /> : null}
       {row?.kind === "period" ? <EditPeriodDialog sub={row.sub} onClose={() => setRow(null)} /> : null}
+      {row?.kind === "start" ? <StartDateDialog sub={row.sub} tz={tz} onClose={() => setRow(null)} /> : null}
       {row?.kind === "status" ? <SetStatusDialog sub={row.sub} onClose={() => setRow(null)} /> : null}
       {row?.kind === "cancel" ? <CancelAtEndDialog sub={row.sub} tz={tz} onClose={() => setRow(null)} /> : null}
     </div>
@@ -444,6 +460,42 @@ function EditPeriodDialog({ sub, onClose }: { sub: BillingSubscription; onClose:
             </Field>
           </div>
           <DialogButtons pending={pending} label={t("savePeriod")} onCancel={onClose} disabled={!start || !end} />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Change the start date of a live plan (D-171). The server moves the billing dates and emails the applicant. */
+function StartDateDialog({ sub, tz, onClose }: { sub: BillingSubscription; tz: string; onClose: () => void }) {
+  const t = useTranslations("admin.student360.billingAdmin");
+  const id = React.useId().replace(/:/g, "");
+  const current = sub.serviceStartAt ?? sub.currentPeriodStart;
+  const [start, setStart] = React.useState(current ? DAY_INPUT(current) : todayInput());
+  const [note, setNote] = React.useState("");
+  const { run, pending, fieldErrors } = useServerAction(setStartDateAction, { onSuccess: onClose });
+  const effect = sub.trialEndsAt ? t("startEffectTrial") : sub.provider === "STRIPE" ? t("startEffectStripe") : t("startEffectPeriod");
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent title={t("startTitle")} description={t("startBody", { plan: sub.planPrice.plan.name })}>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            run({ subscriptionId: sub.id, startsAt: fromDayInput(start), note: note || undefined });
+          }}
+        >
+          <p className="tabular text-[13px] text-muted-foreground">
+            {t("startCurrent", { start: current ? formatDate(current, tz) : "—", end: sub.currentPeriodEnd ? formatDate(sub.currentPeriodEnd, tz) : "—" })}
+          </p>
+          <Field id={`sd-${id}`} label={t("startsOn")} error={fieldErrors.startsAt}>
+            <Input {...fieldA11y(`sd-${id}`, fieldErrors.startsAt)} type="date" value={start} onChange={(e) => setStart(e.target.value)} required />
+          </Field>
+          <Field id={`sn-${id}`} label={t("startNote")} error={fieldErrors.note}>
+            <Input {...fieldA11y(`sn-${id}`, fieldErrors.note)} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
+          </Field>
+          <p className="rounded-[10px] border border-[#C6D9FC] bg-[#EAF1FE] px-3 py-2 text-[13px] text-[#1A4FB8]">{effect}</p>
+          <DialogButtons pending={pending} label={t("saveStart")} onCancel={onClose} disabled={!start} />
         </form>
       </DialogContent>
     </Dialog>

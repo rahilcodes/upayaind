@@ -102,7 +102,7 @@ export default async function BillingPage() {
                 <CalendarClock className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <div>
                   <p className="text-[13px] text-muted-foreground">
-                    {!live ? t("endedOn") : c.cancelAtPeriodEnd || c.interval === "ONE_TIME" || !c.canManage ? t("endsOn") : t("renewsOn")}
+                    {!live ? t("endedOn") : c.trialEndsAt && !c.cancelAtPeriodEnd ? t("firstChargeOn") : c.cancelAtPeriodEnd || c.interval === "ONE_TIME" || !c.canManage ? t("endsOn") : t("renewsOn")}
                   </p>
                   <p className="tabular font-semibold">{c.currentPeriodEnd ? formatDate(c.currentPeriodEnd, tz) : "—"}</p>
                 </div>
@@ -110,8 +110,17 @@ export default async function BillingPage() {
             </div>
             {(() => {
               const notices: React.ReactNode[] = [];
+              if (c.trialEndsAt)
+                notices.push(
+                  <Alert key="tr" tone="info">
+                    {c.cancelAtPeriodEnd
+                      ? t("trialCanceledNotice", { date: formatDate(c.trialEndsAt, tz) })
+                      : t("trialNotice", { date: formatDate(c.trialEndsAt, tz), amount: formatMoney(c.amountMinor, c.currency, b.locale) })}
+                  </Alert>,
+                );
+              if (c.startsAt) notices.push(<Alert key="st" tone="info">{t("startsNotice", { date: formatDate(c.startsAt, tz) })}</Alert>);
               if (c.status === "PAST_DUE") notices.push(<Alert key="pd" tone="danger">{t("pastDueNotice")}</Alert>);
-              if (live && c.cancelAtPeriodEnd && c.currentPeriodEnd) notices.push(<Alert key="cx" tone="warning">{t("cancelNotice", { date: formatDate(c.currentPeriodEnd, tz) })}</Alert>);
+              if (live && c.cancelAtPeriodEnd && c.currentPeriodEnd && !c.trialEndsAt) notices.push(<Alert key="cx" tone="warning">{t("cancelNotice", { date: formatDate(c.currentPeriodEnd, tz) })}</Alert>);
               if (live && c.interval === "ONE_TIME" && c.currentPeriodEnd) notices.push(<Alert key="ot" tone="info">{t("oneTimeNotice", { date: formatDate(c.currentPeriodEnd, tz) })}</Alert>);
               if (live && c.payPerPeriod && c.currentPeriodEnd && c.status === "ACTIVE")
                 notices.push(<Alert key="pp" tone="info">{c.canRenewEarly ? t("perPeriodNotice", { date: formatDate(c.currentPeriodEnd, tz) }) : t("perPeriodNoticeContact", { date: formatDate(c.currentPeriodEnd, tz) })}</Alert>);

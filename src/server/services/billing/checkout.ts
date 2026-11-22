@@ -8,6 +8,7 @@ import { applyMarketCopy } from "@/server/services/catalog";
 import { syncCouponToProvider, validateCoupon, type CouponCheck } from "./coupons";
 import { gatewayAutoRenews, providerFor, simulationEnabled } from "./provider";
 import { carryOverStart } from "./renewals";
+import { addDays, defaultServiceStart } from "@/lib/service-start";
 import { simulateCheckoutPayment } from "./simulate";
 import { BillingError } from "./types";
 
@@ -42,6 +43,10 @@ export type CheckoutQuote = {
   paymentProvider: "STRIPE" | "RAZORPAY";
   /** Paying for the plan the student already has: the new period starts when the current one ends. */
   extendsFrom: Date | null;
+  /** When applications start for a new plan: today + setup days, on a working day (D-171). Null for a renewal. */
+  startsAt: Date | null;
+  /** Free trial for a first-time student (D-171): card saved today, first charge at `endsAt`. */
+  trial: { days: number; endsAt: Date } | null;
 };
 
 /**
@@ -62,7 +67,7 @@ export async function getCheckoutQuote(s: Student, planPriceId: string, couponCo
       isActive: true,
       marketId: true,
       plan: { select: { name: true, description: true, features: true, isActive: true, deletedAt: true, marketCopies: { select: { marketId: true, name: true, description: true, features: true } } } },
-      market: { select: { name: true, isActive: true, minPriceMinor: true, locale: true, currency: true, paymentProvider: true } },
+      market: { select: { name: true, isActive: true, minPriceMinor: true, locale: true, currency: true, paymentProvider: true, trialDays: true, defaultTimezone: true, workingDays: true } },
     },
   });
   if (!pp || !pp.isActive || !pp.plan.isActive || pp.plan.deletedAt) throw new BillingError("This plan is no longer available. Please choose another plan.");
@@ -77,6 +82,10 @@ export async function getCheckoutQuote(s: Student, planPriceId: string, couponCo
   const copy = applyMarketCopy(pp.plan, pp.plan.marketCopies.find((c) => c.marketId === pp.marketId));
   const provider = providerFor(pp.market.paymentProvider).code;
   const recurring = pp.interval !== "ONE_TIME" && gatewayAutoRenews(provider);
+  const extendsFrom = recurring ? null : await carryOverStart({ studentId: s.studentId, planPriceId: pp.id, at: new Date() });
+  const startsAt = extendsFrom ? null : defaultServiceStart(new Date(), pp.market.defaultTimezone, pp.market.workingDays);
+  // One free trial per student, only where the gateway can hold a card and charge it later (Stripe subscriptions).
+  const trialDays = recurring && startsAt && pp.market.trialDays > 0 && !(await hadPlanBefore(s.studentId)) ? pp.market.trialDays : 0;
   return {
     planPriceId: pp.id,
     planName: copy.name,
@@ -93,8 +102,19 @@ export async function getCheckoutQuote(s: Student, planPriceId: string, couponCo
     totalMinor: coupon ? coupon.finalMinor : pp.amountMinor,
     recurring,
     paymentProvider: provider,
-    extendsFrom: recurring ? null : await carryOverStart({ studentId: s.studentId, planPriceId: pp.id, at: new Date() }),
+    extendsFrom,
+    startsAt,
+    trial: trialDays && startsAt ? { days: trialDays, endsAt: addDays(startsAt, trialDays) } : null,
   };
+}
+
+/** Has this student ever had a plan that started (trial or paid)? Then they are not "just starting". */
+export async function hadPlanBefore(studentId: string) {
+  const [sub, paid] = await Promise.all([
+    db.subscription.count({ where: { studentId, status: { not: "PENDING_PAYMENT" } } }),
+    db.payment.count({ where: { studentId, status: { in: ["SUCCEEDED", "REFUNDED", "PARTIALLY_REFUNDED"] } } }),
+  ]);
+  return sub + paid > 0;
 }
 
 export type CheckoutBlock = "managed" | "paused";
@@ -159,16 +179,38 @@ export async function startCheckout(s: Student & { email: string }, raw: z.input
 
   if (simulate) return { kind: "simulate", subscriptionId: sub.id };
 
+
   let providerCouponId = quote.coupon?.providerCouponId ?? null;
   // Stripe needs a coupon object; Razorpay (D-159) gets the discounted amount instead.
   if (quote.coupon && !providerCouponId && provider.code === "STRIPE") providerCouponId = (await syncCouponToProvider(null, quote.coupon.id)).providerCouponId;
+  // Trial + coupon (D-171): a "first invoice only" coupon could be used up by the trial's $0 invoice, so the
+  // trial checkout gets its own single-use coupon that lasts one month and therefore covers the first real charge.
+  if (quote.trial && quote.coupon && provider.code === "STRIPE") {
+    providerCouponId = (
+      await provider.createCoupon({
+        code: `${quote.coupon.code}-TRIAL-${sub.id.slice(-8)}`,
+        percentOff: quote.coupon.percentOff ?? null,
+        amountOffMinor: quote.coupon.percentOff ? null : quote.coupon.discountMinor,
+        currency: quote.currency,
+        maxRedemptions: 1,
+        repeatMonths: 1,
+      })
+    ).couponId;
+  }
 
   const prior = await db.subscription.findFirst({
     where: { studentId: s.studentId, providerCustomerId: { not: null }, provider: provider.code },
     orderBy: { createdAt: "desc" },
     select: { providerCustomerId: true },
   });
-  const metadata: Record<string, string> = { subscriptionId: sub.id, studentId: s.studentId, planPriceId: pp.id, ...(quote.coupon ? { couponId: quote.coupon.id } : {}) };
+  const metadata: Record<string, string> = {
+    subscriptionId: sub.id,
+    studentId: s.studentId,
+    planPriceId: pp.id,
+    ...(quote.coupon ? { couponId: quote.coupon.id } : {}),
+    ...(quote.startsAt ? { serviceStart: quote.startsAt.toISOString() } : {}),
+    ...(quote.trial ? { trial: "1" } : {}),
+  };
   const session = await provider.createCheckoutSession({
     mode: quote.recurring ? "subscription" : "payment",
     localSubscriptionId: sub.id,
@@ -179,6 +221,7 @@ export async function startCheckout(s: Student & { email: string }, raw: z.input
     line: { providerPriceId: pp.providerPriceId, amountMinor: quote.amountMinor, currency: quote.currency, productName: `UpayaInd ${quote.planName}`, interval: quote.interval },
     providerCouponId,
     discountMinor: quote.coupon ? Math.max(0, quote.amountMinor - quote.totalMinor) : 0,
+    trialEnd: quote.trial?.endsAt ?? null,
     successUrl: absoluteUrl("/app/onboarding?paid=1"),
     cancelUrl: absoluteUrl(`/pricing?canceled=1`),
     metadata,
@@ -195,5 +238,5 @@ export async function completeSimulatedCheckout(s: Student, raw: { subscriptionI
   if (!sub || sub.studentId !== s.studentId) throw new BillingError("Checkout not found. Start again from the pricing page.");
   if (sub.status !== "PENDING_PAYMENT") throw new BillingError("This checkout was already completed.");
   const quote = await getCheckoutQuote(s, sub.planPriceId, input.coupon || null);
-  return simulateCheckoutPayment(input.subscriptionId, { discountMinor: quote.coupon?.discountMinor ?? 0, couponId: quote.coupon?.id ?? null, provider: quote.paymentProvider });
+  return simulateCheckoutPayment(input.subscriptionId, { discountMinor: quote.coupon?.discountMinor ?? 0, couponId: quote.coupon?.id ?? null, provider: quote.paymentProvider, trialEnd: quote.trial?.endsAt ?? null, serviceStart: quote.startsAt });
 }

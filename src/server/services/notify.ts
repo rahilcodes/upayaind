@@ -38,7 +38,10 @@ const s = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 export const TEMPLATES = {
   payment_succeeded: {
     title: (p) => `Payment received: ${s(p.amount)}`,
-    body: (p) => `Thanks! Your ${s(p.plan)} plan is active until ${s(p.periodEnd)}.`,
+    body: (p) =>
+      p.start
+        ? `Thanks! Your ${s(p.plan)} plan starts on ${s(p.start)} and runs until ${s(p.periodEnd)}. We use the days before that to set up your profile and resume, and they aren’t billed.`
+        : `Thanks! Your ${s(p.plan)} plan is active until ${s(p.periodEnd)}.`,
     link: () => "/app/billing",
     cta: () => "View billing",
     mandatory: true,
@@ -49,6 +52,46 @@ export const TEMPLATES = {
     link: () => "/app/billing",
     cta: () => "Update payment method",
     mandatory: true,
+  },
+  payment_received_admin: {
+    title: (p) => `Payment received: ${s(p.student)} paid ${s(p.amount)}`,
+    body: (p) => `${s(p.plan)} plan${p.start ? `, starts ${s(p.start)}` : ""}, paid until ${s(p.periodEnd)}.`,
+    link: (p) => `/admin/students/${s(p.studentId)}`,
+    cta: () => "Open applicant",
+  },
+  trial_started: {
+    title: (p) => `Your ${s(p.days)}-day free trial has started`,
+    body: (p) =>
+      `Welcome! Your ${s(p.plan)} trial is set up. Your applications start on ${s(p.start)}. You won’t be charged today: your card is charged ${s(p.amount)} for the first time on ${s(p.trialEnd)}, unless you cancel before then from your Billing page.`,
+    link: () => "/app",
+    cta: () => "Open your dashboard",
+    mandatory: true,
+  },
+  trial_started_admin: {
+    title: (p) => `New free trial: ${s(p.student)}`,
+    body: (p) => `${s(p.plan)} plan. Applications start ${s(p.start)}. First charge of ${s(p.amount)} on ${s(p.trialEnd)} unless they cancel.`,
+    link: (p) => `/admin/students/${s(p.studentId)}`,
+    cta: () => "Open applicant",
+  },
+  trial_ending: {
+    whatsapp: true,
+    title: () => "Your free trial ends soon",
+    body: (p) => `Your ${s(p.plan)} trial ends on ${s(p.trialEnd)}. Your card will be charged ${s(p.amount)} that day and your plan continues. To stop it, cancel before then from your Billing page.`,
+    link: () => "/app/billing",
+    cta: () => "Manage billing",
+    mandatory: true,
+  },
+  start_date_changed: {
+    title: (p) => `Your plan now starts on ${s(p.start)}`,
+    body: (p) => `We’ve set the start date of your ${s(p.plan)} plan to ${s(p.start)}. ${p.trialEnd ? `Your free trial runs until ${s(p.trialEnd)}; your first charge is on that day.` : `It is paid until ${s(p.periodEnd)}.`}`,
+    link: () => "/app/billing",
+    cta: () => "View billing",
+    mandatory: true,
+  },
+  start_date_changed_employee: {
+    title: (p) => `${s(p.studentName)} now starts on ${s(p.start)}`,
+    body: (p) => `An admin changed the plan start date. Daily targets count from ${s(p.start)}.`,
+    link: (p) => `/work/students/${s(p.studentId)}`,
   },
   payment_failed_admin: {
     title: (p) => `Payment failed: ${s(p.student)}`,

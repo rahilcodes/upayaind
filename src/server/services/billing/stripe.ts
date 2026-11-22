@@ -27,6 +27,7 @@ export function normaliseStripeSubscription(sub: Stripe.Subscription): ProviderS
     periodStart: ts(starts.length ? Math.max(...starts) : legacy.current_period_start),
     periodEnd: ts(ends.length ? Math.min(...ends) : legacy.current_period_end),
     priceId: items[0]?.price?.id ?? null,
+    trialEnd: sub.status === "trialing" ? ts(sub.trial_end) : null,
     metadata: (sub.metadata ?? {}) as Record<string, string>,
   };
 }
@@ -70,11 +71,17 @@ export const stripeProvider: PaymentProvider = {
       ...(input.customerId ? { customer: input.customerId } : { customer_email: input.customerEmail }),
       ...(input.providerCouponId ? { discounts: [{ coupon: input.providerCouponId }] } : {}),
       ...(input.mode === "subscription"
-        ? { subscription_data: { metadata: input.metadata } }
+        ? input.trialEnd
+          ? {
+              // Free trial (D-171): the card is collected now and charged for the first time at `trial_end`.
+              payment_method_collection: "always" as const,
+              subscription_data: { metadata: input.metadata, trial_end: Math.floor(input.trialEnd.getTime() / 1000), trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } } },
+            }
+          : { subscription_data: { metadata: input.metadata } }
         : { customer_creation: input.customerId ? undefined : "always", payment_intent_data: { metadata: input.metadata }, invoice_creation: { enabled: true, invoice_data: { metadata: input.metadata } } }),
     };
     try {
-      const s = await stripe.checkout.sessions.create(params, { idempotencyKey: `checkout_${input.localSubscriptionId}_${input.providerCouponId ?? "none"}` });
+      const s = await stripe.checkout.sessions.create(params, { idempotencyKey: `checkout_${input.localSubscriptionId}_${input.providerCouponId ?? "none"}_${input.trialEnd ? Math.floor(input.trialEnd.getTime() / 1000) : "now"}` });
       if (!s.url) throw new BillingError("Couldn’t start checkout. Please try again.");
       return { id: s.id, url: s.url };
     } catch (e) {
@@ -151,7 +158,7 @@ export const stripeProvider: PaymentProvider = {
     try {
       const c = await stripeClient().coupons.create({
         name: input.code,
-        duration: "once",
+        ...(input.repeatMonths ? { duration: "repeating" as const, duration_in_months: input.repeatMonths } : { duration: "once" as const }),
         ...(input.percentOff ? { percent_off: input.percentOff } : { amount_off: input.amountOffMinor ?? 0, currency: (input.currency ?? "usd").toLowerCase() }),
         ...(input.maxRedemptions ? { max_redemptions: input.maxRedemptions } : {}),
         ...(input.validTo ? { redeem_by: Math.floor(input.validTo.getTime() / 1000) } : {}),
@@ -166,6 +173,14 @@ export const stripeProvider: PaymentProvider = {
   async retrieveSubscription(id: string) {
     try {
       return normaliseStripeSubscription(await stripeClient().subscriptions.retrieve(id));
+    } catch (e) {
+      wrap(e);
+    }
+  },
+
+  async setBillingDate(id: string, date: Date) {
+    try {
+      await stripeClient().subscriptions.update(id, { trial_end: Math.floor(date.getTime() / 1000), proration_behavior: "none" });
     } catch (e) {
       wrap(e);
     }

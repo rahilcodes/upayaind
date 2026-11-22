@@ -40,6 +40,8 @@ export type CheckoutSessionInput = {
   providerCouponId?: string | null;
   /** Coupon discount in minor units; providers without coupon objects (Razorpay) subtract it from the amount. */
   discountMinor?: number;
+  /** Free trial (D-171): the card is saved, nothing is charged until this instant. Subscription mode only. */
+  trialEnd?: Date | null;
   successUrl: string;
   cancelUrl: string;
   metadata: Record<string, string>;
@@ -62,6 +64,8 @@ export type CreateCouponInput = {
   currency?: string | null;
   maxRedemptions?: number | null;
   validTo?: Date | null;
+  /** Stripe: discount every invoice for this many months instead of only the first one (trial checkouts, D-171). */
+  repeatMonths?: number | null;
 };
 
 /** Normalised provider subscription (period + flags) used by the sync code. */
@@ -72,6 +76,8 @@ export type ProviderSubscription = {
   periodStart: Date | null;
   periodEnd: Date | null;
   priceId: string | null;
+  /** End of the gateway's trial window, when one is running. */
+  trialEnd?: Date | null;
   metadata: Record<string, string>;
 };
 
@@ -95,6 +101,11 @@ export interface PaymentProvider {
   pauseSubscription(id: string): Promise<void>;
   /** Undo `pauseSubscription`. */
   resumeSubscription(id: string): Promise<void>;
+  /**
+   * Move the next charge of a gateway subscription to `date` without charging now
+   * (Stripe: `trial_end` + no proration). Used for the start-date rule (D-171).
+   */
+  setBillingDate(id: string, date: Date): Promise<void>;
   /** Verify a webhook signature and return the parsed event. Throws on a bad signature. */
   verifyWebhook(rawBody: string, signature: string | null): Promise<ProviderEvent>;
 }

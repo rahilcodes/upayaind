@@ -24,7 +24,7 @@ function addMonths(d: Date, months: number) {
   return x;
 }
 
-export type SyntheticOptions = { now?: Date; discountMinor?: number; couponId?: string | null; provider?: "STRIPE" | "RAZORPAY" };
+export type SyntheticOptions = { now?: Date; discountMinor?: number; couponId?: string | null; provider?: "STRIPE" | "RAZORPAY"; trialEnd?: Date | null; serviceStart?: Date | null };
 
 async function loadPending(subscriptionId: string) {
   const s = await db.subscription.findUnique({
@@ -52,9 +52,18 @@ export async function buildCheckoutCompletedEvent(subscriptionId: string, opts: 
   const total = pp.amountMinor - discount;
   const currency = pp.currency.toLowerCase();
   const customer = s.providerCustomerId ?? `cus_sim_${s.studentId}`;
-  const metadata: Record<string, string> = { subscriptionId: s.id, studentId: s.studentId, planPriceId: pp.id, ...(opts.couponId ? { couponId: opts.couponId } : {}) };
   const recurring = pp.interval !== "ONE_TIME";
-  const end = addMonths(now, INTERVAL_MONTHS[pp.interval]);
+  const trialEnd = recurring ? (opts.trialEnd ?? null) : null;
+  const metadata: Record<string, string> = {
+    subscriptionId: s.id,
+    studentId: s.studentId,
+    planPriceId: pp.id,
+    ...(opts.couponId ? { couponId: opts.couponId } : {}),
+    ...(opts.serviceStart ? { serviceStart: opts.serviceStart.toISOString() } : {}),
+    ...(trialEnd ? { trial: "1" } : {}),
+  };
+  // Free trial (D-171): nothing is paid at checkout; the first period is the trial window.
+  const end = trialEnd ?? addMonths(now, INTERVAL_MONTHS[pp.interval]);
 
   const session: Record<string, unknown> = {
     id: rid("cs"),
@@ -63,9 +72,9 @@ export async function buildCheckoutCompletedEvent(subscriptionId: string, opts: 
     client_reference_id: s.id,
     metadata,
     customer,
-    payment_status: "paid",
+    payment_status: trialEnd ? "no_payment_required" : "paid",
     status: "complete",
-    amount_total: total,
+    amount_total: trialEnd ? 0 : total,
     currency,
     created: unix(now),
     total_details: { amount_discount: discount, amount_shipping: 0, amount_tax: 0 },
@@ -78,7 +87,8 @@ export async function buildCheckoutCompletedEvent(subscriptionId: string, opts: 
     const subscription = {
       id: subId,
       object: "subscription",
-      status: "active",
+      status: trialEnd ? "trialing" : "active",
+      trial_end: trialEnd ? unix(trialEnd) : null,
       customer,
       cancel_at_period_end: false,
       cancel_at: null,
@@ -86,7 +96,7 @@ export async function buildCheckoutCompletedEvent(subscriptionId: string, opts: 
       items: { object: "list", data: [{ id: rid("si"), current_period_start: unix(now), current_period_end: unix(end), price: { id: pp.providerPriceId ?? rid("price"), recurring: STRIPE_RECURRING[pp.interval as keyof typeof STRIPE_RECURRING] } }] },
     };
     session.subscription = subscription;
-    session.invoice = syntheticInvoice({ subscription, customer, currency, amount: total, discount, start: now, end, reason: "subscription_create", metadata });
+    session.invoice = syntheticInvoice({ subscription, customer, currency, amount: trialEnd ? 0 : total, discount: trialEnd ? 0 : discount, start: now, end, reason: "subscription_create", metadata });
   }
   return { id: rid("evt"), type: "checkout.session.completed", created: unix(now), livemode: false, data: { object: session } };
 }

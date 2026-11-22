@@ -89,7 +89,8 @@ async function claimReminder(subId: string, key: string) {
 
 export async function runRenewalReminders(now = new Date()) {
   const subs: SubRow[] = await db.subscription.findMany({
-    where: { status: "ACTIVE", currentPeriodEnd: { gt: now, lte: new Date(now.getTime() + Math.max(...REMINDER_DAYS) * DAY) } },
+    // A free trial has its own "trial ends soon" email (D-171).
+    where: { status: "ACTIVE", trialEndsAt: null, currentPeriodEnd: { gt: now, lte: new Date(now.getTime() + Math.max(...REMINDER_DAYS) * DAY) } },
     select: {
       id: true,
       provider: true,

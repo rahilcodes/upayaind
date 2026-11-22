@@ -11,6 +11,7 @@ import { notify, notifyManagers } from "@/server/services/notify";
 import { sendAlert } from "@/server/services/alerts";
 import { formatDate, formatMoney } from "@/lib/format";
 import { INTERVAL_MONTHS, addMonths } from "@/lib/billing-period";
+import { defaultServiceStart } from "@/lib/service-start";
 import { redeemCoupon } from "./coupons";
 import { generateInvoiceForPayment } from "./invoices";
 import { onFirstPaymentSucceeded } from "@/server/services/referrals";
@@ -47,6 +48,7 @@ const HANDLED = new Set([
   "invoice.payment_failed",
   "customer.subscription.updated",
   "customer.subscription.deleted",
+  "customer.subscription.trial_will_end", // free trial reminder (D-171)
 ]);
 
 function log(fields: Record<string, unknown>) {
@@ -108,6 +110,8 @@ async function dispatch(event: ProviderEvent): Promise<string> {
       return onInvoicePaid(obj as Stripe.Invoice);
     case "invoice.payment_failed":
       return onInvoiceFailed(obj as Stripe.Invoice);
+    case "customer.subscription.trial_will_end":
+      return onTrialWillEnd(obj as Stripe.Subscription);
     case "customer.subscription.updated":
     case "customer.subscription.deleted":
       return onSubscriptionChanged(obj as Stripe.Subscription, event.type === "customer.subscription.deleted");
@@ -132,7 +136,18 @@ const SUB_SELECT = {
   providerSubId: true,
   providerCustomerId: true,
   currentPeriodEnd: true,
+  trialEndsAt: true,
+  serviceStartAt: true,
 } as const;
+
+/**
+ * Start date of a NEW plan (D-171): payment (or trial sign-up) + two days, moved to the
+ * market's next working day. Setup time isn't billed, so the paid period starts here.
+ */
+export async function serviceStartFor(studentId: string, paidAt: Date): Promise<Date> {
+  const s = await db.studentProfile.findUnique({ where: { id: studentId }, select: { market: { select: { defaultTimezone: true, workingDays: true } } } });
+  return defaultServiceStart(paidAt, s?.market.defaultTimezone ?? "America/New_York", s?.market.workingDays ?? [1, 2, 3, 4, 5]);
+}
 
 async function findLocalSubscription(opts: { providerSubId?: string | null; localId?: string | null }) {
   if (opts.providerSubId) {
@@ -180,7 +195,18 @@ function sumDiscounts(inv: Stripe.Invoice) {
  */
 export async function activate(
   subId: string,
-  data: { periodStart: Date | null; periodEnd: Date | null; providerSubId?: string | null; providerCustomerId?: string | null; cancelAtPeriodEnd?: boolean; actorId?: string | null },
+  data: {
+    periodStart: Date | null;
+    periodEnd: Date | null;
+    providerSubId?: string | null;
+    providerCustomerId?: string | null;
+    cancelAtPeriodEnd?: boolean;
+    actorId?: string | null;
+    /** When applications start (D-171). Omit to keep the stored value. */
+    serviceStartAt?: Date | null;
+    /** Free trial end; null clears it (first real payment). Omit to keep the stored value. */
+    trialEndsAt?: Date | null;
+  },
 ) {
   const before = await db.subscription.findUniqueOrThrow({ where: { id: subId }, select: { status: true, studentId: true, currentPeriodEnd: true } });
   const newPeriod = data.periodEnd && before.currentPeriodEnd?.getTime() !== data.periodEnd.getTime();
@@ -193,6 +219,8 @@ export async function activate(
       ...(data.providerSubId ? { providerSubId: data.providerSubId } : {}),
       ...(data.providerCustomerId ? { providerCustomerId: data.providerCustomerId } : {}),
       ...(data.cancelAtPeriodEnd !== undefined ? { cancelAtPeriodEnd: data.cancelAtPeriodEnd } : {}),
+      ...(data.serviceStartAt !== undefined ? { serviceStartAt: data.serviceStartAt } : {}),
+      ...(data.trialEndsAt !== undefined ? { trialEndsAt: data.trialEndsAt } : {}),
       ...(newPeriod ? { remindersSent: [] } : {}),
     },
   });
@@ -290,10 +318,14 @@ export async function afterPayment(paymentId: string, ctx: { discountMinor: numb
       currency: true,
       studentId: true,
       student: { select: { userId: true, market: { select: { locale: true } }, user: { select: { timezone: true, name: true } } } },
-      subscription: { select: { currentPeriodEnd: true, planPrice: { select: { plan: { select: { name: true } } } } } },
+      subscription: { select: { currentPeriodEnd: true, serviceStartAt: true, planPrice: { select: { plan: { select: { name: true } } } } } },
     },
   });
   const end = p.subscription?.currentPeriodEnd ?? ctx.periodEnd;
+  // A plan that hasn't started yet (setup days, D-171): tell the student and the team when it starts.
+  const startsAt = p.subscription?.serviceStartAt && p.subscription.serviceStartAt > new Date() ? p.subscription.serviceStartAt : null;
+  const amountLabel = formatMoney(p.amountMinor, p.currency, p.student.market.locale);
+  const planLabel = p.subscription?.planPrice.plan.name ?? "UpayaInd";
   await trackEvent("payment_succeeded", p.student.userId, { paymentId, amountMinor: p.amountMinor, currency: p.currency });
   void sendAlert("new_signup_payment", { title: `${p.student.user.name} paid ${formatMoney(p.amountMinor, p.currency, p.student.market.locale)}`, lines: [p.subscription?.planPrice.plan.name ?? "UpayaInd"], link: "/admin/payments", linkLabel: "Open payments" });
   await notify(
@@ -303,11 +335,78 @@ export async function afterPayment(paymentId: string, ctx: { discountMinor: numb
       amount: formatMoney(p.amountMinor, p.currency, p.student.market.locale),
       plan: p.subscription?.planPrice.plan.name ?? "UpayaInd",
       periodEnd: end ? formatDate(end, p.student.user.timezone) : "—",
+      start: startsAt ? formatDate(startsAt, p.student.user.timezone) : null,
     },
     attachment ? { attachments: [attachment] } : {},
   );
+  // Admins and managers get an email for every payment (D-171).
+  await notifyManagers(
+    "payment_received_admin",
+    { student: p.student.user.name, studentId: p.studentId, amount: amountLabel, plan: planLabel, start: startsAt ? formatDate(startsAt, "UTC") : null, periodEnd: end ? formatDate(end, "UTC") : "—" },
+    ["ADMIN", "MANAGER"],
+  ).catch((e) => console.error("[billing] admin payment email failed", paymentId, e));
   // Referral programme (D-113): credits the referrer once, on the friend's first successful payment.
   await onFirstPaymentSucceeded(p.studentId).catch((e) => console.error("[billing] referral credit failed", paymentId, e));
+}
+
+/**
+ * A plan paid today that starts after the setup days (D-171): the gateway's next charge moves to
+ * start + one billing period, so the student is billed for the days they are actually served.
+ * Simulated (dev) subscriptions only change locally. A gateway failure never undoes the activation.
+ */
+async function shiftFirstPeriod(localId: string, providerSubId: string, serviceStartAt: Date) {
+  const sub = await db.subscription.findUniqueOrThrow({ where: { id: localId }, select: { currentPeriodEnd: true, planPrice: { select: { interval: true } } } });
+  const newEnd = addMonths(serviceStartAt, INTERVAL_MONTHS[sub.planPrice.interval]);
+  if (sub.currentPeriodEnd && newEnd.getTime() <= sub.currentPeriodEnd.getTime()) return;
+  try {
+    if (!providerSubId.includes("_sim_")) await providerFor("STRIPE").setBillingDate(providerSubId, newEnd);
+    await db.subscription.update({ where: { id: localId }, data: { currentPeriodEnd: newEnd, remindersSent: [] } });
+  } catch (e) {
+    console.error("[billing] could not move the first billing date", localId, e);
+  }
+}
+
+/** Trial sign-up (D-171): welcome email to the student, email + alert to admins and managers. */
+async function afterTrialStarted(subscriptionId: string, ctx: { trialEnd: Date; serviceStartAt: Date; couponId?: string | null }) {
+  if (ctx.couponId) await redeemCoupon(ctx.couponId).catch((e) => console.error("[billing] coupon redeem failed", e));
+  const s = await db.subscription.findUniqueOrThrow({
+    where: { id: subscriptionId },
+    select: {
+      studentId: true,
+      planPrice: { select: { amountMinor: true, currency: true, plan: { select: { name: true } } } },
+      student: { select: { userId: true, market: { select: { locale: true, trialDays: true } }, user: { select: { name: true, timezone: true } } } },
+    },
+  });
+  const amount = formatMoney(s.planPrice.amountMinor, s.planPrice.currency, s.student.market.locale);
+  const tz = s.student.user.timezone;
+  await trackEvent("trial_started", s.student.userId, { subscriptionId, trialEnd: ctx.trialEnd.toISOString() });
+  void sendAlert("new_signup_payment", { title: `${s.student.user.name} started a free trial`, lines: [`${s.planPrice.plan.name} · first charge ${amount} on ${formatDate(ctx.trialEnd, "UTC")}`], link: `/admin/students/${s.studentId}`, linkLabel: "Open student" });
+  await notify(s.student.userId, "trial_started", { plan: s.planPrice.plan.name, days: s.student.market.trialDays || 7, start: formatDate(ctx.serviceStartAt, tz), trialEnd: formatDate(ctx.trialEnd, tz), amount }).catch((e) => console.error("[billing] trial email failed", subscriptionId, e));
+  await notifyManagers(
+    "trial_started_admin",
+    { student: s.student.user.name, studentId: s.studentId, plan: s.planPrice.plan.name, start: formatDate(ctx.serviceStartAt, "UTC"), trialEnd: formatDate(ctx.trialEnd, "UTC"), amount },
+    ["ADMIN", "MANAGER"],
+  ).catch((e) => console.error("[billing] admin trial email failed", subscriptionId, e));
+}
+
+/** Stripe's reminder a few days before a trial ends: tell the student when and how much they will be charged. */
+async function onTrialWillEnd(raw: Stripe.Subscription): Promise<string> {
+  const ps = normaliseStripeSubscription(raw);
+  const local = await findLocalSubscription({ providerSubId: ps.id, localId: ps.metadata.subscriptionId });
+  if (!local) return "no local subscription";
+  // The start-date rule also uses Stripe's trial mechanism to move a billing date; only real trials get this email.
+  if (!local.trialEndsAt || local.status !== "ACTIVE") return "not a free trial";
+  const s = await db.subscription.findUniqueOrThrow({
+    where: { id: local.id },
+    select: { cancelAtPeriodEnd: true, planPrice: { select: { amountMinor: true, currency: true, plan: { select: { name: true } } } }, student: { select: { userId: true, market: { select: { locale: true } }, user: { select: { timezone: true } } } } },
+  });
+  if (s.cancelAtPeriodEnd) return "trial set to cancel";
+  await notify(s.student.userId, "trial_ending", {
+    plan: s.planPrice.plan.name,
+    trialEnd: formatDate(ps.trialEnd ?? local.trialEndsAt, s.student.user.timezone),
+    amount: formatMoney(s.planPrice.amountMinor, s.planPrice.currency, s.student.market.locale),
+  });
+  return "trial ending reminder sent";
 }
 
 // ───────────────────────────── handlers ─────────────────────────────
@@ -329,9 +428,14 @@ async function onRazorpayPaymentCaptured(p: RazorpayPayment): Promise<string> {
   const paidAt = new Date(p.created_at * 1000);
   // Renewal before the end date (D-168): the new period is added after the time already paid for.
   const carried = local.status === "ACTIVE" ? null : await carryOverStart({ studentId: local.studentId, planPriceId: local.planPriceId, excludeSubscriptionId: local.id, at: paidAt });
-  const periodStart = local.status === "ACTIVE" && local.currentPeriodEnd && local.currentPeriodEnd > paidAt ? local.currentPeriodEnd : (carried ?? paidAt);
+  const sameRow = local.status === "ACTIVE" && local.currentPeriodEnd && local.currentPeriodEnd > paidAt ? local.currentPeriodEnd : null;
+  // A new plan (not a renewal) starts after the setup days (D-171); the paid period runs from that date.
+  // …unless the student is switching plans while one is running: they are already set up, so it starts at once.
+  const switching = !sameRow && !carried && (await db.subscription.count({ where: { studentId: local.studentId, id: { not: local.id }, status: "ACTIVE", currentPeriodEnd: { gt: paidAt } } })) > 0;
+  const fresh = !sameRow && !carried && !switching;
+  const periodStart = sameRow ?? carried ?? (switching ? paidAt : await serviceStartFor(local.studentId, paidAt));
   const periodEnd = addMonths(periodStart, INTERVAL_MONTHS[sub.planPrice.interval]);
-  await activate(local.id, { periodStart, periodEnd, providerSubId: p.order_id ?? undefined });
+  await activate(local.id, { periodStart, periodEnd, providerSubId: p.order_id ?? undefined, ...(fresh ? { serviceStartAt: periodStart } : {}) });
   const discountMinor = Math.max(0, Number(notes.discountMinor ?? 0) || 0);
   const pay = await recordSuccessfulPayment({
     subscriptionId: local.id,
@@ -366,13 +470,25 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<st
 
   if (session.mode === "subscription") {
     const ps = await resolveProviderSubscription(session.subscription);
+    const signedUpAt = new Date((session.created ?? Math.floor(Date.now() / 1000)) * 1000);
+    // A checkout always belongs to a new plan row; `invoice.paid` may have activated it a moment earlier.
+    const fresh = !local.serviceStartAt;
+    const metaStart = meta.serviceStart ? new Date(meta.serviceStart) : null;
+    const serviceStartAt = metaStart && !Number.isNaN(metaStart.getTime()) ? metaStart : await serviceStartFor(local.studentId, signedUpAt);
+    const trialEnd = ps?.trialEnd ?? null;
     await activate(local.id, {
       periodStart: ps?.periodStart ?? null,
       periodEnd: ps?.periodEnd ?? null,
       providerSubId: ps?.id ?? providerSubId,
       providerCustomerId: customerId,
       cancelAtPeriodEnd: ps?.cancelAtPeriodEnd,
+      ...(fresh ? { serviceStartAt, trialEndsAt: trialEnd } : {}),
     });
+    if (trialEnd) {
+      // Free trial (D-171): card saved, nothing charged. No Payment row, no receipt.
+      if (fresh) await afterTrialStarted(local.id, { trialEnd, serviceStartAt, couponId: meta.couponId });
+      return "trial started";
+    }
     // The first invoice is usually delivered as invoice.paid too; processing it
     // here as well makes activation independent of event order (idempotent).
     if (session.invoice && typeof session.invoice !== "string") await onInvoicePaid(session.invoice, meta.couponId);
@@ -386,19 +502,22 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<st
         console.warn("[billing] could not fetch first invoice; relying on invoice.paid", e);
       }
     }
+    // Paid today, starts after the setup days: move the next charge so the paid period runs from the start date.
+    if (fresh && (ps?.id ?? providerSubId)) await shiftFirstPeriod(local.id, (ps?.id ?? providerSubId)!, serviceStartAt);
     return "subscription activated";
   }
 
   // mode=payment → ONE_TIME plan: period = now + plan interval months.
   const sub = await db.subscription.findUniqueOrThrow({ where: { id: local.id }, select: { planPrice: { select: { interval: true } } } });
   const paidAt = new Date((session.created ?? Math.floor(Date.now() / 1000)) * 1000);
-  const periodStart = local.status === "ACTIVE" && local.currentPeriodEnd && local.currentPeriodEnd > paidAt ? local.currentPeriodEnd : paidAt;
+  const extending = local.status === "ACTIVE" && local.currentPeriodEnd && local.currentPeriodEnd > paidAt ? local.currentPeriodEnd : null;
+  const periodStart = extending ?? (await serviceStartFor(local.studentId, paidAt));
   const periodEnd = addMonths(periodStart, INTERVAL_MONTHS[sub.planPrice.interval]);
   const providerPaymentId = idOf(session.payment_intent) ?? session.id;
   const already = await db.payment.findUnique({ where: { providerPaymentId }, select: { status: true } });
   if (already?.status === "SUCCEEDED" || already?.status === "REFUNDED" || already?.status === "PARTIALLY_REFUNDED") return "duplicate payment";
 
-  await activate(local.id, { periodStart, periodEnd, providerCustomerId: customerId });
+  await activate(local.id, { periodStart, periodEnd, providerCustomerId: customerId, ...(extending ? {} : { serviceStartAt: periodStart }) });
   const discountMinor = session.total_details?.amount_discount ?? 0;
   const pay = await recordSuccessfulPayment({
     subscriptionId: local.id,
@@ -423,13 +542,25 @@ async function onInvoicePaid(inv: Stripe.Invoice, couponIdHint?: string): Promis
   const local = await findLocalSubscription({ providerSubId: ref.subId, localId: ref.metadata.subscriptionId });
   if (!local) return "no local subscription";
 
+  // $0 invoices with no discount are Stripe's trial / billing-date bookkeeping (D-171): nothing was paid,
+  // so there is no payment to record. Activation of a trial comes from checkout.session.completed.
+  if (inv.amount_paid === 0 && sumDiscounts(inv) === 0) return "zero invoice (trial or date change)";
+
   let { start, end } = invoicePeriod(inv);
   if (!end) {
     const ps = await resolveProviderSubscription(ref.sub);
     start = ps?.periodStart ?? null;
     end = ps?.periodEnd ?? null;
   }
-  await activate(local.id, { periodStart: start, periodEnd: end, providerSubId: ref.subId, providerCustomerId: idOf(inv.customer) });
+  const isFirst = inv.billing_reason === "subscription_create";
+  // First payment of a plan that starts after the setup days (D-171): the paid period runs from the start date.
+  if (isFirst && !local.trialEndsAt && local.serviceStartAt && start && end && local.serviceStartAt > start) {
+    const row = await db.subscription.findUniqueOrThrow({ where: { id: local.id }, select: { planPrice: { select: { interval: true } } } });
+    start = local.serviceStartAt;
+    end = addMonths(start, INTERVAL_MONTHS[row.planPrice.interval]);
+  }
+  // The first real charge ends the free trial.
+  await activate(local.id, { periodStart: start, periodEnd: end, providerSubId: ref.subId, providerCustomerId: idOf(inv.customer), ...(local.trialEndsAt ? { trialEndsAt: null } : {}) });
 
   const paidAtUnix = inv.status_transitions?.paid_at ?? inv.created;
   const discountMinor = sumDiscounts(inv);
@@ -446,7 +577,6 @@ async function onInvoicePaid(inv: Stripe.Invoice, couponIdHint?: string): Promis
     periodStart: start,
     periodEnd: end,
   });
-  const isFirst = inv.billing_reason === "subscription_create";
   if (pay.created) await afterPayment(pay.paymentId, { discountMinor, periodStart: start, periodEnd: end, couponId: isFirst ? (couponIdHint ?? ref.metadata.couponId) : null });
   return pay.created ? "payment recorded" : "payment already recorded";
 }
@@ -535,6 +665,7 @@ async function onSubscriptionChanged(raw: Stripe.Subscription, deleted: boolean)
     ...(status ? { status } : {}),
     ...(ps.periodStart ? { currentPeriodStart: ps.periodStart } : {}),
     ...(ps.periodEnd ? { currentPeriodEnd: ps.periodEnd } : {}),
+    ...(local.trialEndsAt && ps.trialEnd ? { trialEndsAt: ps.trialEnd } : {}),
     ...(planPriceId ? { planPrice: { connect: { id: planPriceId } } } : {}),
   };
   if (ps.periodEnd && local.currentPeriodEnd?.getTime() !== ps.periodEnd.getTime()) data.remindersSent = [];

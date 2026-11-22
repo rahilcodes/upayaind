@@ -18,6 +18,7 @@ import {
   setSubscriptionPeriod,
   setSubscriptionStatus,
 } from "@/server/services/billing/manual";
+import { setServiceStartDate, setStartDateSchema } from "@/server/services/billing/start-date";
 
 /**
  * Student 360 → billing tab (D-147b). ADMIN only (`billing.manage`). Dates
@@ -53,6 +54,15 @@ export async function setSubscriptionPeriodAction(input: z.input<typeof setPerio
     const user = await requireAction("billing.manage");
     return setSubscriptionPeriod({ id: user.id, role: user.role }, input);
   }, t("periodSaved"));
+}
+
+/** Change when an applicant's plan starts; billing follows the date (D-171). Any gateway. */
+export async function setStartDateAction(input: z.input<typeof setStartDateSchema>) {
+  const t = await getTranslations("admin.toasts");
+  return safeAction(async () => {
+    const user = await requireAction("billing.manage");
+    return setServiceStartDate({ id: user.id, role: user.role }, input);
+  }, t("startDateSaved"));
 }
 
 export async function setSubscriptionStatusAction(input: z.input<typeof setStatusSchema>) {

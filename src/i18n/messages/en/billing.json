@@ -82,7 +82,15 @@
       "extends": "You’re renewing early. This adds {months, plural, one {# month} other {# months}} after your current plan ends on {date}.",
       "subtitleRenew": "You’re renewing the plan you already have. You’ll be taken to our payment partner to pay securely.",
       "pausedTitle": "Your plan is paused",
-      "pausedBody": "Please contact us to resume your plan before paying again."
+      "pausedBody": "Please contact us to resume your plan before paying again.",
+      "titleTrial": "Start your {days}-day free trial",
+      "subtitleTrial": "Try the full service for {days} days. Add your card to start: nothing is charged today, and you can cancel any time before the trial ends.",
+      "trialBadge": "{days}-day free trial. Your card is saved securely but not charged today.",
+      "trialThen": "First charge on {date}",
+      "trialNote": "After the trial your card is charged {amount} on {date}, then {every}. Cancel before then from your Billing page and you pay nothing.",
+      "payTrial": "Add card and start free trial",
+      "startNote": "Your applications start on {date}. The days before that are for setting up your profile and resume, and they aren’t billed.",
+      "startNoteTrial": "Your applications start on {date}, after we set up your profile and resume. Your trial days count from that date."
     },
     "page": {
       "metaTitle": "Billing",
@@ -124,7 +132,11 @@
       "help": "Need help with billing? <contact>Contact support</contact>.",
       "renewEarly": "Renew now",
       "perPeriodNotice": "This plan doesn’t renew automatically. It ends on {date}. Renew any time before then and the new period is added after your current one.",
-      "perPeriodNoticeContact": "This plan doesn’t renew automatically. It ends on {date}. Contact us before then to keep your applications going."
+      "perPeriodNoticeContact": "This plan doesn’t renew automatically. It ends on {date}. Contact us before then to keep your applications going.",
+      "firstChargeOn": "First charge on",
+      "trialNotice": "You’re on a free trial. Your card will be charged {amount} on {date} and your plan continues. To stop it, cancel before then with “Manage subscription”.",
+      "trialCanceledNotice": "Your free trial ends on {date} and you won’t be charged.",
+      "startsNotice": "Your applications start on {date}. Until then we’re setting up your profile and resume."
     },
     "admin": {
       "nav": {
@@ -261,7 +273,9 @@
           "minPrice": "Minimum price",
           "minPriceHint": "Active plan prices can’t go below this.",
           "resumeStyle": "Resume style",
-          "active": "Market is active (shown on the site and at signup)"
+          "active": "Market is active (shown on the site and at signup)",
+          "trialDays": "Free trial (days)",
+          "trialDaysHint": "For first-time applicants: card required, first charge after the trial. 0 = no trial. Works only with Stripe."
         }
       },
       "coupons": {

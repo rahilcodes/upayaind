@@ -17,6 +17,10 @@ type Props = {
   amountMinor: number;
   /** "Renews automatically…" (Stripe) or "One payment covers…" (Razorpay), already translated. */
   periodNote: string;
+  /** "Your applications start on …" for a new plan (setup days, D-171). */
+  startNote: string | null;
+  /** Free trial (D-171): nothing is charged today; the first charge is on `chargeDate`. */
+  trial: { days: number; chargeDate: string } | null;
   /** Payment partner shown in the security note. */
   partner: string;
   simulate: boolean;
@@ -153,14 +157,24 @@ export function CheckoutPanel(p: Props) {
             <dd className="tabular">−{money(coupon.discountMinor)}</dd>
           </div>
         ) : null}
+        {p.trial ? (
+          <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground">{t("trialThen", { date: p.trial.chargeDate })}</dt>
+            <dd className="tabular">{money(total)}</dd>
+          </div>
+        ) : null}
         <div className="mt-1 flex items-baseline justify-between gap-3 border-t border-border pt-3.5">
           <dt className="font-bold">{t("total")}</dt>
           <dd className="tabular text-[24px] font-bold" aria-live="polite">
-            {money(total)}
+            {p.trial ? money(0) : money(total)}
           </dd>
         </div>
       </dl>
+      {p.trial ? (
+        <p className="mt-3 rounded-[10px] border border-[#BFE3CF] bg-[#E6F4EC] px-3.5 py-2.5 text-[13px] font-semibold text-[#155C3A]">{t("trialBadge", { days: p.trial.days })}</p>
+      ) : null}
       <p className="mt-2 text-[13px] text-muted-foreground">{p.periodNote}</p>
+      {p.startNote ? <p className="mt-1.5 text-[13px] text-muted-foreground">{p.startNote}</p> : null}
 
       {error ? (
         <div role="alert" className="mt-5 rounded-[10px] border border-[#F3C8C3] bg-[#FCEAE8] px-4 py-3 text-sm text-[#8E231B]">
@@ -186,7 +200,7 @@ export function CheckoutPanel(p: Props) {
         </div>
       ) : (
         <Button onClick={pay} loading={paying || redirecting} size="lg" className="mt-5 w-full">
-          {redirecting ? t("redirecting") : t("pay")}
+          {redirecting ? t("redirecting") : p.trial ? t("payTrial") : t("pay")}
         </Button>
       )}
 

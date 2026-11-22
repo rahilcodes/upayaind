@@ -80,7 +80,7 @@ async function subscriptionFor(studentIds: string[]) {
   const subs = await db.subscription.findMany({
     where: { studentId: { in: studentIds } },
     orderBy: { createdAt: "desc" },
-    select: { studentId: true, status: true, currentPeriodEnd: true, planPrice: { select: { dailyTarget: true, plan: { select: { name: true } } } } },
+    select: { studentId: true, status: true, currentPeriodEnd: true, serviceStartAt: true, planPrice: { select: { dailyTarget: true, plan: { select: { name: true } } } } },
   });
   const out = new Map<string, (typeof subs)[number]>();
   for (const s of subs) {
@@ -123,7 +123,8 @@ export async function getStudentCards(employeeId: string, opts: { now?: Date; vi
   const wd = weekdayOfKey(key);
   const cards: StudentCard[] = students.map((s) => {
     const sub = subs.get(s.id);
-    const active = sub?.status === "ACTIVE";
+    // Setup days before the start date (D-171) carry no target.
+    const active = sub?.status === "ACTIVE" && (!sub.serviceStartAt || sub.serviceStartAt < end);
     const workingDay = s.market.workingDays.includes(wd);
     const target = active && workingDay ? (sub?.planPrice.dailyTarget ?? 0) : 0;
     const done = todayCounts.find((c) => c.studentId === s.id)?._count._all ?? 0;
@@ -179,7 +180,8 @@ export async function rollupStudentDay(studentId: string, key: string, tz: strin
     db.studentProfile.findUnique({ where: { id: studentId }, select: { market: { select: { workingDays: true } } } }),
   ]);
   const sub = subs.get(studentId);
-  const target = sub?.status === "ACTIVE" && s?.market.workingDays.includes(weekdayOfKey(key)) ? sub.planPrice.dailyTarget : 0;
+  const started = !sub?.serviceStartAt || sub.serviceStartAt < end; // setup days before the start date carry no target (D-171)
+  const target = sub?.status === "ACTIVE" && started && s?.market.workingDays.includes(weekdayOfKey(key)) ? sub.planPrice.dailyTarget : 0;
   await db.studentDay.upsert({
     where: { studentId_date: { studentId, date: dateOnly(key) } },
     update: { applied, target },

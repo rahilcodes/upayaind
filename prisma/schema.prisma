@@ -248,6 +248,7 @@ model Market {
   defaultTimezone String
   workingDays     Int[]   @default([1, 2, 3, 4, 5]) // ISO weekday
   paymentProvider String  @default("STRIPE") // STRIPE | RAZORPAY
+  trialDays       Int     @default(0) // free trial for first-time students (card required, Stripe markets only; D-171)
   phoneDisplay    String?
   whatsapp        String?
   isActive        Boolean @default(true)
@@ -466,6 +467,8 @@ model Subscription {
   cancelAtPeriodEnd  Boolean            @default(false)
   pausedDays         Int                @default(0)
   pausedAt           DateTime? // set while status = PAUSED (F11 pause)
+  serviceStartAt     DateTime? // when applications start (payment + setup days by default; admins can change it — D-171)
+  trialEndsAt        DateTime? // set while the plan is in its free trial; cleared by the first real payment (D-171)
   remindersSent      String[]           @default([])
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt

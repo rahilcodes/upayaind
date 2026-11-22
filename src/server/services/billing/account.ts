@@ -19,6 +19,8 @@ export async function getStudentBilling(studentId: string) {
         providerCustomerId: true,
         currentPeriodStart: true,
         currentPeriodEnd: true,
+        serviceStartAt: true,
+        trialEndsAt: true,
         cancelAtPeriodEnd: true,
         createdAt: true,
         planPrice: {
@@ -62,6 +64,9 @@ export async function getStudentBilling(studentId: string) {
           canManage: Boolean(current.providerCustomerId) && current.planPrice.interval !== "ONE_TIME",
           provider: current.provider,
           payPerPeriod,
+          // Setup days before the start date, and the free trial window (D-171).
+          startsAt: current.status === "ACTIVE" && current.serviceStartAt && current.serviceStartAt > new Date() ? current.serviceStartAt : null,
+          trialEndsAt: current.status === "ACTIVE" && current.trialEndsAt && current.trialEndsAt > new Date() ? current.trialEndsAt : null,
           // Renew before the end date: only where the next payment also goes through Razorpay (the new period is added after this one).
           canRenewEarly: payPerPeriod && current.status === "ACTIVE" && canRenew && providerFor(current.planPrice.market.paymentProvider).code === "RAZORPAY",
         }

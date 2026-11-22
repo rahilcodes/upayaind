@@ -41,6 +41,8 @@ export const marketInputSchema = z.object({
   }, "Unknown time zone"),
   workingDays: z.array(z.coerce.number().int().min(1).max(7)).min(1, "Pick at least one working day"),
   paymentProvider: z.enum(["STRIPE", "RAZORPAY"]),
+  /** Free trial for first-time students (D-171). 0 = no trial. Only takes effect where the gateway is Stripe. */
+  trialDays: z.coerce.number().int().min(0, "Can’t be negative").max(30, "At most 30 days").default(0),
   phoneDisplay: z.string().trim().max(40).optional().transform((v) => v || null),
   whatsapp: z.string().trim().max(40).regex(/^\+?[0-9 ]*$/, "Digits only, with country code").optional().transform((v) => v || null),
   minPriceMinor: z.coerce.number().int().min(0, "Can’t be negative"),
@@ -58,6 +60,7 @@ const MARKET_SELECT = {
   defaultTimezone: true,
   workingDays: true,
   paymentProvider: true,
+  trialDays: true,
   phoneDisplay: true,
   whatsapp: true,
   minPriceMinor: true,

@@ -139,6 +139,8 @@ export const razorpayProvider: PaymentProvider = {
   // Nothing to pause at the gateway: the plan is a one-off payment for a fixed period.
   async pauseSubscription() {},
   async resumeSubscription() {},
+  // No gateway subscription: the period lives only in our database.
+  async setBillingDate() {},
 
   async verifyWebhook(rawBody: string, signature: string | null): Promise<ProviderEvent> {
     if (!verifyWebhookSignature(rawBody, signature)) throw new BillingError("Invalid Razorpay webhook signature.");
