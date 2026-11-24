@@ -154,6 +154,7 @@ export function MarketMenu({
               <a
                 href={`${base}?market=${m.code}`}
                 hrefLang="en"
+                rel="nofollow"
                 aria-current={current === m.code ? "true" : undefined}
                 className="flex min-h-11 items-center justify-between rounded-[10px] px-3 text-[15px] font-medium text-ink hover:bg-[#F1F4FB]"
               >

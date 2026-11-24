@@ -23,7 +23,8 @@ test("F1: a visitor signs up, pays and lands in onboarding", async ({ page }) =>
   await page.click("form button[type=submit]");
 
   await expect(page).toHaveURL(/\/app\/checkout\?plan=/, { timeout: 60_000 });
-  await page.getByRole("button", { name: /continue to secure payment/i }).click();
+  await // US plans start with a free trial (D-171), which renames the button.
+  await page.getByRole("button", { name: /continue to secure payment|start free trial/i }).click();
   await page.getByRole("button", { name: /simulate/i }).click();
   await expect(page).toHaveURL(/\/app\/onboarding/, { timeout: 60_000 });
 

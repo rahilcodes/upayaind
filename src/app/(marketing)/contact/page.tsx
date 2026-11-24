@@ -122,8 +122,11 @@ export default async function ContactPage() {
                   {offices.map((o) => (
                     <div key={o.code}>
                       <dt className="text-[13px] font-semibold uppercase tracking-wide text-[#5A6585]">{o.name}</dt>
-                      <dd><address className="text-[15px] not-italic text-[#3E4A6E]">{o.address}</address></dd>
-                      {imageSlot(`contact-office-${o.code.toLowerCase()}`) ? <ImageSlot id={`contact-office-${o.code.toLowerCase()}`} className="mt-3 aspect-[16/10]" rounded="rounded-[14px]" sizes="(min-width: 1024px) 420px, 100vw" /> : null}
+                      <dd>
+                        <address className="text-[15px] not-italic text-[#3E4A6E]">{o.address}</address>
+                        {/* Inside the <dd>: a <dl> group may only hold <dt>/<dd> (axe definition-list). */}
+                        {imageSlot(`contact-office-${o.code.toLowerCase()}`) ? <ImageSlot id={`contact-office-${o.code.toLowerCase()}`} className="mt-3 aspect-[16/10]" rounded="rounded-[14px]" sizes="(min-width: 1024px) 420px, 100vw" /> : null}
+                      </dd>
                     </div>
                   ))}
                 </dl>

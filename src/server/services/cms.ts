@@ -8,6 +8,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 import { audit } from "./audit";
 import { storeUpload, LIMITS as FILE_LIMITS } from "./files";
+import { pingIndexNow } from "./indexnow";
 
 /**
  * CMS (SPEC §6.4, §11): pages, legal, blog, success stories, FAQ, team and
@@ -552,7 +553,7 @@ export async function saveEntry(actor: { id: string; name?: string }, raw: Entry
       select: { id: true, kind: true, slug: true, isPublished: true },
     });
   }
-  await revalidateCms(saved.kind as CmsKind, saved.slug);
+  await revalidateCms(saved.kind as CmsKind, saved.slug, { notify: saved.isPublished });
   return saved;
 }
 
@@ -573,7 +574,7 @@ export async function setPublished(actor: { id: string }, id: string, publish: b
     data: { isPublished: publish, publishedAt: publish ? (e.publishedAt ?? new Date()) : e.publishedAt },
   });
   await audit({ actorId: actor.id, action: publish ? "cms.publish" : "cms.unpublish", entity: "CmsEntry", entityId: id, after: { kind: e.kind, slug: e.slug } });
-  await revalidateCms(e.kind as CmsKind, e.slug);
+  await revalidateCms(e.kind as CmsKind, e.slug, { notify: true });
 }
 
 export async function softDelete(actor: { id: string }, id: string) {
@@ -581,7 +582,7 @@ export async function softDelete(actor: { id: string }, id: string) {
   if (!e) throw new CmsError("This entry no longer exists.");
   await db.cmsEntry.update({ where: { id }, data: { deletedAt: new Date(), isPublished: false } });
   await audit({ actorId: actor.id, action: "cms.delete", entity: "CmsEntry", entityId: id, after: e });
-  await revalidateCms(e.kind as CmsKind, e.slug);
+  await revalidateCms(e.kind as CmsKind, e.slug, { notify: true });
 }
 
 /** Restore a revision as a new save (the current version is kept in history). */
@@ -611,15 +612,24 @@ export async function restoreRevision(actor: { id: string; name?: string }, id: 
  * On-demand revalidation (SPEC §6.1). The marketing site is small, so a save
  * revalidates every marketing page (homepage FAQ/stories, sitemap, …) plus the
  * `cms` data tag. Safe to call outside a request (tests): errors are ignored.
+ * Draft saves pass no `notify`, so search engines only hear about public changes.
  */
-export async function revalidateCms(kind?: CmsKind, slug?: string) {
+export async function revalidateCms(kind?: CmsKind, slug?: string, opts: { notify?: boolean } = {}) {
   try {
     revalidateTag(CMS_TAG);
     revalidatePath("/", "layout");
     revalidatePath("/sitemap.xml");
     if (kind && slug) {
       const path = publicPath(kind, slug);
-      if (path) revalidatePath(path);
+      if (path) {
+        revalidatePath(path);
+        // `notify`: a published page changed (or was published, unpublished or deleted), so tell the IndexNow
+        // engines to recrawl it and the list it appears on. Fire-and-forget; off without INDEXNOW_KEY (D-172).
+        if (opts.notify) {
+          const index = kind === "BLOG" ? "/blog" : kind === "STORY" ? "/success-stories" : null;
+          void pingIndexNow(index ? [path, index] : [path]);
+        }
+      }
     }
   } catch {
     // Not inside a Next.js request (unit tests, scripts).

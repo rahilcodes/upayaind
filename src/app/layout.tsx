@@ -5,11 +5,12 @@ import { CORE_NAMESPACES, pickMessages } from "@/i18n/messages";
 import { Toaster } from "sonner";
 import { fraunces, inter } from "@/fonts";
 import { absoluteUrl } from "@/lib/utils";
+import { env } from "@/env";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(absoluteUrl("/")),
-  title: { default: "UpayaInd — You’ll never apply to a job again", template: "%s · UpayaInd" },
+  title: { default: "Job application service: we apply for you | UpayaInd", template: "%s · UpayaInd" },
   description:
     "Our specialists apply to 25–50 jobs for you every weekday, each with a resume tailored to the job. Track every application live.",
   applicationName: "UpayaInd",
@@ -18,6 +19,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "UpayaInd", statusBarStyle: "default" },
   icons: { apple: "/brand/apple-touch-icon.png" },
+  // Ownership codes for Google Search Console and Bing Webmaster Tools (D-172); omitted until set.
+  verification: {
+    ...(env.GOOGLE_SITE_VERIFICATION ? { google: env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(env.BING_SITE_VERIFICATION ? { other: { "msvalidate.01": env.BING_SITE_VERIFICATION } } : {}),
+  },
 };
 
 export const viewport: Viewport = {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { env } from "@/env";
-import type { HomeMarket } from "@/lib/market";
+import { HOME_PATHS, countryPath, type HomeMarket } from "@/lib/market";
 import { cn } from "@/lib/utils";
 import { DashboardDemo, type DemoApp } from "./dashboard-demo";
 import { HeroDashboardMock, PILL } from "./dashboard-mock";
@@ -9,7 +9,7 @@ import { formatCount, getActiveMarkets, getLandings, getMarketPricing, getMarket
 import { PromoBanner, TeamGallery, Testimonials } from "./extras";
 import { ImageSlot } from "./image-slot";
 import { GlobalReach } from "./global-reach";
-import { JsonLd, faqLd } from "./json-ld";
+import { JsonLd, faqLd, serviceLd } from "./json-ld";
 import { MarketPin } from "./market";
 import { PlacedLogos } from "./placed-logos";
 import { PlanCards } from "./pricing";
@@ -56,6 +56,8 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
   const purchasable = hasPurchasablePlan(p);
   const bookHref = env.CALCOM_LINK ? "/contact#book" : "/contact";
   const loc = `home_${market.toLowerCase()}`;
+  // Each country links to its own indexable pricing page (D-172).
+  const pricingHref = countryPath(market, "/pricing");
   // Tone alternation continues past the optional CMS sections (stories, audiences).
   const flip = (tone: "paper" | "white") => (tone === "paper" ? "white" : "paper");
   const audiencesTone = stories.length ? "white" : "paper";
@@ -83,7 +85,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
             </h1>
             <p className="mb-9 max-w-[520px] text-lg text-[#3E4A6E] sm:text-[19px]">{tc("hero.sub", { min: range.min, max: range.max })}</p>
             <div className="mb-7 flex flex-wrap gap-3">
-              <Link href="/pricing" className={cta.primary} {...trackAttrs("cta_get_started", { location: "hero", market })}>
+              <Link href={pricingHref} className={cta.primary} {...trackAttrs("cta_get_started", { location: "hero", market })}>
                 {tc("hero.ctaPrimary")}
                 <ArrowRight />
               </Link>
@@ -352,7 +354,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
             <PlanCards pricing={p} interval={p.intervals.includes("MONTHLY") ? "MONTHLY" : p.intervals[0]!} compact />
             {market === "IN" ? <p className="mx-auto mt-6 max-w-[760px] rounded-[14px] border border-[#C6D9FC] bg-white px-4 py-3 text-center text-sm text-[#1A4FB8]">{t("pricing.inNote")}</p> : null}
             <p className="mt-7 text-center">
-              <TextLink href="/pricing" className="inline-flex min-h-11 items-center">
+              <TextLink href={pricingHref} className="inline-flex min-h-11 items-center">
                 {guarantee ? t("pricing.compareLink") : t("pricing.compareLinkNoGuarantee")}
               </TextLink>
             </p>
@@ -382,7 +384,7 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
               </Link>
             </div>
             <p className="mt-6 text-center">
-              <TextLink href="/pricing" className="inline-flex min-h-11 items-center">
+              <TextLink href={pricingHref} className="inline-flex min-h-11 items-center">
                 {t("country.shared.pricingLink")}
               </TextLink>
             </p>
@@ -413,11 +415,11 @@ export async function CountryHome({ market }: { market: HomeMarket }) {
             {t("country.shared.faqSeeAll")}
           </TextLink>
         </p>
-        <JsonLd data={faqLd(faq.map((f) => ({ q: f.q, a: f.a })))} />
+        <JsonLd data={[faqLd(faq.map((f) => ({ q: f.q, a: f.a }))), serviceLd([p], { path: HOME_PATHS[market] })]} />
       </Section>
 
       {/* 15. Final CTA band (shared layout, country copy) */}
-      <FinalCta calcom={Boolean(env.CALCOM_LINK)} title={tc("cta.title")} sub={tc("cta.sub")} markets={markets} />
+      <FinalCta calcom={Boolean(env.CALCOM_LINK)} title={tc("cta.title")} sub={tc("cta.sub")} markets={markets} pricingHref={pricingHref} />
     </>
   );
 }

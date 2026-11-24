@@ -22,9 +22,11 @@
       "contactDescription": "Questions about UpayaInd? Send us a message, book a free call or chat with us on WhatsApp. We usually reply within one working day.",
       "landingDescription": "{title}: UpayaInd applies to jobs for you every weekday with a resume tailored to each role.",
       "legalDescription": "{title} for UpayaInd, the done-for-you job application service.",
-      "pricingTitleAll": "Pricing — UpayaInd plans",
-      "pricingDescriptionAll": "Compare UpayaInd plans: tailored job applications every weekday, a live tracking dashboard, a dedicated specialist and interview prep.",
-      "landingTitle": "UpayaInd for {title}"
+      "pricingTitleAll": "Job application service pricing and plans | UpayaInd",
+      "pricingDescriptionAll": "Compare UpayaInd plans: tailored job applications every weekday, a dedicated specialist, a live tracking dashboard and interview prep. See prices for your country.",
+      "landingTitle": "UpayaInd for {title}",
+      "pricingCountryTitle": "Job application service pricing {where} | UpayaInd",
+      "pricingCountryDescription": "UpayaInd plans {where}, priced in {currency}: tailored job applications every weekday, a dedicated specialist, a live dashboard and interview prep."
     },
     "nav": {
       "home": "UpayaInd home",
@@ -80,7 +82,8 @@
         "youtube": "UpayaInd on YouTube",
         "x": "UpayaInd on X"
       },
-      "callWhatsapp": "Call / WhatsApp"
+      "callWhatsapp": "Call / WhatsApp",
+      "countries": "Countries we serve"
     },
     "hero": {
       "eyebrow": "Done-for-you job applications",
@@ -461,7 +464,17 @@
       ],
       "perMonthApprox": "≈ {amount} a month",
       "interviews": "Interview promise: {promise}",
-      "inNote": "Each package is valid for 90 days from payment. Materials, application customisation and tailored support are provided for both IT and non-IT profiles."
+      "inNote": "Each package is valid for 90 days from payment. Materials, application customisation and tailored support are provided for both IT and non-IT profiles.",
+      "countryTitle": "Plans and pricing {where}",
+      "where": {
+        "US": "in the United States",
+        "IN": "in India",
+        "UK": "in the UK",
+        "CA": "in Canada",
+        "AU": "in Australia",
+        "NZ": "in New Zealand"
+      },
+      "otherCountries": "Pricing in other countries"
     },
     "prep": {
       "eyebrow": "Beyond applications",
@@ -731,7 +744,7 @@
       },
       "US": {
         "meta": {
-          "title": "UpayaInd — You’ll never apply to a job again",
+          "title": "Job application service: we apply for you | UpayaInd",
           "description": "Our specialists apply to 25–50 US jobs for you every weekday — OPT, H-1B, green card or citizen — each with an ATS-ready resume tailored to the job. Track every one live."
         },
         "hero": {
@@ -905,7 +918,7 @@
       },
       "IN": {
         "meta": {
-          "title": "UpayaInd India — We apply to jobs for you, every weekday",
+          "title": "Job application service in India | UpayaInd",
           "description": "Our specialists apply to 25–50 jobs for you every weekday on Naukri, LinkedIn, Indeed and company sites, each with a resume tailored to the role. Freshers and experienced."
         },
         "hero": {
@@ -1082,7 +1095,7 @@
       },
       "UK": {
         "meta": {
-          "title": "UpayaInd UK — We apply for jobs on your behalf",
+          "title": "Job application service in the UK | UpayaInd",
           "description": "Our specialists apply to 25–50 UK jobs for you every weekday — licensed sponsors only when you need a Skilled Worker visa — each with a two-page UK CV tailored to the role."
         },
         "hero": {
@@ -1259,7 +1272,7 @@
       },
       "CA": {
         "meta": {
-          "title": "UpayaInd Canada — We apply for jobs on your behalf",
+          "title": "Job application service in Canada | UpayaInd",
           "description": "Our specialists apply to 25–50 Canadian jobs for you every weekday on Job Bank, Indeed, LinkedIn and company sites, each with a two-page Canadian resume tailored to the role. PGWP, PR and citizens."
         },
         "hero": {
@@ -1436,7 +1449,7 @@
       },
       "AU": {
         "meta": {
-          "title": "UpayaInd Australia — We apply for jobs on your behalf",
+          "title": "Job application service in Australia | UpayaInd",
           "description": "Our specialists apply to 25–50 Australian jobs for you every weekday on SEEK, LinkedIn, Indeed and company sites, each with an Australian resume tailored to the role. 485, skilled visas, PR and citizens."
         },
         "hero": {
@@ -1613,7 +1626,7 @@
       },
       "NZ": {
         "meta": {
-          "title": "UpayaInd New Zealand — We apply for jobs on your behalf",
+          "title": "Job application service in New Zealand | UpayaInd",
           "description": "Our specialists apply to 25–50 New Zealand jobs for you every weekday on SEEK, Trade Me Jobs, LinkedIn and company sites, each with a NZ CV tailored to the role. Post-study, AEWV, residents and citizens."
         },
         "hero": {

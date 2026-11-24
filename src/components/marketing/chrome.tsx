@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Logo } from "@/components/ui/logo";
+import { HOME_PATHS, isHomeMarket } from "@/lib/market";
 import { cn } from "@/lib/utils";
 import type { MarketInfo } from "./data";
 import { PerMarket } from "./market";
@@ -121,6 +122,8 @@ export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo
   const legalLinks = (["privacy", "terms", "refund", "guarantee", "cookies", "agreement"] as const)
     .map((slug) => ({ slug, label: t(`footer.legalLinks.${slug}`) }))
     .filter((l) => legal.has(l.slug));
+  // Plain links to each country homepage (D-172): the switcher only changes a cookie, so crawlers need these.
+  const countries = markets.flatMap((m) => (isHomeMarket(m.code) ? [{ code: m.code, name: m.name, locale: m.locale, href: HOME_PATHS[m.code] }] : []));
   return (
     <footer className="bg-transparent px-4 pb-10 pt-16 sm:px-6">
       <div className={cn(container, "grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4")}>
@@ -160,7 +163,21 @@ export async function SiteFooter({ markets, legal, site }: { markets: MarketInfo
           </button>
         </nav>
       </div>
-      <div className={cn(container, "mt-10 flex flex-col gap-4 border-t border-sand pt-6 text-sm text-[#5A6585] sm:flex-row sm:items-center sm:justify-between")}>
+      {countries.length > 1 ? (
+        <nav aria-label={t("footer.countries")} className={cn(container, "mt-10 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-sand pt-6 text-[15px]")}>
+          <p className="font-bold">{t("footer.countries")}</p>
+          <ul className="flex flex-wrap gap-x-5 gap-y-1">
+            {countries.map((c) => (
+              <li key={c.code}>
+                <Link className={linkCls} href={c.href} hrefLang={c.locale}>
+                  {c.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ) : null}
+      <div className={cn(container, "mt-6 flex flex-col gap-4 border-t border-sand pt-6 text-sm text-[#5A6585] sm:flex-row sm:items-center sm:justify-between")}>
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span>{t("footer.copyright")}</span>
           <span aria-hidden="true" className="hidden sm:inline">·</span>

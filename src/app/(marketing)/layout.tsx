@@ -6,7 +6,7 @@ import { env } from "@/env";
 import { Analytics } from "@/components/marketing/analytics";
 import { SiteFooter, SiteHeader } from "@/components/marketing/chrome";
 import { getActiveMarkets, getPublicSite } from "@/components/marketing/data";
-import { JsonLd, organizationLd } from "@/components/marketing/json-ld";
+import { JsonLd, organizationLd, websiteLd } from "@/components/marketing/json-ld";
 import { MarketScript, MarketStyle } from "@/components/marketing/market";
 import { listPublished } from "@/server/services/cms";
 import "@/components/marketing/prose.css";
@@ -35,7 +35,18 @@ export default async function MarketingLayout({ children }: { children: React.Re
         {children}
       </main>
       <SiteFooter markets={markets} legal={legalSlugs} site={site} />
-      <JsonLd data={organizationLd({ phones: markets.flatMap((m) => (m.phoneDisplay ? [{ phone: m.phoneDisplay, country: m.code }] : [])), email: site.contactEmail, addresses: Object.values(site.offices).filter(Boolean) })} />
+      <JsonLd
+        data={[
+          organizationLd({
+            phones: markets.flatMap((m) => (m.phoneDisplay ? [{ phone: m.phoneDisplay, country: m.code }] : [])),
+            email: site.contactEmail,
+            addresses: Object.values(site.offices).filter(Boolean),
+            sameAs: Object.values(site.social ?? {}).filter((u): u is string => typeof u === "string" && /^https?:\/\//.test(u.trim())).map((u) => u.trim()),
+            countries: markets.map((m) => m.name),
+          }),
+          websiteLd(),
+        ]}
+      />
       <Analytics
         gaId={env.NEXT_PUBLIC_GA_ID}
         clarityId={env.NEXT_PUBLIC_CLARITY_ID}

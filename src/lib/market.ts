@@ -98,3 +98,29 @@ export function homeAlternates(): Record<string, string> {
   out["x-default"] = HOME_PATHS.US;
   return out;
 }
+
+/** URL segment of each country (`uk`, `in` …); the US has none and lives at the root. */
+export const COUNTRY_SEGMENTS: Record<Exclude<HomeMarket, "US">, string> = { IN: "in", UK: "uk", CA: "ca", AU: "au", NZ: "nz" };
+
+/** Market for a country URL segment (`uk` → UK); null for anything else, the US included. */
+export function marketForSegment(segment: string | null | undefined): Exclude<HomeMarket, "US"> | null {
+  const s = (segment ?? "").toLowerCase();
+  for (const [m, seg] of Object.entries(COUNTRY_SEGMENTS)) if (seg === s) return m as Exclude<HomeMarket, "US">;
+  return null;
+}
+
+/**
+ * A page that exists once per country (D-172): `/pricing` for the US, `/uk/pricing` for the UK.
+ * `sub` is the US path, starting with a slash.
+ */
+export function countryPath(market: HomeMarket, sub: string): string {
+  return market === "US" ? sub : `/${COUNTRY_SEGMENTS[market]}${sub}`;
+}
+
+/** hreflang map for a per-country page (`x-default` → the US page). */
+export function countryAlternates(sub: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of HOME_MARKETS) out[HOME_LOCALES[m].hreflang] = countryPath(m, sub);
+  out["x-default"] = countryPath("US", sub);
+  return out;
+}

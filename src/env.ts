@@ -85,6 +85,11 @@ const schema = z.object({
   TWILIO_WHATSAPP_FROM: z.string().optional(),
   NEXT_PUBLIC_GA_ID: z.string().optional(),
   NEXT_PUBLIC_CLARITY_ID: z.string().optional(),
+  /** Search Console / Bing Webmaster ownership codes: the `content` value of the meta tag each tool gives you (D-172). */
+  GOOGLE_SITE_VERIFICATION: z.string().optional(),
+  BING_SITE_VERIFICATION: z.string().optional(),
+  /** IndexNow key (8-128 letters, digits or dashes). When set, published CMS pages are pinged to Bing and other engines (D-172). */
+  INDEXNOW_KEY: z.string().optional(),
   CALCOM_LINK: z.string().optional(),
 }).superRefine((e, ctx) => {
   if (!isProd) return;

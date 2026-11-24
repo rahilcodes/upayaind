@@ -18,6 +18,7 @@ import { normalizeJobUrl } from "../src/lib/url-normalize";
 import { addDayKey, dateOnly, dayKey, isoWeekday, startOfDayInTz } from "../src/lib/dates";
 import type { ResumeData } from "../src/resume/schema";
 import { LEGAL_PAGES, LEGAL_VERSION, compileLegal } from "../src/server/legal-pages";
+import { GUIDE_POSTS } from "../src/server/seo-guides";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 faker.seed(20261012);
@@ -355,6 +356,23 @@ async function seedReference() {
   ] as const) {
     const { body, bodyHtml } = doc([excerpt]);
     await db.cmsEntry.upsert({ where: { kind_slug: { kind: "LANDING", slug } }, update: {}, create: { kind: "LANDING", slug, title, excerpt, body, bodyHtml, isPublished: true, publishedAt: new Date(), seoTitle: `UpayaInd for ${title}` } });
+  }
+  // Starter blog posts (D-172): country resume / CV format guides and two explainers. Create-only, so
+  // edits, unpublishing and deletions made in the CMS are never undone by a later seed run.
+  const guidesAt = Date.now();
+  for (const [i, g] of GUIDE_POSTS.entries()) {
+    const existing = await db.cmsEntry.findUnique({ where: { kind_slug: { kind: "BLOG", slug: g.slug } }, select: { id: true } });
+    if (existing) continue;
+    const { body, bodyHtml } = compileLegal(g.text);
+    await db.cmsEntry.create({
+      data: {
+        kind: "BLOG", slug: g.slug, title: g.title, excerpt: g.excerpt, seoTitle: g.seoTitle, seoDescription: g.seoDescription,
+        body: body as Prisma.InputJsonValue, bodyHtml, sortOrder: i, isPublished: true,
+        // One minute apart so "most recent first" lists keep the intended order.
+        publishedAt: new Date(guidesAt - i * 60_000),
+        data: { tags: [...g.tags], revisions: [] },
+      },
+    });
   }
 }
 

@@ -98,8 +98,8 @@ export function faqItems(entries: PublicEntry[]) {
 }
 
 /** Closing CTA band. `title`/`sub` override the default copy (country homepages, D-141). */
-/** `markets` adds a per-market "Call / WhatsApp" line under the buttons (D-148). */
-export async function FinalCta({ calcom, title, sub, markets }: { calcom: boolean; title?: string; sub?: string; markets?: MarketInfo[] }) {
+/** `markets` adds a per-market "Call / WhatsApp" line under the buttons (D-148). `pricingHref` points at the country's own pricing page (D-172). */
+export async function FinalCta({ calcom, title, sub, markets, pricingHref = "/pricing" }: { calcom: boolean; title?: string; sub?: string; markets?: MarketInfo[]; pricingHref?: string }) {
   const t = await getTranslations("marketing.cta");
   const tc = await getTranslations("marketing.contact");
   return (
@@ -109,7 +109,7 @@ export async function FinalCta({ calcom, title, sub, markets }: { calcom: boolea
         <h2 className={cn(h2Class, "relative mx-auto max-w-[820px] lg:text-[52px]")}>{title ?? t("title")}</h2>
         <p className="relative mx-auto mb-8 mt-4 max-w-[560px] text-lg text-[#EEF4FF]">{sub ?? t("sub")}</p>
         <div className="relative flex flex-wrap justify-center gap-3">
-          <Link href="/pricing" className={cta.white} {...trackAttrs("cta_get_started", { location: "final_cta" })}>
+          <Link href={pricingHref} className={cta.white} {...trackAttrs("cta_get_started", { location: "final_cta" })}>
             {t("getStarted")}
           </Link>
           <Link href={calcom ? "/contact#book" : "/contact"} className={cta.outlineWhite} {...trackAttrs("cta_book_call", { location: "final_cta" })}>

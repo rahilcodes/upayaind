@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import type { HomeMarket } from "@/lib/market";
+import { countryPath, type HomeMarket } from "@/lib/market";
 import { cn } from "@/lib/utils";
 import { ImageSlot } from "./image-slot";
 import { imageSlot } from "./images";
@@ -157,7 +157,7 @@ export async function PromoBanner({ market, tone = "white" }: { market: HomeMark
                   <p className="text-[15px] text-[#3E4A6E]">{t("taglineSub")}</p>
                 </div>
               </div>
-              <Link href="/pricing" className={cta.primary} {...trackAttrs("cta_get_started", { location: `promo_home_${market.toLowerCase()}`, market })}>
+              <Link href={countryPath(market, "/pricing")} className={cta.primary} {...trackAttrs("cta_get_started", { location: `promo_home_${market.toLowerCase()}`, market })}>
                 {t("cta")}
                 <ArrowRight />
               </Link>
